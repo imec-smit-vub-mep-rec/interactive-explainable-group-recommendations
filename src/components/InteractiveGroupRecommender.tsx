@@ -54,6 +54,8 @@ export default function InteractiveGroupRecommender() {
   const [ratings, setRatings] = useState<number[][]>(initialRatings);
   const [strategy, setStrategy] = useState<AggregationStrategy>('LMS');
   const [explanationStrategy, setExplanationStrategy] = useState<ExplanationStrategy>('no_expl');
+  const [sortBestToWorst, setSortBestToWorst] = useState<boolean>(false);
+  const [fadeNonContributing, setFadeNonContributing] = useState<boolean>(false);
 
   // Calculate group scores based on selected strategy
   const groupScores = useMemo(() => {
@@ -73,21 +75,73 @@ export default function InteractiveGroupRecommender() {
     });
   }, [ratings, strategy]);
 
-  // Find all top-scoring non-visited restaurants (handle ties)
+  // Create sorted restaurants array and corresponding data when sorting is enabled
+  const { sortedRestaurants, sortedRatings, sortedGroupScores, originalToSortedIndexMap } = useMemo(() => {
+    if (!sortBestToWorst) {
+      return {
+        sortedRestaurants: restaurants,
+        sortedRatings: ratings,
+        sortedGroupScores: groupScores,
+        originalToSortedIndexMap: restaurants.map((_, index) => index)
+      };
+    }
+
+    // Create array of restaurant indices with their scores for sorting
+    const restaurantScores = restaurants.map((restaurant, index) => ({
+      originalIndex: index,
+      restaurant,
+      score: groupScores[index]
+    }));
+
+    // Sort by score (best to worst) - for LMS, higher is better; for ADD/APP, higher is also better
+    const sortedRestaurantScores = restaurantScores.sort((a, b) => b.score - a.score);
+
+    // Create sorted arrays
+    const sortedRestaurants = sortedRestaurantScores.map(item => item.restaurant);
+    const sortedGroupScores = sortedRestaurantScores.map(item => item.score);
+    
+    // Create mapping from original index to sorted index
+    const originalToSortedIndexMap = new Array(restaurants.length);
+    sortedRestaurantScores.forEach((item, sortedIndex) => {
+      originalToSortedIndexMap[item.originalIndex] = sortedIndex;
+    });
+
+    // Reorder ratings array to match sorted restaurants
+    const sortedRatings = ratings.map(personRatings => 
+      sortedRestaurantScores.map(item => personRatings[item.originalIndex])
+    );
+
+    return {
+      sortedRestaurants,
+      sortedRatings,
+      sortedGroupScores,
+      originalToSortedIndexMap
+    };
+  }, [restaurants, ratings, groupScores, sortBestToWorst]);
+
+  // Find all top-scoring non-visited restaurants (handle ties) - use sorted data
   const recommendedRestaurantIndices = useMemo(() => {
-    const candidates = restaurants
-      .map((restaurant, index) => ({ index, visited: restaurant.visited, score: groupScores[index] }))
+    const candidates = sortedRestaurants
+      .map((restaurant, index) => ({ index, visited: restaurant.visited, score: sortedGroupScores[index] }))
       .filter(r => !r.visited);
     if (candidates.length === 0) return [] as number[];
     const bestScore = Math.max(...candidates.map(c => c.score));
     return candidates.filter(c => c.score === bestScore).map(c => c.index);
-  }, [groupScores]);
+  }, [sortedRestaurants, sortedGroupScores]);
 
   const updateRating = (personIndex: number, restaurantIndex: number, value: number) => {
     setRatings(prev => {
       const newRatings = [...prev];
       newRatings[personIndex] = [...newRatings[personIndex]];
-      newRatings[personIndex][restaurantIndex] = value;
+      
+      // If sorting is enabled, we need to map from sorted index back to original index
+      let actualRestaurantIndex = restaurantIndex;
+      if (sortBestToWorst) {
+        // Find the original index for this sorted index
+        actualRestaurantIndex = sortedRestaurants[restaurantIndex].id - 1; // Assuming id is 1-based
+      }
+      
+      newRatings[personIndex][actualRestaurantIndex] = value;
       return newRatings;
     });
   };
@@ -96,7 +150,7 @@ export default function InteractiveGroupRecommender() {
     setRatings(initialRatings);
   };
 
-  const recommendedRestaurantNames = recommendedRestaurantIndices.map(i => restaurants[i].name);
+  const recommendedRestaurantNames = recommendedRestaurantIndices.map(i => sortedRestaurants[i].name);
 
   const renderExplanation = () => {
     switch (explanationStrategy) {
@@ -108,9 +162,9 @@ export default function InteractiveGroupRecommender() {
             recommendedRestaurantNames={recommendedRestaurantNames} 
             strategy={strategy}
             people={people}
-            restaurants={restaurants}
-            ratings={ratings}
-            groupScores={groupScores}
+            restaurants={sortedRestaurants}
+            ratings={sortedRatings}
+            groupScores={sortedGroupScores}
             recommendedRestaurantIndices={recommendedRestaurantIndices}
           />
         );
@@ -118,13 +172,14 @@ export default function InteractiveGroupRecommender() {
         return (
           <GraphExplanation
             people={people}
-            restaurants={restaurants}
-            ratings={ratings}
+            restaurants={sortedRestaurants}
+            ratings={sortedRatings}
             strategy={strategy}
             recommendedRestaurantIndices={recommendedRestaurantIndices}
-            groupScores={groupScores}
+            groupScores={sortedGroupScores}
             updateRating={updateRating}
             resetRatings={resetRatings}
+            fadeNonContributing={fadeNonContributing}
           />
         );
       default:
@@ -193,6 +248,37 @@ export default function InteractiveGroupRecommender() {
             ))}
           </div>
         </div>
+
+        {/* Display Options */}
+        <div className="bg-gray-50 p-4 rounded-lg mt-4">
+          <h3 className="text-lg font-semibold mb-3">Display Options</h3>
+          <div className="space-y-3">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sortBestToWorst}
+                onChange={(e) => setSortBestToWorst(e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <div>
+                <span className="font-medium text-gray-900">Sort best to worst</span>
+                <p className="text-sm text-gray-600">Sort restaurants by group score (best to worst)</p>
+              </div>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={fadeNonContributing}
+                onChange={(e) => setFadeNonContributing(e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <div>
+                <span className="font-medium text-gray-900">Fade non-contributing users</span>
+                <p className="text-sm text-gray-600">Reduce opacity of bars that don't contribute to the group score</p>
+              </div>
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Ratings Table */}
@@ -203,7 +289,7 @@ export default function InteractiveGroupRecommender() {
             <thead>
               <tr className="bg-gray-50">
                 <th className="border border-gray-300 px-4 py-2 text-left">Person</th>
-                {restaurants.map(restaurant => (
+                {sortedRestaurants.map(restaurant => (
                   <th 
                     key={restaurant.id} 
                     className={`border border-gray-300 px-2 py-2 text-center text-sm ${
@@ -217,9 +303,9 @@ export default function InteractiveGroupRecommender() {
             </thead>
             <tbody>
               {people.map((person, personIndex) => (
-                <tr key={person.name}>
+                <tr key={person.name} style={{ backgroundColor: `${person.color}20` }}>
                   <td className="border border-gray-300 px-4 py-2 font-medium">{person.name}</td>
-                  {restaurants.map((restaurant, restaurantIndex) => (
+                  {sortedRestaurants.map((restaurant, restaurantIndex) => (
                     <td 
                       key={restaurant.id} 
                       className={`border border-gray-300 px-2 py-2 text-center ${
@@ -230,7 +316,7 @@ export default function InteractiveGroupRecommender() {
                         type="number"
                         min="1"
                         max="5"
-                        value={ratings[personIndex][restaurantIndex]}
+                        value={sortedRatings[personIndex][restaurantIndex]}
                         onChange={(e) => {
                           if (!restaurant.visited) {
                             const value = parseInt(e.target.value);

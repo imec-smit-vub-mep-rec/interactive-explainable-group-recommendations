@@ -26,6 +26,7 @@ interface GraphSlidersProps {
   groupScores: number[];
   updateRating: (personIndex: number, restaurantIndex: number, value: number) => void;
   resetRatings: () => void;
+  fadeNonContributing?: boolean;
 }
 
 export default function GraphSliders({
@@ -36,11 +37,33 @@ export default function GraphSliders({
   recommendedRestaurantIndices,
   groupScores,
   updateRating,
-  resetRatings
+  resetRatings,
+  fadeNonContributing = false
 }: GraphSlidersProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Helper function to determine if a bar should be faded based on strategy
+  const shouldFadeBar = (personIndex: number, restaurantIndex: number, rating: number): boolean => {
+    if (!fadeNonContributing) return false;
+    
+    const restaurantRatings = ratings.map(personRatings => personRatings[restaurantIndex]);
+    
+    switch (strategy) {
+      case 'LMS': // Least Misery Strategy - fade bars higher than the minimum
+        const minRating = Math.min(...restaurantRatings);
+        return rating > minRating;
+      
+      case 'APP': // Approval Voting Strategy - fade bars with rating <= 3
+        return rating <= 3;
+      
+      case 'ADD': // Additive Strategy - all bars contribute, so nothing is faded
+        return false;
+      
+      default:
+        return false;
+    }
+  };
 
   // Create D3 chart
   const createChart = () => {
@@ -83,8 +106,9 @@ export default function GraphSliders({
     // Create drag behavior with better precision
     const drag = d3.drag<SVGRectElement, any>()
       .on("start", function(event, d) {
+        const shouldFade = shouldFadeBar(d.personIndex, d.restaurantIndex, d.rating);
         d3.select(this)
-          .attr("opacity", 0.8)
+          .attr("opacity", shouldFade ? 0.5 : 0.8)
           .attr("stroke", "#3B82F6")
           .attr("stroke-width", 2);
       })
@@ -98,8 +122,9 @@ export default function GraphSliders({
           .attr("height", height - clampedY);
       })
       .on("end", function(event, d) {
+        const shouldFade = shouldFadeBar(d.personIndex, d.restaurantIndex, d.rating);
         d3.select(this)
-          .attr("opacity", 1)
+          .attr("opacity", shouldFade ? 0.3 : 1)
           .attr("stroke", "none");
 
         // On drag end, update state with rounded value (single redraw)
@@ -142,13 +167,14 @@ export default function GraphSliders({
         const personX = personScale(person.name) || 0;
         const personWidth = personScale.bandwidth() || 0;
 
+        const shouldFade = shouldFadeBar(personIndex, restaurantIndex, rating);
         const bar = restaurantGroup.append("rect")
           .attr("x", personX)
           .attr("y", barY)
           .attr("width", personWidth)
           .attr("height", barHeight)
           .attr("fill", isVisited ? "#6B7280" : person.color)
-          .attr("opacity", isVisited ? 0.6 : 1)
+          .attr("opacity", isVisited ? 0.6 : (shouldFade ? 0.3 : 1))
           .attr("cursor", "ns-resize")
           .datum({
             personIndex,
@@ -160,7 +186,7 @@ export default function GraphSliders({
           .on("mouseover", function() {
             if (!isVisited) {
               d3.select(this)
-                .attr("opacity", 0.8)
+                .attr("opacity", shouldFade ? 0.5 : 0.8)
                 .attr("stroke", "#3B82F6")
                 .attr("stroke-width", 1);
             }
@@ -168,7 +194,7 @@ export default function GraphSliders({
           .on("mouseout", function() {
             if (!isVisited) {
               d3.select(this)
-                .attr("opacity", 1)
+                .attr("opacity", shouldFade ? 0.3 : 1)
                 .attr("stroke", "none");
             }
           })
@@ -333,7 +359,7 @@ export default function GraphSliders({
   // Effect to create/update chart
   useEffect(() => {
     createChart();
-  }, [ratings, recommendedRestaurantIndices, groupScores, strategy]);
+  }, [ratings, recommendedRestaurantIndices, groupScores, strategy, fadeNonContributing]);
 
   // Effect to handle window resize
   useEffect(() => {
@@ -343,7 +369,7 @@ export default function GraphSliders({
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [ratings, recommendedRestaurantIndices, groupScores, strategy]);
+  }, [ratings, recommendedRestaurantIndices, groupScores, strategy, fadeNonContributing]);
 
   return (
     <div className="bg-white border border-gray-300 rounded-lg p-6">
