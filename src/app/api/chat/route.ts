@@ -26,9 +26,20 @@ const RestaurantRecommendationDataSchema = z.object({
   recommendedRestaurantIndices: z.array(z.number()),
 });
 
+// Global context storage - in a real app, this would be in a database or session
+let currentContext: z.infer<typeof RestaurantRecommendationDataSchema> | null = null;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, context } = await req.json();
+  
+  // Update context if provided
+  if (context) {
+    try {
+      currentContext = RestaurantRecommendationDataSchema.parse(context);
+    } catch (error) {
+      console.error('Invalid context provided:', error);
+    }
+  }
 
   const result = await streamText({
     model: google('gemini-1.5-flash'),
@@ -38,20 +49,11 @@ export async function POST(req: Request) {
         description: 'Explain the current restaurant recommendation result based on the given data',
         inputSchema: z.object({}),
         execute: async () => {
-          const lastUser = [...messages].reverse().find((m: any) => m.role === 'user');
-          const textParts: string[] = (lastUser?.parts || [])
-            .filter((p: any) => p.type === 'text' && typeof p.text === 'string')
-            .map((p: any) => p.text);
-          const full = textParts.join('\n');
-          const jsonMatch = full.match(/CONTEXT_JSON:\s*([\s\S]*?)\n---/);
-          if (!jsonMatch) return 'No context found in the message.';
-          let data: any;
-          try {
-            data = JSON.parse(jsonMatch[1]);
-          } catch {
-            return 'Invalid context JSON provided.';
+          if (!currentContext) {
+            return 'No context available. Please ensure the recommendation data is loaded.';
           }
-          const { people, restaurants, ratings, strategy, groupScores, recommendedRestaurantIndices } = data;
+          
+          const { people, restaurants, ratings, strategy, groupScores, recommendedRestaurantIndices } = currentContext;
 
           const recommendedRestaurants = recommendedRestaurantIndices.map((i: number) => restaurants[i].name);
 
@@ -100,20 +102,11 @@ export async function POST(req: Request) {
           })),
         }),
         execute: async ({ changes }) => {
-          const lastUser = [...messages].reverse().find((m: any) => m.role === 'user');
-          const textParts: string[] = (lastUser?.parts || [])
-            .filter((p: any) => p.type === 'text' && typeof p.text === 'string')
-            .map((p: any) => p.text);
-          const full = textParts.join('\n');
-          const jsonMatch = full.match(/CONTEXT_JSON:\s*([\s\S]*?)\n---/);
-          if (!jsonMatch) return 'No context found in the message.';
-          let data: any;
-          try {
-            data = JSON.parse(jsonMatch[1]);
-          } catch {
-            return 'Invalid context JSON provided.';
+          if (!currentContext) {
+            return 'No context available. Please ensure the recommendation data is loaded.';
           }
-          const { people, restaurants, ratings, strategy } = data;
+          
+          const { people, restaurants, ratings, strategy, groupScores } = currentContext;
 
           const newRatings = ratings.map((row: number[]) => [...row]);
 
@@ -161,7 +154,7 @@ export async function POST(req: Request) {
           explanation += `New scores for all restaurants:\n`;
           restaurants.forEach((restaurant: any, index: number) => {
             if (!restaurant.visited) {
-              const oldScore = data.groupScores[index];
+              const oldScore = groupScores[index];
               const newScore = newGroupScores[index];
               const change = newScore - oldScore;
               const changeStr = change > 0 ? `+${change}` : change.toString();
@@ -193,7 +186,14 @@ The restaurants are: Rest 1, Rest 2, Rest 3, Rest 4, Rest 5, Rest 6, Rest 7, Res
 Rest 5, Rest 7, and Rest 9 have been previously visited and are excluded from recommendations.
 
 When a user asks about changing ratings, use the alterMatrixAndExplainResult tool with the appropriate changes.
-When a user asks to explain the current result, use the explainCurrentResult tool.`,
+When a user asks to explain the current result, use the explainCurrentResult tool.
+
+${currentContext ? `Current context data:
+- Strategy: ${currentContext.strategy}
+- People: ${currentContext.people.map(p => p.name).join(', ')}
+- Restaurants: ${currentContext.restaurants.map(r => r.name).join(', ')}
+- Recommended restaurants: ${currentContext.recommendedRestaurantIndices.map(i => currentContext!.restaurants[i].name).join(', ')}
+- Group scores: ${currentContext.groupScores.map((score, i) => `${currentContext!.restaurants[i].name}: ${score}`).join(', ')}` : 'No context data available.'}`,
   });
 
   return result.toUIMessageStreamResponse();

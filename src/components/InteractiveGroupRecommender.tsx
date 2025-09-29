@@ -6,6 +6,7 @@ import TextExplanation from './TextExplanation';
 import GraphExplanation from './GraphExplanation';
 import PieExplanation from './PieExplanation';
 import Heatmap from './Heatmap';
+import OrderedListExplanation from './OrderedListExplanation';
 
 interface Person {
   name: string;
@@ -20,7 +21,7 @@ interface Restaurant {
 }
 
 type AggregationStrategy = 'LMS' | 'ADD' | 'APP';
-type ExplanationStrategy = 'no_expl' | 'text_expl' | 'graph_expl' | 'pie_expl' | 'heatmap_expl';
+type ExplanationStrategy = 'no_expl' | 'text_expl' | 'graph_expl' | 'pie_expl' | 'heatmap_expl' | 'ordered_list_expl';
 
 const people: Person[] = [
   { name: 'Darcy', pattern: 'solid', color: '#6B7280' },
@@ -210,6 +211,17 @@ export default function InteractiveGroupRecommender() {
             resetRatings={resetRatings}
           />
         );
+      case 'ordered_list_expl':
+        return (
+          <OrderedListExplanation
+            people={people}
+            restaurants={sortedRestaurants}
+            ratings={sortedRatings}
+            strategy={strategy}
+            recommendedRestaurantIndices={recommendedRestaurantIndices}
+            groupScores={sortedGroupScores}
+          />
+        );
       default:
         return <NoExplanation recommendedRestaurantNames={recommendedRestaurantNames} />;
     }
@@ -259,7 +271,8 @@ export default function InteractiveGroupRecommender() {
               { key: 'text_expl', label: 'Text Explanation', description: 'Show recommendation with textual explanation' },
               { key: 'graph_expl', label: 'Graph Explanation', description: 'Show interactive graph with visual explanation' },
               { key: 'pie_expl', label: 'Pie Chart Explanation', description: 'Show interactive pie charts for each restaurant' },
-              { key: 'heatmap_expl', label: 'Heatmap Explanation', description: 'Show interactive heatmap of all person-restaurant ratings' }
+              { key: 'heatmap_expl', label: 'Heatmap Explanation', description: 'Show interactive heatmap of all person-restaurant ratings' },
+              { key: 'ordered_list_expl', label: 'Ordered List Explanation', description: 'Show restaurants ranked by score with contextual explanations' }
             ].map(({ key, label, description }) => (
               <label key={key} className="flex items-center space-x-2 cursor-pointer">
                 <input

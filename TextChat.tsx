@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { Conversation, ConversationContent, ConversationEmptyState } from '@/components/ai-elements/conversation';
 import { Message, MessageContent, MessageAvatar } from '@/components/ai-elements/message';
 import { 
@@ -57,39 +58,41 @@ export default function TextChat({
   recommendedRestaurantIndices,
 }: TextChatProps) {
   const [input, setInput] = useState('');
-  const { messages, sendMessage, status } = useChat();
+  
+  // Create context object
+  const context = {
+    people,
+    restaurants,
+    ratings,
+    strategy,
+    groupScores,
+    recommendedRestaurantIndices,
+  };
 
-  const handleSubmit = (message: any, event: React.FormEvent) => {
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: {
+        context,
+      },
+    }),
+  });
+
+  const handleFormSubmit = (message: any, event: React.FormEvent) => {
     event.preventDefault();
     if (!input.trim()) return;
-    const context = {
-      people,
-      restaurants,
-      ratings,
-      strategy,
-      groupScores,
-      recommendedRestaurantIndices,
-    };
-    const text = `CONTEXT_JSON: ${JSON.stringify(context)}\n---\n${input}`;
-    sendMessage({ text });
+    sendMessage({ text: input });
     setInput('');
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChangeWrapper = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    const context = {
-      people,
-      restaurants,
-      ratings,
-      strategy,
-      groupScores,
-      recommendedRestaurantIndices,
-    };
-    const text = `CONTEXT_JSON: ${JSON.stringify(context)}\n---\n${suggestion}`;
-    sendMessage({ text });
+    setInput(suggestion);
+    sendMessage({ text: suggestion });
+    setInput('');
   };
 
   return (
@@ -133,11 +136,21 @@ export default function TextChat({
                   name={message.role === 'user' ? 'You' : 'Assistant'}
                 />
                 <MessageContent>
-                  {'parts' in message
-                    ? message.parts?.map((p: any, i: number) => (
-                        <div key={i}>{p.type === 'text' ? p.text : null}</div>
-                      ))
-                    : (message as any).content}
+                  {message.parts?.map((part: any, i: number) => (
+                    <div key={i}>
+                      {part.type === 'text' ? part.text : null}
+                      {part.type === 'tool-call' ? (
+                        <div className="text-sm text-gray-600">
+                          Calling tool: {part.toolName}
+                        </div>
+                      ) : null}
+                      {part.type === 'tool-result' ? (
+                        <div className="text-sm text-gray-600">
+                          Tool result: {part.result}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
                 </MessageContent>
               </Message>
             ))
@@ -146,16 +159,16 @@ export default function TextChat({
       </Conversation>
 
       <div className="mt-4">
-        <PromptInput onSubmit={handleSubmit}>
+        <PromptInput onSubmit={handleFormSubmit}>
           <PromptInputBody>
             <PromptInputTextarea
               value={input}
-              onChange={handleInputChange}
+              onChange={handleInputChangeWrapper}
               placeholder="Ask about the restaurant recommendation..."
-              disabled={status === 'streaming'}
+              disabled={status !== 'ready'}
             />
             <PromptInputToolbar>
-              <PromptInputSubmit disabled={status === 'streaming'} />
+              <PromptInputSubmit disabled={status !== 'ready'} />
             </PromptInputToolbar>
           </PromptInputBody>
         </PromptInput>
