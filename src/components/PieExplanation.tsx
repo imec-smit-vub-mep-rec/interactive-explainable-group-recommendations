@@ -1,3 +1,7 @@
+/**
+ * Based on https://ieeexplore.ieee.org/abstract/document/8053925
+ * Also mentioned in Fig. 7 of https://dl.acm.org/doi/10.1145/3555161 
+ */
 'use client';
 
 import React, { useEffect, useRef } from 'react';

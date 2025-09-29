@@ -1,3 +1,8 @@
+/**
+ * Based on TasteWeights with one feature (rating) https://dl.acm.org/doi/10.1145/2365952.2365964
+ * Ratings for items in table 6 of https://dl.acm.org/doi/10.1145/3555161 
+ */
+
 'use client';
 
 import React, { useEffect, useRef } from 'react';
