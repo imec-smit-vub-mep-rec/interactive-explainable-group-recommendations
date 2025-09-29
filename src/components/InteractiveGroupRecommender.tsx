@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import NoExplanation from './NoExplanation';
 import TextExplanation from './TextExplanation';
 import GraphExplanation from './GraphExplanation';
+import PieExplanation from './PieExplanation';
 
 interface Person {
   name: string;
@@ -18,7 +19,7 @@ interface Restaurant {
 }
 
 type AggregationStrategy = 'LMS' | 'ADD' | 'APP';
-type ExplanationStrategy = 'no_expl' | 'text_expl' | 'graph_expl';
+type ExplanationStrategy = 'no_expl' | 'text_expl' | 'graph_expl' | 'pie_expl';
 
 const people: Person[] = [
   { name: 'Darcy', pattern: 'solid', color: '#6B7280' },
@@ -182,6 +183,19 @@ export default function InteractiveGroupRecommender() {
             fadeNonContributing={fadeNonContributing}
           />
         );
+      case 'pie_expl':
+        return (
+          <PieExplanation
+            people={people}
+            restaurants={sortedRestaurants}
+            ratings={sortedRatings}
+            strategy={strategy}
+            recommendedRestaurantIndices={recommendedRestaurantIndices}
+            groupScores={sortedGroupScores}
+            updateRating={updateRating}
+            resetRatings={resetRatings}
+          />
+        );
       default:
         return <NoExplanation recommendedRestaurantNames={recommendedRestaurantNames} />;
     }
@@ -229,7 +243,8 @@ export default function InteractiveGroupRecommender() {
             {[
               { key: 'no_expl', label: 'No Explanation', description: 'Show only the recommendation without explanation' },
               { key: 'text_expl', label: 'Text Explanation', description: 'Show recommendation with textual explanation' },
-              { key: 'graph_expl', label: 'Graph Explanation', description: 'Show interactive graph with visual explanation' }
+              { key: 'graph_expl', label: 'Graph Explanation', description: 'Show interactive graph with visual explanation' },
+              { key: 'pie_expl', label: 'Pie Chart Explanation', description: 'Show interactive pie charts for each restaurant' }
             ].map(({ key, label, description }) => (
               <label key={key} className="flex items-center space-x-2 cursor-pointer">
                 <input
