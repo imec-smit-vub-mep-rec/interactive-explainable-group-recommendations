@@ -1,18 +1,28 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { Conversation, ConversationContent, ConversationEmptyState } from '@/components/ai-elements/conversation';
-import { Message, MessageContent, MessageAvatar } from '@/components/ai-elements/message';
-import { 
-  PromptInput, 
-  PromptInputBody, 
-  PromptInputTextarea, 
-  PromptInputToolbar, 
-  PromptInputSubmit 
-} from '@/components/ai-elements/prompt-input';
-import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
+import React, { useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+} from "@/components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageAvatar,
+} from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputTextarea,
+  PromptInputToolbar,
+  PromptInputSubmit,
+  PromptInputTools,
+} from "@/components/ai-elements/prompt-input";
+import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { Response } from "@/components/ai-elements/response";
 
 interface Person {
   name: string;
@@ -26,7 +36,7 @@ interface Restaurant {
   visited: boolean;
 }
 
-type AggregationStrategy = 'LMS' | 'ADD' | 'APP';
+type AggregationStrategy = "LMS" | "ADD" | "APP";
 
 interface TextChatProps {
   people: Person[];
@@ -42,11 +52,9 @@ const suggestions = [
   "Why was this restaurant recommended?",
   "What if Alex's rating for Rest 4 increased to 5?",
   "What should change so that Rest 1 becomes the top choice?",
-  "How would the recommendation change with ADD strategy?",
   "What if Darcy changed their rating for Rest 2 to 5?",
   "Explain the current recommendation strategy",
-  "What if we used APP strategy instead?",
-  "Show me the individual ratings for the recommended restaurant"
+  "Show me the individual ratings for the recommended restaurant",
 ];
 
 export default function TextChat({
@@ -57,8 +65,8 @@ export default function TextChat({
   groupScores,
   recommendedRestaurantIndices,
 }: TextChatProps) {
-  const [input, setInput] = useState('');
-  
+  const [input, setInput] = useState("");
+
   // Create context object
   const context = {
     people,
@@ -71,7 +79,7 @@ export default function TextChat({
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
-      api: '/api/chat',
+      api: "/api/chat",
       body: {
         context,
       },
@@ -82,33 +90,32 @@ export default function TextChat({
     event.preventDefault();
     if (!input.trim()) return;
     sendMessage({ text: input });
-    setInput('');
+    setInput("");
   };
 
-  const handleInputChangeWrapper = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChangeWrapper = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
     setInput(e.target.value);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
     sendMessage({ text: suggestion });
-    setInput('');
+    setInput("");
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">Ask about the recommendation</h3>
-        <p className="text-sm text-gray-600">
-          Ask questions like "What should change so that Rest 1 would become the preferred option?" 
-          or "What if Alex's rating for Rest 4 would increase to 5?"
-        </p>
+        <h3 className="text-lg font-semibold mb-2">
+          Ask about the recommendation
+        </h3>
       </div>
-      
+
       {/* Show suggestions when there are no messages */}
       {messages.length === 0 && (
         <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-3">Try these example questions:</p>
           <Suggestions>
             {suggestions.map((suggestion) => (
               <Suggestion
@@ -120,31 +127,37 @@ export default function TextChat({
           </Suggestions>
         </div>
       )}
-      
+
       <Conversation className="h-96 border rounded-lg">
         <ConversationContent>
           {messages.length === 0 ? (
-            <ConversationEmptyState 
+            <ConversationEmptyState
               title="No messages yet"
               description="Click on a suggestion above or type your own question to get started"
             />
           ) : (
             messages.map((message) => (
               <Message key={message.id} from={message.role}>
-                <MessageAvatar 
-                  src={message.role === 'user' ? '/user-avatar.png' : '/assistant-avatar.png'}
-                  name={message.role === 'user' ? 'You' : 'Assistant'}
+                <MessageAvatar
+                  src={
+                    message.role === "user"
+                      ? "/user-avatar.png"
+                      : "/assistant-avatar.png"
+                  }
+                  name={message.role === "user" ? "U" : "A"}
                 />
                 <MessageContent>
                   {message.parts?.map((part: any, i: number) => (
                     <div key={i}>
-                      {part.type === 'text' ? part.text : null}
-                      {part.type === 'tool-call' ? (
+                      {part.type === "text" ? (
+                        <Response key={i}>{part.text}</Response>
+                      ) : null}
+                      {part.type === "tool-call" ? (
                         <div className="text-sm text-gray-600">
                           Calling tool: {part.toolName}
                         </div>
                       ) : null}
-                      {part.type === 'tool-result' ? (
+                      {part.type === "tool-result" ? (
                         <div className="text-sm text-gray-600">
                           Tool result: {part.result}
                         </div>
@@ -165,10 +178,11 @@ export default function TextChat({
               value={input}
               onChange={handleInputChangeWrapper}
               placeholder="Ask about the restaurant recommendation..."
-              disabled={status !== 'ready'}
+              disabled={status !== "ready"}
             />
-            <PromptInputToolbar>
-              <PromptInputSubmit disabled={status !== 'ready'} />
+            <PromptInputToolbar className="border-t">
+              <PromptInputTools></PromptInputTools>
+              <PromptInputSubmit disabled={status !== "ready"} />
             </PromptInputToolbar>
           </PromptInputBody>
         </PromptInput>

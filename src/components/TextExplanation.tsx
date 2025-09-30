@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import TextChat from '../../TextChat';
+import TextChat from './TextChat';
 
 interface Person {
   name: string;
@@ -58,18 +58,7 @@ export default function TextExplanation({
         </p>
       </div>
       
-      {people && restaurants && ratings && groupScores && recommendedRestaurantIndices && (
-        <div className="p-4 bg-white border rounded-lg">
-          <TextChat
-            people={people}
-            restaurants={restaurants}
-            ratings={ratings}
-            strategy={strategy}
-            groupScores={groupScores}
-            recommendedRestaurantIndices={recommendedRestaurantIndices}
-          />
-        </div>
-      )}
+
     </div>
   );
 }
