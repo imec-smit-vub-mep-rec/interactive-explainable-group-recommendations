@@ -97,12 +97,12 @@ export default function InteractiveGroupRecommender() {
   const getExplanationStrategyLabel = (strategy: ExplanationStrategy) => {
     const labels = {
       no_expl: "No Explanation",
+      ordered_list_expl: "Ordered List Explanation",
+      graph_expl: "Graph Explanation",
       text_expl: "Text Explanation",
       chat_expl: "Chat Explanation",
-      graph_expl: "Graph Explanation",
       pie_expl: "Pie Chart Explanation",
       heatmap_expl: "Heatmap Explanation",
-      ordered_list_expl: "Ordered List Explanation",
     };
     return labels[strategy];
   };
@@ -322,171 +322,6 @@ export default function InteractiveGroupRecommender() {
           Previous visits: The group has previously visited the following
           restaurants in this order: Rest 7, Rest 5, Rest 9.
         </p>
-
-        {/* Settings Accordion */}
-        <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-          <CollapsibleTrigger className="w-full">
-            <div className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <SettingsIcon className="w-5 h-5 text-gray-600" />
-                  <div className="text-left">
-                    <h3 className="text-lg font-semibold">Settings</h3>
-                    {!isSettingsOpen && (
-                      <div className="text-sm text-gray-600 space-y-1">
-                        <p>
-                          <span className="font-medium">Strategy:</span>{" "}
-                          {getAggregationStrategyLabel(strategy)}
-                        </p>
-                        <p>
-                          <span className="font-medium">Explanation:</span>{" "}
-                          {getExplanationStrategyLabel(explanationStrategy)}
-                        </p>
-                        <p>
-                          <span className="font-medium">Options:</span>{" "}
-                          {sortBestToWorst ? "Sorted" : "Original order"}
-                          {fadeNonContributing && ", Fade non-contributing"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {isSettingsOpen ? (
-                  <ChevronUpIcon className="w-5 h-5 text-gray-600" />
-                ) : (
-                  <ChevronDownIcon className="w-5 h-5 text-gray-600" />
-                )}
-              </div>
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="bg-gray-50 p-4 rounded-lg mt-2 space-y-6">
-              {/* Aggregation Strategy Selection */}
-              <div>
-                <h4 className="text-md font-semibold mb-3">Aggregation Strategy</h4>
-                <Select value={strategy} onValueChange={(value) => setStrategy(value as AggregationStrategy)}>
-                  <SelectTrigger className="w-full max-w-md">
-                    <SelectValue placeholder="Select aggregation strategy" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="LMS">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Least Misery (LMS)</span>
-                        <span className="text-sm text-muted-foreground">Minimize the lowest rating</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="ADD">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Additive (ADD)</span>
-                        <span className="text-sm text-muted-foreground">Maximize total rating sum</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="APP">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Approval Voting (APP)</span>
-                        <span className="text-sm text-muted-foreground">Maximize votes above 3</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Explanation Strategy Selection */}
-              <div>
-                <h4 className="text-md font-semibold mb-3">Explanation Strategy</h4>
-                <Select value={explanationStrategy} onValueChange={(value) => setExplanationStrategy(value as ExplanationStrategy)}>
-                  <SelectTrigger className="w-full max-w-md">
-                    <SelectValue placeholder="Select explanation strategy" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_expl">
-                      <div className="flex flex-col">
-                        <span className="font-medium">No Explanation</span>
-                        <span className="text-sm text-muted-foreground">Show only the recommendation without explanation</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="text_expl">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Text Explanation</span>
-                        <span className="text-sm text-muted-foreground">Show recommendation with textual explanation</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="chat_expl">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Chat Explanation</span>
-                        <span className="text-sm text-muted-foreground">Show interactive chat with explanation</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="graph_expl">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Graph Explanation</span>
-                        <span className="text-sm text-muted-foreground">Show interactive graph with visual explanation</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="pie_expl">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Pie Chart Explanation</span>
-                        <span className="text-sm text-muted-foreground">Show interactive pie charts for each restaurant</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="heatmap_expl">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Heatmap Explanation</span>
-                        <span className="text-sm text-muted-foreground">Show interactive heatmap of all person-restaurant ratings</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="ordered_list_expl">
-                      <div className="flex flex-col">
-                        <span className="font-medium">Ordered List Explanation</span>
-                        <span className="text-sm text-muted-foreground">Show restaurants ranked by score with contextual explanations</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Display Options */}
-              <div>
-                <h4 className="text-md font-semibold mb-3">Display Options</h4>
-                <div className="space-y-3">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={sortBestToWorst}
-                      onChange={(e) => setSortBestToWorst(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <div>
-                      <span className="font-medium text-gray-900">
-                        Sort best to worst
-                      </span>
-                      <p className="text-sm text-gray-600">
-                        Sort restaurants by group score (best to worst)
-                      </p>
-                    </div>
-                  </label>
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={fadeNonContributing}
-                      onChange={(e) => setFadeNonContributing(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <div>
-                      <span className="font-medium text-gray-900">
-                        Fade non-contributing users
-                      </span>
-                      <p className="text-sm text-gray-600">
-                        Reduce opacity of bars that don't contribute to the group
-                        score
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
       </div>
 
       {/* Ratings Table */}
@@ -566,6 +401,215 @@ export default function InteractiveGroupRecommender() {
         >
           Reset to Initial Values
         </button>
+      </div>
+
+      <div className="my-6">
+                {/* Settings Accordion */}
+                <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <SettingsIcon className="w-5 h-5 text-gray-600" />
+                  <div className="text-left">
+                    <h3 className="text-lg font-semibold">Settings</h3>
+                    {!isSettingsOpen && (
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p>
+                          <span className="font-medium">Strategy:</span>{" "}
+                          {getAggregationStrategyLabel(strategy)}
+                        </p>
+                        <p>
+                          <span className="font-medium">Explanation:</span>{" "}
+                          {getExplanationStrategyLabel(explanationStrategy)}
+                        </p>
+                        <p>
+                          <span className="font-medium">Options:</span>{" "}
+                          {sortBestToWorst ? "Sorted" : "Original order"}
+                          {fadeNonContributing && ", Fade non-contributing"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {isSettingsOpen ? (
+                  <ChevronUpIcon className="w-5 h-5 text-gray-600" />
+                ) : (
+                  <ChevronDownIcon className="w-5 h-5 text-gray-600" />
+                )}
+              </div>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="bg-gray-50 p-4 rounded-lg mt-2 space-y-6">
+              {/* Aggregation Strategy Selection */}
+              <div>
+                <h4 className="text-md font-semibold mb-3">
+                  Aggregation Strategy
+                </h4>
+                <Select
+                  value={strategy}
+                  onValueChange={(value) =>
+                    setStrategy(value as AggregationStrategy)
+                  }
+                >
+                  <SelectTrigger className="w-full max-w-md py-6">
+                    <SelectValue placeholder="Select aggregation strategy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LMS">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Least Misery (LMS)</span>
+                        <span className="text-sm text-muted-foreground">
+                          Minimize the lowest rating
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="ADD">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Additive (ADD)</span>
+                        <span className="text-sm text-muted-foreground">
+                          Maximize total rating sum
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="APP">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">
+                          Approval Voting (APP)
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Maximize votes above 3
+                        </span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Explanation Strategy Selection */}
+              <div>
+                <h4 className="text-md font-semibold mb-3">
+                  Explanation Strategy
+                </h4>
+                <Select
+                  value={explanationStrategy}
+                  onValueChange={(value) =>
+                    setExplanationStrategy(value as ExplanationStrategy)
+                  }
+                >
+                  <SelectTrigger className="w-full max-w-md py-6">
+                    <SelectValue placeholder="Select explanation strategy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">No Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show only the recommendation without explanation
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="text_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Text Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show recommendation with textual explanation
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="chat_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Chat Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive chat with explanation
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="graph_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Graph Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive graph with visual explanation
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="pie_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">
+                          Pie Chart Explanation
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive pie charts for each restaurant
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="heatmap_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Heatmap Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive heatmap of all person-restaurant
+                          ratings
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="ordered_list_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">
+                          Ordered List Explanation
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Show restaurants ranked by score with contextual
+                          explanations
+                        </span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Display Options */}
+              <div>
+                <h4 className="text-md font-semibold mb-3">Display Options</h4>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sortBestToWorst}
+                      onChange={(e) => setSortBestToWorst(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-900">
+                        Sort best to worst
+                      </span>
+                      <p className="text-sm text-gray-600">
+                        Sort restaurants by group score (best to worst)
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={fadeNonContributing}
+                      onChange={(e) => setFadeNonContributing(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-900">
+                        Fade non-contributing users
+                      </span>
+                      <p className="text-sm text-gray-600">
+                        Reduce opacity of bars that don't contribute to the
+                        group score
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );

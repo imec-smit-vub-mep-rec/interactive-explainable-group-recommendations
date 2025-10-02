@@ -50,10 +50,10 @@ interface TextChatProps {
 // Starter suggestions for users
 const suggestions = [
   "Why was this restaurant recommended?",
-  "What if Alex's rating for Rest 4 increased to 5?",
   "What should change so that Rest 1 becomes the top choice?",
-  "What if Darcy changed their rating for Rest 2 to 5?",
   "Explain the current recommendation strategy",
+  "What if Alex's rating for Rest 4 increased to 5?",
+  "What if Darcy changed their rating for Rest 2 to 5?",
   "Show me the individual ratings for the recommended restaurant",
 ];
 
@@ -80,16 +80,13 @@ export default function TextChat({
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: {
-        context,
-      },
     }),
   });
 
   const handleFormSubmit = (message: any, event: React.FormEvent) => {
     event.preventDefault();
     if (!input.trim()) return;
-    sendMessage({ text: input });
+    sendMessage({ text: input, metadata: { context } });
     setInput("");
   };
 
@@ -101,7 +98,7 @@ export default function TextChat({
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
-    sendMessage({ text: suggestion });
+    sendMessage({ text: suggestion, metadata: { context } });
     setInput("");
   };
 
@@ -109,7 +106,11 @@ export default function TextChat({
     <div className="w-full max-w-4xl mx-auto">
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">
-          Ask about the recommendation
+          Recommended restaurant
+          {recommendedRestaurantIndices.length > 1 ? "s" : ""}:{" "}
+          {recommendedRestaurantIndices
+            .map((i) => restaurants[i].name)
+            .join(", ")}
         </h3>
       </div>
 

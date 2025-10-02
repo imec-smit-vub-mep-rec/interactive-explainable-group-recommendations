@@ -100,7 +100,6 @@ export default function OrderedListExplanation({
   return (
     <div className="space-y-4">
       <div className="p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold mb-4 text-lg">Ordered List Explanation</h3>
         <p className="text-gray-700 mb-4">
           Restaurants ranked by group score (best to worst):
         </p>
