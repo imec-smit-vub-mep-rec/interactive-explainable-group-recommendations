@@ -8,7 +8,6 @@ import PieExplanation from "./PieExplanation";
 import Heatmap from "./Heatmap";
 import OrderedListExplanation from "./OrderedListExplanation";
 import TextChat from "./TextChat";
-import TextChatBasic from "./TextChatBasic";
 import TextChatWithTools from "./TextChatWithTools";
 import TextChatWithToolsGraph from "./TextChatWithToolsGraph";
 import { Scenario, people, getVisitedOrder } from "@/lib/scenarios";
@@ -63,7 +62,7 @@ export default function InteractiveGroupRecommender({
     });
     console.log("📊 New groupScores calculated:", scores);
     return scores;
-  }, [ratings, strategy]);
+  }, [ratings, strategy, scenario.restaurants]);
 
   // Create sorted restaurants array and corresponding data when sorting is enabled
   const {
@@ -248,6 +247,7 @@ export default function InteractiveGroupRecommender({
             groupScores={sortedGroupScores}
             recommendedRestaurantIndices={recommendedRestaurantIndices}
             originalRestaurants={scenario.restaurants}
+            originalRatings={scenario.ratings}
             onDataUpdate={(updatedData) => {
               console.log(
                 "🔄 InteractiveGroupRecommender onDataUpdate called with:",
@@ -258,18 +258,42 @@ export default function InteractiveGroupRecommender({
                   currentRatingsShape: `${ratings.length}x${ratings[0]?.length}`,
                   currentGroupScoresLength: groupScores.length,
                   currentRecommendedIndices: recommendedRestaurantIndices,
+                  sortBestToWorst,
                 }
               );
 
-              // Update the local state with the new data from the LLM
-              console.log("📝 Setting new ratings...");
-              setRatings(updatedData.ratings);
-
-              console.log(
-                "✅ Ratings updated, useMemo hooks will recalculate groupScores and recommendedRestaurantIndices"
-              );
-              // Note: groupScores and recommendedRestaurantIndices will be recalculated
-              // by the useMemo hooks based on the updated ratings
+              // If sorting is enabled, we need to map the sorted data back to original order
+              if (sortBestToWorst) {
+                console.log("🔄 Mapping sorted data back to original order...");
+                
+                // Map sorted ratings back to original order
+                const originalRatings = scenario.restaurants.map((_, originalIndex) => {
+                  const sortedIndex = originalToSortedIndexMap[originalIndex];
+                  return updatedData.ratings.map(personRatings => personRatings[sortedIndex]);
+                });
+                
+                // Map sorted group scores back to original order
+                const originalGroupScores = scenario.restaurants.map((_, originalIndex) => {
+                  const sortedIndex = originalToSortedIndexMap[originalIndex];
+                  return updatedData.groupScores[sortedIndex];
+                });
+                
+                // Map recommended indices back to original order
+                const originalRecommendedIndices = updatedData.recommendedRestaurantIndices.map(sortedIndex => {
+                  return originalToSortedIndexMap.indexOf(sortedIndex);
+                }).filter(index => index !== -1);
+                
+                console.log("📝 Setting original ratings from sorted data...");
+                setRatings(originalRatings);
+                
+                console.log("✅ Original ratings updated, useMemo hooks will recalculate");
+              } else {
+                // No sorting, data is already in original order
+                console.log("📝 Setting new ratings (no sorting)...");
+                setRatings(updatedData.ratings);
+                
+                console.log("✅ Ratings updated, useMemo hooks will recalculate");
+              }
             }}
           />
         );

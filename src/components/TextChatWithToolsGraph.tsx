@@ -52,6 +52,7 @@ interface TextChatWithToolsGraphProps {
     recommendedRestaurantIndices: number[];
   }) => void;
   originalRestaurants?: Restaurant[];
+  originalRatings?: number[][];
 }
 
 // Starter suggestions for users
@@ -80,6 +81,7 @@ export default function TextChatWithToolsGraph({
   recommendedRestaurantIndices,
   onDataUpdate,
   originalRestaurants,
+  originalRatings,
 }: TextChatWithToolsGraphProps) {
   const [lastToolResult, setLastToolResult] = useState<any>(null);
 
@@ -311,15 +313,129 @@ export default function TextChatWithToolsGraph({
   };
 
   const updateRating = (personIndex: number, restaurantIndex: number, newRating: number) => {
-    // This function is passed to GraphSliders but we don't need to implement it
-    // since the chat interface handles rating updates through tool calls
-    console.log('Graph slider rating update requested:', { personIndex, restaurantIndex, newRating });
+    console.log('🎛️ Graph slider rating update requested:', { 
+      personIndex, 
+      restaurantIndex, 
+      newRating,
+      currentRatings: ratings,
+      restaurants: restaurants.map(r => r.name),
+      hasOnDataUpdate: !!onDataUpdate
+    });
+    
+    // Create updated ratings array
+    const updatedRatings = ratings.map((personRatings, pIndex) => {
+      if (pIndex === personIndex) {
+        const newPersonRatings = [...personRatings];
+        newPersonRatings[restaurantIndex] = newRating;
+        return newPersonRatings;
+      }
+      return personRatings;
+    });
+    
+    console.log('🔄 Updated ratings:', updatedRatings);
+
+    // Recalculate group scores with updated ratings
+    const newGroupScores = restaurants.map((_, restaurantIdx) => {
+      const restaurantRatings = updatedRatings.map(
+        (personRatings) => personRatings[restaurantIdx]
+      );
+
+      switch (strategy) {
+        case "LMS": // Least Misery Strategy
+          return Math.min(...restaurantRatings);
+        case "ADD": // Additive Strategy
+          return restaurantRatings.reduce((sum, rating) => sum + rating, 0);
+        case "APP": // Approval Voting Strategy
+          return restaurantRatings.filter((rating) => rating > 3).length;
+        default:
+          return Math.min(...restaurantRatings);
+      }
+    });
+
+    // Find new recommended restaurants
+    const candidates = restaurants
+      .map((restaurant, index) => ({
+        index,
+        visited: restaurant.visited,
+        score: newGroupScores[index],
+      }))
+      .filter((r) => !r.visited);
+    
+    const newRecommendedRestaurantIndices = candidates.length === 0 
+      ? [] 
+      : candidates
+          .filter((c) => c.score === Math.max(...candidates.map((c) => c.score)))
+          .map((c) => c.index);
+
+    // Update parent component with new data
+    if (onDataUpdate) {
+      console.log('📤 Calling onDataUpdate with:', {
+        ratings: updatedRatings,
+        groupScores: newGroupScores,
+        recommendedRestaurantIndices: newRecommendedRestaurantIndices,
+      });
+      onDataUpdate({
+        ratings: updatedRatings,
+        groupScores: newGroupScores,
+        recommendedRestaurantIndices: newRecommendedRestaurantIndices,
+      });
+      console.log('✅ onDataUpdate called successfully');
+    } else {
+      console.log('❌ No onDataUpdate callback available');
+    }
   };
 
   const resetRatings = () => {
-    // This function is passed to GraphSliders but we don't need to implement it
-    // since the chat interface handles rating resets through tool calls
-    console.log('Graph slider reset requested');
+    console.log('🔄 Graph slider reset requested');
+    
+    // Reset to original scenario ratings if available
+    if (originalRatings && onDataUpdate) {
+      console.log('🔄 Resetting to original ratings:', originalRatings);
+      
+      // Recalculate group scores with original ratings
+      const resetGroupScores = restaurants.map((_, restaurantIdx) => {
+        const restaurantRatings = originalRatings.map(
+          (personRatings) => personRatings[restaurantIdx]
+        );
+
+        switch (strategy) {
+          case "LMS": // Least Misery Strategy
+            return Math.min(...restaurantRatings);
+          case "ADD": // Additive Strategy
+            return restaurantRatings.reduce((sum, rating) => sum + rating, 0);
+          case "APP": // Approval Voting Strategy
+            return restaurantRatings.filter((rating) => rating > 3).length;
+          default:
+            return Math.min(...restaurantRatings);
+        }
+      });
+
+      // Find recommended restaurants with original ratings
+      const candidates = restaurants
+        .map((restaurant, index) => ({
+          index,
+          visited: restaurant.visited,
+          score: resetGroupScores[index],
+        }))
+        .filter((r) => !r.visited);
+      
+      const resetRecommendedRestaurantIndices = candidates.length === 0 
+        ? [] 
+        : candidates
+            .filter((c) => c.score === Math.max(...candidates.map((c) => c.score)))
+            .map((c) => c.index);
+
+      // Update parent component with reset data
+      onDataUpdate({
+        ratings: originalRatings,
+        groupScores: resetGroupScores,
+        recommendedRestaurantIndices: resetRecommendedRestaurantIndices,
+      });
+      
+      console.log('✅ Ratings reset to original values');
+    } else {
+      console.log('⚠️ Cannot reset - no original ratings or onDataUpdate callback available');
+    }
   };
 
   return (
@@ -337,7 +453,12 @@ export default function TextChatWithToolsGraph({
 
       {/* Bar Chart Visualization */}
       <div className="mb-4 border rounded-lg p-4 bg-white">
-        <h4 className="text-md font-medium text-gray-700 mb-2">Interactive Rating Chart</h4>
+        <h4 className="text-md font-medium text-gray-700 mb-2">
+          Interactive Rating Chart
+          <span className="ml-2 text-sm text-blue-600 font-normal">
+            (Click and drag sliders to adjust ratings)
+          </span>
+        </h4>
         <GraphSliders
           people={people}
           restaurants={restaurants}
