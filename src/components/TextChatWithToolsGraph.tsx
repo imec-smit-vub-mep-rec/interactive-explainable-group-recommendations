@@ -23,6 +23,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Response } from "@/components/ai-elements/response";
+import GraphSliders from "./GraphSliders";
 
 interface Person {
   name: string;
@@ -38,7 +39,7 @@ interface Restaurant {
 
 type AggregationStrategy = "LMS" | "ADD" | "APP";
 
-interface TextChatProps {
+interface TextChatWithToolsGraphProps {
   people: Person[];
   restaurants: Restaurant[];
   ratings: number[][];
@@ -70,7 +71,7 @@ const suggestions = [
   "What happens if I increase all ratings for Rest 2 by 1?",
 ];
 
-export default function TextChatWithTools({
+export default function TextChatWithToolsGraph({
   people,
   restaurants,
   ratings,
@@ -79,19 +80,8 @@ export default function TextChatWithTools({
   recommendedRestaurantIndices,
   onDataUpdate,
   originalRestaurants,
-}: TextChatProps) {
-  const [input, setInput] = useState("");
+}: TextChatWithToolsGraphProps) {
   const [lastToolResult, setLastToolResult] = useState<any>(null);
-
-  // Create context object
-  const context = {
-    people,
-    restaurants,
-    ratings,
-    strategy,
-    groupScores,
-    recommendedRestaurantIndices,
-  };
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -101,8 +91,8 @@ export default function TextChatWithTools({
 
   // Handle tool results and update parent component
   useEffect(() => {
-    console.log('🔍 TextChat useEffect triggered - messages length:', messages.length);
-    
+    console.log('🔍 TextChatWithToolsGraph useEffect triggered - messages length:', messages.length);
+
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       console.log('📨 Last message:', {
@@ -116,15 +106,13 @@ export default function TextChatWithTools({
       });
 
       if (lastMessage.role === "assistant" && lastMessage.parts) {
-        // Look for tool-result or tool-{toolName} parts
-        const toolResult = lastMessage.parts.find(part => 
-          part.type === "tool-result" || 
+        const toolResult = lastMessage.parts.find(part =>
+          part.type === "tool-result" ||
           (part.type && part.type.startsWith("tool-") && part.type !== "tool-call")
         );
         console.log('🔧 Tool result found:', !!toolResult, 'Tool result type:', toolResult?.type);
-        
-        // Check if there are any tool calls in progress
-        const toolCallInProgress = lastMessage.parts?.find(part => 
+
+        const toolCallInProgress = lastMessage.parts?.find(part =>
           part.type && part.type.startsWith("tool-") && part.type !== "tool-result"
         );
         if (toolCallInProgress) {
@@ -136,23 +124,21 @@ export default function TextChatWithTools({
             fullPart: toolCallInProgress
           });
         }
-        
+
         if (toolResult && ('result' in toolResult || 'output' in toolResult)) {
-          // Handle both tool-result and tool-{toolName} formats
-          const result = ('result' in toolResult ? toolResult.result : 
-                         'output' in toolResult ? toolResult.output : 
+          const result = ('result' in toolResult ? toolResult.result :
+                         'output' in toolResult ? toolResult.output :
                          toolResult) as any;
           console.log('📊 Tool result structure:', {
             toolResultType: toolResult.type,
             hasResult: 'result' in toolResult,
             hasOutput: 'output' in toolResult,
             resultKeys: Object.keys(result || {}),
-            resultValue: result,
             fullToolResult: toolResult
           });
           
-          // Check if result is valid before trying to access properties
-          if (result && typeof result === 'object' && (result.success !== undefined || result.message)) {
+          // Add null check for result
+          if (result && typeof result === 'object') {
             console.log('📊 Tool result data:', {
               success: result.success,
               hasUpdatedData: !!result.updatedData,
@@ -170,9 +156,6 @@ export default function TextChatWithTools({
 
             if (result.success && result.updatedData && onDataUpdate) {
             console.log('✅ Processing successful tool result');
-            
-            // The tool result contains data based on original indices
-            // We need to convert restaurant names back to original indices for recommended restaurants
             const restaurantList = originalRestaurants || restaurants;
             console.log('🏪 Restaurant list for mapping:', {
               usingOriginal: !!originalRestaurants,
@@ -205,19 +188,17 @@ export default function TextChatWithTools({
               updateCount: result.updatedData.updates?.length || 1
             });
 
-            // Update the parent component with new data
-            // The tool result already contains the correct ratings in original index format
             onDataUpdate(updateData);
             setLastToolResult(result);
-            
-              console.log('✅ Tool result processing complete');
-              console.log('🎉 LastToolResult state updated with:', {
-                success: result.success,
-                message: result.message,
-                hasUpdatedData: !!result.updatedData,
-                updateType: result.updatedData.updates ? 'multiple' : 'single',
-                updateCount: result.updatedData.updates?.length || 1
-              });
+
+            console.log('✅ Tool result processing complete');
+            console.log('🎉 LastToolResult state updated with:', {
+              success: result.success,
+              message: result.message,
+              hasUpdatedData: !!result.updatedData,
+              updateType: result.updatedData.updates ? 'multiple' : 'single',
+              updateCount: result.updatedData.updates?.length || 1
+            });
             } else {
               console.log('❌ Tool result not processed:', {
                 success: result.success,
@@ -226,19 +207,18 @@ export default function TextChatWithTools({
               });
             }
           } else {
-            console.log('❌ Invalid tool result format:', {
-              result: result,
-              resultType: typeof result,
-              hasSuccess: result && 'success' in result,
-              hasMessage: result && 'message' in result
+            console.log('❌ Result is null or undefined:', {
+              result,
+              toolResultType: toolResult.type,
+              hasResult: 'result' in toolResult,
+              hasOutput: 'output' in toolResult
             });
           }
         } else {
-          // Check if we have a tool call that might contain the result in a different format
-          const toolCallPart = lastMessage.parts?.find(part => 
+          const toolCallPart = lastMessage.parts?.find(part =>
             part.type && part.type.startsWith("tool-") && part.type !== "tool-result"
           );
-          
+
           if (toolCallPart) {
             console.log('🔍 Found tool call part, checking for result data:', {
               type: toolCallPart.type,
@@ -248,19 +228,16 @@ export default function TextChatWithTools({
               keys: Object.keys(toolCallPart),
               fullPart: toolCallPart
             });
-            
-            // Try to extract result from the tool call part
-            const result = ('result' in toolCallPart ? toolCallPart.result : 
-                           'output' in toolCallPart ? toolCallPart.output : 
-                           'data' in toolCallPart ? toolCallPart.data : 
+
+            const result = ('result' in toolCallPart ? toolCallPart.result :
+                           'output' in toolCallPart ? toolCallPart.output :
+                           'data' in toolCallPart ? toolCallPart.data :
                            toolCallPart) as any;
-                           
+
             if (result && typeof result === 'object' && (result.success || result.message)) {
               console.log('✅ Found result in tool call part:', result);
-              // Process the result as if it were a tool result
               if (result.success && result.updatedData && onDataUpdate) {
                 console.log('🔄 Processing result from tool call part...');
-                // Use the same processing logic as above
                 const restaurantList = originalRestaurants || restaurants;
                 const updatedRecommendedIndices = result.updatedData.newRecommendedRestaurantIndices
                   .map((name: string) => restaurantList.findIndex(r => r.name === name))
@@ -294,156 +271,167 @@ export default function TextChatWithTools({
     }
   }, [messages, onDataUpdate, people, restaurants, originalRestaurants]);
 
-  // Track when lastToolResult changes
-  useEffect(() => {
-    if (lastToolResult) {
-      console.log('🔄 lastToolResult state changed:', {
-        success: lastToolResult.success,
-        message: lastToolResult.message,
-        hasUpdatedData: !!lastToolResult.updatedData
-      });
-    }
-  }, [lastToolResult]);
-
-  const handleFormSubmit = (message: any, event: React.FormEvent) => {
+  const handleFormSubmit = (message: { text?: string; files?: any[] }, event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!input.trim()) return;
-    
-    console.log('📤 Sending message:', {
-      text: input,
-      context: {
-        peopleCount: context.people.length,
-        restaurantsCount: context.restaurants.length,
-        ratingsShape: `${context.ratings.length}x${context.ratings[0]?.length}`,
-        strategy: context.strategy
-      }
-    });
-    
-    sendMessage({ text: input, metadata: { context } });
-    setInput("");
-  };
-
-  const handleInputChangeWrapper = (
-    e: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
-    setInput(e.target.value);
+    const messageText = message.text;
+    if (messageText?.trim()) {
+      console.log('📤 Sending message:', { text: messageText, context: { people, restaurants, ratings, strategy, groupScores, recommendedRestaurantIndices } });
+      sendMessage({
+        text: messageText,
+        metadata: {
+          context: {
+            people,
+            restaurants,
+            ratings,
+            strategy,
+            groupScores,
+            recommendedRestaurantIndices,
+          },
+        },
+      });
+      // Clear the form
+      (event.currentTarget as HTMLFormElement).reset();
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    console.log('💡 Suggestion clicked:', suggestion);
-    setInput(suggestion);
-    sendMessage({ text: suggestion, metadata: { context } });
-    setInput("");
+    sendMessage({
+      text: suggestion,
+      metadata: {
+        context: {
+          people,
+          restaurants,
+          ratings,
+          strategy,
+          groupScores,
+          recommendedRestaurantIndices,
+        },
+      },
+    });
+  };
+
+  const updateRating = (personIndex: number, restaurantIndex: number, newRating: number) => {
+    // This function is passed to GraphSliders but we don't need to implement it
+    // since the chat interface handles rating updates through tool calls
+    console.log('Graph slider rating update requested:', { personIndex, restaurantIndex, newRating });
+  };
+
+  const resetRatings = () => {
+    // This function is passed to GraphSliders but we don't need to implement it
+    // since the chat interface handles rating resets through tool calls
+    console.log('Graph slider reset requested');
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="flex flex-col h-full">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">
-          Recommended restaurant
-          {recommendedRestaurantIndices.length > 1 ? "s" : ""}:{" "}
-          {recommendedRestaurantIndices
-            .map((i) => restaurants[i].name)
-            .join(", ")}
+        <h3 className="text-lg font-semibold text-gray-800">
+          Recommended restaurant:{" "}
+          {recommendedRestaurantIndices.length > 0
+            ? recommendedRestaurantIndices
+                .map((i) => restaurants[i].name)
+                .join(", ")
+            : "None"}
         </h3>
       </div>
 
+      {/* Bar Chart Visualization */}
+      <div className="mb-4 border rounded-lg p-4 bg-white">
+        <h4 className="text-md font-medium text-gray-700 mb-2">Interactive Rating Chart</h4>
+        <GraphSliders
+          people={people}
+          restaurants={restaurants}
+          ratings={ratings}
+          strategy={strategy}
+          recommendedRestaurantIndices={recommendedRestaurantIndices}
+          groupScores={groupScores}
+          updateRating={updateRating}
+          resetRatings={resetRatings}
+          fadeNonContributing={true}
+        />
+      </div>
 
-      {/* Show suggestions when there are no messages */}
-      {messages.length === 0 && (
-        <div className="mb-4">
-          <Suggestions>
-            {suggestions.map((suggestion) => (
-              <Suggestion
-                key={suggestion}
-                suggestion={suggestion}
-                onClick={handleSuggestionClick}
+      {/* Chat Interface */}
+      <div className="flex-1 flex flex-col">
+        <Conversation className="h-96 border rounded-lg">
+          <ConversationContent>
+            {messages.length === 0 ? (
+              <ConversationEmptyState
+                title="No messages yet"
+                description="Click on a suggestion above or type your own question to get started"
               />
-            ))}
-          </Suggestions>
-        </div>
-      )}
-
-      <Conversation className="h-96 border rounded-lg">
-        <ConversationContent>
-          {messages.length === 0 ? (
-            <ConversationEmptyState
-              title="No messages yet"
-              description="Click on a suggestion above or type your own question to get started"
-            />
-          ) : (
-            messages.map((message) => (
-              <Message key={message.id} from={message.role}>
-                <MessageAvatar
-                  src={
-                    message.role === "user"
-                      ? "/user-avatar.png"
-                      : "/assistant-avatar.png"
-                  }
-                  name={message.role === "user" ? "U" : "A"}
-                />
-                <MessageContent>
-                  {message.parts?.map((part: any, i: number) => (
-                    <div key={i}>
-                      {part.type === "text" ? (
-                        <Response key={i}>{part.text}</Response>
-                      ) : null}
-                      {part.type === "tool-call" ? (
-                        <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded border">
-                          🔧 Calling tool: {part.toolName}
-                        </div>
-                      ) : null}
-                      {(part.type === "tool-result" || (part.type && part.type.startsWith("tool-") && part.type !== "tool-call")) ? (
-                        <div className="text-sm text-gray-600">
-                          {(() => {
-                            const result = part.result || part.output || part.data || part;
-                            return result?.success ? (
-                              <div className="text-green-600 bg-green-50 p-3 rounded border border-green-200">
-                                <div className="flex items-center mb-2">
-                                  <span className="text-green-600 mr-2">✓</span>
-                                  <strong>{result.message}</strong>
-                                </div>
-                                {result.updatedData && (
-                                  <div className="text-sm">
-                                    <p className="mb-2">New recommended restaurants: {result.updatedData.newRecommendedRestaurantIndices.join(", ")}</p>
-                                    {result.updatedData.updates && result.updatedData.updates.length > 1 && (
-                                      <div>
-                                        <p className="font-medium mb-1">Updated ratings:</p>
-                                        <ul className="list-disc list-inside ml-2 space-y-1">
-                                          {result.updatedData.updates.map((update: any, index: number) => (
-                                            <li key={index}>
-                                              {update.personName}'s rating for {update.restaurantName}: {update.oldRating} → {update.newRating}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
+            ) : (
+              messages.map((message) => (
+                <Message key={message.id} from={message.role}>
+                  <MessageAvatar
+                    src={
+                      message.role === "user"
+                        ? "/user-avatar.png"
+                        : "/assistant-avatar.png"
+                    }
+                    name={message.role === "user" ? "U" : "A"}
+                  />
+                  <MessageContent>
+                    {message.parts?.map((part: any, i: number) => (
+                      <div key={i}>
+                        {part.type === "text" ? (
+                          <Response key={i}>{part.text}</Response>
+                        ) : null}
+                        {part.type === "tool-call" ? (
+                          <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded border">
+                            🔧 Calling tool: {part.toolName}
+                          </div>
+                        ) : null}
+                        {(part.type === "tool-result" || (part.type && part.type.startsWith("tool-") && part.type !== "tool-call")) ? (
+                          <div className="text-sm text-gray-600">
+                            {(() => {
+                              const result = part.result || part.output || part.data || part;
+                              return result?.success ? (
+                                <div className="text-green-600 bg-green-50 p-3 rounded border border-green-200">
+                                  <div className="flex items-center mb-2">
+                                    <span className="text-green-600 mr-2">✓</span>
+                                    <strong>{result.message}</strong>
                                   </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-red-600 bg-red-50 p-2 rounded border">
-                                ✗ Tool error: {result?.message || "Unknown error"}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </MessageContent>
-              </Message>
-            ))
-          )}
-        </ConversationContent>
-      </Conversation>
+                                  {result.updatedData && (
+                                    <div className="text-sm">
+                                      <p className="mb-2">New recommended restaurants: {result.updatedData.newRecommendedRestaurantIndices.join(", ")}</p>
+                                      {result.updatedData.updates && result.updatedData.updates.length > 1 && (
+                                        <div>
+                                          <p className="font-medium mb-1">Updated ratings:</p>
+                                          <ul className="list-disc list-inside ml-2 space-y-1">
+                                            {result.updatedData.updates.map((update: any, index: number) => (
+                                              <li key={index}>
+                                                {update.personName}'s rating for {update.restaurantName}: {update.oldRating} → {update.newRating}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-red-600 bg-red-50 p-2 rounded border">
+                                  ✗ Tool error: {result?.message || "Unknown error"}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </MessageContent>
+                </Message>
+              ))
+            )}
+          </ConversationContent>
+        </Conversation>
 
-      <div className="mt-4">
+        <div className="mt-4">
         <PromptInput onSubmit={handleFormSubmit}>
           <PromptInputBody>
             <PromptInputTextarea
-              value={input}
-              onChange={handleInputChangeWrapper}
+              name="message"
               placeholder="Ask about the restaurant recommendation or request changes..."
               disabled={status !== "ready"}
             />
@@ -453,8 +441,25 @@ export default function TextChatWithTools({
             </PromptInputToolbar>
           </PromptInputBody>
         </PromptInput>
+        </div>
+
+        {/* Show suggestions when there are no messages */}
+        {messages.length === 0 && (
+          <div className="mb-4">
+            <Suggestions>
+              {suggestions.map((suggestion) => (
+                <Suggestion
+                  key={suggestion}
+                  suggestion={suggestion}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                >
+                  {suggestion}
+                </Suggestion>
+              ))}
+            </Suggestions>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-

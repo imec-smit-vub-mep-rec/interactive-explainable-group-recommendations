@@ -9,17 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { scenarios, Scenario, getRandomScenario, getScenariosByType, getRandomScenarioByType } from "@/lib/scenarios";
+import {
+  scenarios,
+  Scenario,
+  getRandomScenario,
+  getScenariosByType,
+  getRandomScenarioByType,
+} from "@/lib/scenarios";
+import { ExplanationStrategy } from "@/lib/types";
 
 type AggregationStrategy = "LMS" | "ADD" | "APP";
-type ExplanationStrategy =
-  | "no_expl"
-  | "text_expl"
-  | "chat_expl"
-  | "graph_expl"
-  | "pie_expl"
-  | "heatmap_expl"
-  | "ordered_list_expl";
 
 interface SettingsSidebarProps {
   isOpen: boolean;
@@ -52,7 +51,10 @@ const getExplanationStrategyLabel = (strategy: ExplanationStrategy) => {
     ordered_list_expl: "Ordered List Explanation",
     graph_expl: "Graph Explanation",
     text_expl: "Text Explanation",
-    chat_expl: "Chat Explanation",
+    chat_expl: "Chat Explanation (Legacy)",
+    chat_expl_basic: "Chat Explanation (Basic)",
+    chat_expl_with_tools: "Chat Explanation (With Tools)",
+    chat_expl_with_tools_graph: "Chat Explanation (With Tools + Graph)",
     pie_expl: "Pie Chart Explanation",
     heatmap_expl: "Heatmap Explanation",
   };
@@ -97,7 +99,9 @@ export default function SettingsSidebar({
 
           {/* Current Settings Summary */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Current Settings</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Current Settings
+            </h3>
             <div className="text-sm text-gray-600 space-y-1">
               <p>
                 <span className="font-medium">Scenario:</span>{" "}
@@ -122,17 +126,18 @@ export default function SettingsSidebar({
           <div className="space-y-6">
             {/* Scenario Selection */}
             <div>
-              <h4 className="text-md font-semibold mb-3">
-                Scenario
-              </h4>
+              <h4 className="text-md font-semibold mb-3">Scenario</h4>
               <Select
                 value={currentScenario.id}
                 onValueChange={(value) => {
                   if (value === "random") {
-                    const randomScenario = getRandomScenarioByType(strategyType);
+                    const randomScenario =
+                      getRandomScenarioByType(strategyType);
                     onScenarioChange(randomScenario);
                   } else {
-                    const scenario = availableScenarios.find(s => s.id === value);
+                    const scenario = availableScenarios.find(
+                      (s) => s.id === value
+                    );
                     if (scenario) {
                       onScenarioChange(scenario);
                     }
@@ -198,9 +203,7 @@ export default function SettingsSidebar({
                   </SelectItem>
                   <SelectItem value="APP">
                     <div className="flex flex-col text-left">
-                      <span className="font-medium">
-                        Approval Voting (APP)
-                      </span>
+                      <span className="font-medium">Approval Voting (APP)</span>
                       <span className="text-sm text-muted-foreground">
                         Maximize votes above 3
                       </span>
@@ -243,9 +246,41 @@ export default function SettingsSidebar({
                   </SelectItem>
                   <SelectItem value="chat_expl">
                     <div className="flex flex-col text-left">
-                      <span className="font-medium">Chat Explanation</span>
+                      <span className="font-medium">
+                        Chat Explanation (Legacy)
+                      </span>
                       <span className="text-sm text-muted-foreground">
-                        Show interactive chat with explanation
+                        Show interactive chat with explanation (legacy version)
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="chat_expl_basic">
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">
+                        Chat Explanation (Basic)
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        Read-only chat interface for explanations only
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="chat_expl_with_tools">
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">
+                        Chat Explanation (With Tools)
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        Interactive chat with tool calling and rating updates
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="chat_expl_with_tools_graph">
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">
+                        Chat Explanation (With Tools + Graph)
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        Interactive chat with tools and bar chart visualization
                       </span>
                     </div>
                   </SelectItem>
@@ -259,9 +294,7 @@ export default function SettingsSidebar({
                   </SelectItem>
                   <SelectItem value="pie_expl">
                     <div className="flex flex-col text-left">
-                      <span className="font-medium">
-                        Pie Chart Explanation
-                      </span>
+                      <span className="font-medium">Pie Chart Explanation</span>
                       <span className="text-sm text-muted-foreground">
                         Show interactive pie charts for each restaurant
                       </span>
@@ -315,7 +348,9 @@ export default function SettingsSidebar({
                   <input
                     type="checkbox"
                     checked={fadeNonContributing}
-                    onChange={(e) => onFadeNonContributingChange(e.target.checked)}
+                    onChange={(e) =>
+                      onFadeNonContributingChange(e.target.checked)
+                    }
                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                   />
                   <div>
@@ -323,8 +358,8 @@ export default function SettingsSidebar({
                       Fade non-contributing users
                     </span>
                     <p className="text-sm text-gray-600">
-                      Reduce opacity of bars that don't contribute to the
-                      group score
+                      Reduce opacity of bars that don't contribute to the group
+                      score
                     </p>
                   </div>
                 </label>
