@@ -109,8 +109,15 @@ export default function GraphSliders({
       .paddingInner(0.1);
 
     // Create drag behavior with better precision
-    const drag = d3.drag<SVGRectElement, any>()
-      .on("start", function(event, d) {
+    interface BarDatum {
+      personIndex: number;
+      restaurantIndex: number;
+      rating: number;
+      person: string;
+      restaurant: string;
+    }
+    const drag = d3.drag<SVGRectElement, BarDatum>()
+      .on("start", function(_event, d) {
         const shouldFade = shouldFadeBar(d.personIndex, d.restaurantIndex, d.rating);
         d3.select(this)
           .attr("opacity", shouldFade ? 0.5 : 0.8)
@@ -119,7 +126,7 @@ export default function GraphSliders({
       })
       .on("drag", function(event, d) {
         // Move bar visually during drag without triggering full React redraw
-        const pointer = d3.pointer(event, g.node() as any);
+        const pointer = d3.pointer(event, g.node() as SVGGElement);
         const pointerY = pointer[1];
         const clampedY = Math.max(0, Math.min(height, pointerY));
         d3.select(this)
@@ -133,7 +140,7 @@ export default function GraphSliders({
           .attr("stroke", "none");
 
         // On drag end, update state with rounded value (single redraw)
-        const pointer = d3.pointer(event, g.node() as any);
+        const pointer = d3.pointer(event, g.node() as SVGGElement);
         const pointerY = pointer[1];
         const clampedY = Math.max(0, Math.min(height, pointerY));
         const continuousRating = 5 - (clampedY / height) * 4;
@@ -173,7 +180,7 @@ export default function GraphSliders({
         const personWidth = personScale.bandwidth() || 0;
 
         const shouldFade = shouldFadeBar(personIndex, restaurantIndex, rating);
-        const bar = restaurantGroup.append("rect")
+        restaurantGroup.append("rect")
           .attr("x", personX)
           .attr("y", barY)
           .attr("width", personWidth)
@@ -204,7 +211,7 @@ export default function GraphSliders({
             }
           })
           // Enable dragging only for non-visited restaurants
-          .call(isVisited ? (() => null) as any : drag);
+          .call(isVisited ? () => {} : drag);
 
         // Add rating text only if bar is tall enough
         if (barHeight > 20) {
@@ -338,7 +345,7 @@ export default function GraphSliders({
       .call(d3.axisBottom(xScale));
 
     // Style the text labels
-    const xText = xAxis.selectAll<SVGTextElement, unknown>("text");
+    const xText = xAxis.selectAll<SVGTextElement, string>("text");
     xText
       .attr("font-size", "12px")
       .style("fill", "#000000") // Keep text black
@@ -377,7 +384,7 @@ export default function GraphSliders({
   }, [ratings, recommendedRestaurantIndices, groupScores, strategy, fadeNonContributing]);
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg p-6">
+    <div className="bg-white border border-gray-300 rounded-lg p-6 max-h-[calc(100vh-20rem)] overflow-y-auto">
       {/* D3 Chart Container */}
       <div 
         ref={chartRef}

@@ -13,12 +13,10 @@ import {
   SelectValue,
 } from "./ui/select";
 import {
-  scenarios,
   Scenario,
-  getRandomScenario,
   getScenariosByType,
   getRandomScenarioByType,
-} from "@/lib/scenarios";
+} from "@/lib/scenario_helpers";
 import { ExplanationStrategy } from "@/lib/types";
 
 type AggregationStrategy = "LMS" | "ADD" | "APP";
@@ -395,7 +393,7 @@ export default function SettingsSidebar({
                       Fade non-contributing users
                     </span>
                     <p className="text-sm text-gray-600">
-                      Reduce opacity of bars that don't contribute to the group
+                      Reduce opacity of bars that don&apos;t contribute to the group
                       score
                     </p>
                   </div>

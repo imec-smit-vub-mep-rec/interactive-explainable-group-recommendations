@@ -107,10 +107,7 @@ export default function PieExplanation({
     const container = chartRef.current;
     container.innerHTML = "";
 
-    const margin = 20;
-    const chartSpacing = 20;
-    const chartsPerRow = 5;
-    const chartSize = 140;
+      const chartSize = 140;
 
     restaurants.forEach((restaurant, restaurantIndex) => {
       const isRecommended =
@@ -138,15 +135,21 @@ export default function PieExplanation({
       const centerX = chartSize / 2;
       const centerY = (chartSize - 20) / 2;
 
+      interface PieDatum {
+        person: Person;
+        rating: number;
+        personIndex: number;
+        value: number;
+      }
       // Create pie generator
       const pie = d3
-        .pie<any>()
+        .pie<PieDatum>()
         .value((d) => d.value)
         .sort(null);
 
       // Create arc generator
       const arc = d3
-        .arc<any>()
+        .arc<d3.PieArcDatum<PieDatum>>()
         .innerRadius(0)
         .outerRadius(pieSize / 2);
 
@@ -180,12 +183,12 @@ export default function PieExplanation({
         .attr("stroke", "#fff")
         .attr("stroke-width", 2)
         .style("cursor", isVisited ? "default" : "pointer")
-        .on("mouseover", function (event, d) {
+        .on("mouseover", function () {
           if (!isVisited) {
             d3.select(this).attr("opacity", 0.8).attr("stroke-width", 3);
           }
         })
-        .on("mouseout", function (event, d) {
+        .on("mouseout", function () {
           if (!isVisited) {
             d3.select(this).attr("opacity", 1).attr("stroke-width", 2);
           }
@@ -281,7 +284,7 @@ export default function PieExplanation({
   }, [ratings, recommendedRestaurantIndices, groupScores, strategy]);
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg p-6">
+    <div className="bg-white border border-gray-300 rounded-lg p-6 max-h-[calc(100vh-20rem)] overflow-y-auto">
       <div className="mb-4">
         <p className="text-sm text-gray-600 mb-4">
           Each pie chart represents a restaurant. Chart size reflects the group

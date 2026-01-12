@@ -98,17 +98,17 @@ export default function OrderedListExplanation({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="p-4 bg-gray-50 rounded-lg" data-onboarding="ranked-list">
-        <p className="text-gray-700 mb-4">
+    <div className="space-y-2">
+      <div className="p-3 bg-gray-50 rounded-lg" data-onboarding="ranked-list">
+        <p className="text-gray-700 mb-2 text-sm">
           Restaurants ranked by group score (best to worst):
         </p>
 
-        <div className="space-y-3">
+        <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
           {restaurantsWithRankings.map((restaurant, rankIndex) => (
             <div
               key={restaurant.id}
-              className={`p-4 rounded-lg border-2 transition-all ${
+              className={`p-2 rounded-lg border-2 transition-all ${
                 restaurant.visited
                   ? "bg-gray-200 border-gray-300 opacity-60"
                   : restaurant.isRecommended
@@ -116,10 +116,10 @@ export default function OrderedListExplanation({
                   : "bg-white border-gray-200 hover:border-gray-300"
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
                       restaurant.visited
                         ? "bg-gray-400 text-white"
                         : restaurant.isRecommended
@@ -130,35 +130,34 @@ export default function OrderedListExplanation({
                     {restaurant.rank}
                   </div>
 
-                  <div>
+                  <div className="min-w-0 flex-shrink-0">
                     <h4
-                      className={`font-semibold ${
+                      className={`font-semibold text-sm ${
                         restaurant.visited ? "text-gray-500" : "text-gray-900"
                       }`}
                     >
                       {restaurant.name}
                     </h4>
-  
                   </div>
 
-                  <div>
-                  <p
-                      className={`text-sm ${
+                  <div className="flex-shrink-0">
+                    <p
+                      className={`text-xs ${
                         restaurant.visited ? "text-gray-400" : "text-gray-600"
                       }`}
                     >
                       Score: {restaurant.score}
                     </p>
-                    </div>
+                  </div>
 
-                  <div className="ml-4">
+                  <div className="ml-2 min-w-0 flex-1">
                     {restaurant.visited ? (
-                      <p className="text-sm text-gray-500 italic">
-                        Restaurant is already visited
+                      <p className="text-xs text-gray-500 italic">
+                        Already visited
                       </p>
                     ) : (
                       <p
-                        className="text-sm text-gray-700"
+                        className="text-xs text-gray-700"
                         {...(rankIndex === 0 && {
                           "data-onboarding": "strategy-label",
                         })}
@@ -170,7 +169,7 @@ export default function OrderedListExplanation({
                 </div>
 
                 {restaurant.isRecommended && !restaurant.visited && (
-                  <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                  <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full flex-shrink-0">
                     Recommended
                   </span>
                 )}

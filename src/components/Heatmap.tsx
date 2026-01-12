@@ -114,7 +114,7 @@ export default function Heatmap({
         }
         
         // Show tooltip
-        const tooltip = d3.select("body").selectAll(".heatmap-tooltip")
+        d3.select("body").selectAll(".heatmap-tooltip")
           .data([d])
           .join("div")
           .attr("class", "heatmap-tooltip")
@@ -208,7 +208,7 @@ export default function Heatmap({
     });
 
     // Add visited restaurant indicators
-    restaurants.forEach((restaurant, index) => {
+    restaurants.forEach((restaurant) => {
       if (restaurant.visited) {
         const x = xScale(restaurant.name)! + xScale.bandwidth() / 2;
         
@@ -275,11 +275,11 @@ export default function Heatmap({
   }, [ratings, recommendedRestaurantIndices, restaurants, people]);
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg p-6">
+    <div className="bg-white border border-gray-300 rounded-lg p-6 max-h-[calc(100vh-20rem)] overflow-y-auto">
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">Heatmap Explanation</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Each cell shows a person's rating for a restaurant. Color intensity represents rating value (red = low, green = high). 
+          Each cell shows a person&apos;s rating for a restaurant. Color intensity represents rating value (red = low, green = high). 
           Click cells to change ratings (1-5 cycle).
         </p>
       </div>

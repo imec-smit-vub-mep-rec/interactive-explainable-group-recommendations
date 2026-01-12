@@ -10,7 +10,7 @@ import OrderedListExplanation from "./OrderedListExplanation";
 import TextChat from "./TextChat";
 import TextChatWithTools from "./TextChatWithTools";
 import TextChatWithToolsGraph from "./TextChatWithToolsGraph";
-import { Scenario, people, getVisitedOrder } from "@/lib/scenarios";
+import { Scenario, people, getVisitedOrder } from "@/lib/scenario_helpers";
 import { ExplanationStrategy } from "@/lib/types";
 
 // Remove duplicate interfaces since they're now imported from scenarios.ts
@@ -162,14 +162,8 @@ export default function InteractiveGroupRecommender({
       const newRatings = [...prev];
       newRatings[personIndex] = [...newRatings[personIndex]];
 
-      // If sorting is enabled, we need to map from sorted index back to original index
-      let actualRestaurantIndex = restaurantIndex;
-      if (sortBestToWorst) {
-        // Find the original index for this sorted index
-        actualRestaurantIndex = sortedRestaurants[restaurantIndex].id - 1; // Assuming id is 1-based
-      }
-
-      newRatings[personIndex][actualRestaurantIndex] = value;
+      // Table always uses original order, so restaurantIndex is already the original index
+      newRatings[personIndex][restaurantIndex] = value;
       return newRatings;
     });
   };
@@ -183,7 +177,8 @@ export default function InteractiveGroupRecommender({
   );
 
   // Determine if table inputs should be disabled
-  const isTableDisabled = explanationStrategy === "no_expl" || explanationStrategy === "static_list";
+  const isTableDisabled =
+    explanationStrategy === "no_expl" || explanationStrategy === "static_list";
 
   const renderExplanation = () => {
     switch (explanationStrategy) {
@@ -304,34 +299,47 @@ export default function InteractiveGroupRecommender({
               // If sorting is enabled, we need to map the sorted data back to original order
               if (sortBestToWorst) {
                 console.log("🔄 Mapping sorted data back to original order...");
-                
+
                 // Map sorted ratings back to original order
-                const originalRatings = scenario.restaurants.map((_, originalIndex) => {
-                  const sortedIndex = originalToSortedIndexMap[originalIndex];
-                  return updatedData.ratings.map(personRatings => personRatings[sortedIndex]);
-                });
-                
+                const originalRatings = scenario.restaurants.map(
+                  (_, originalIndex) => {
+                    const sortedIndex = originalToSortedIndexMap[originalIndex];
+                    return updatedData.ratings.map(
+                      (personRatings) => personRatings[sortedIndex]
+                    );
+                  }
+                );
+
                 // Map sorted group scores back to original order
-                const originalGroupScores = scenario.restaurants.map((_, originalIndex) => {
-                  const sortedIndex = originalToSortedIndexMap[originalIndex];
-                  return updatedData.groupScores[sortedIndex];
-                });
-                
+                const originalGroupScores = scenario.restaurants.map(
+                  (_, originalIndex) => {
+                    const sortedIndex = originalToSortedIndexMap[originalIndex];
+                    return updatedData.groupScores[sortedIndex];
+                  }
+                );
+
                 // Map recommended indices back to original order
-                const originalRecommendedIndices = updatedData.recommendedRestaurantIndices.map(sortedIndex => {
-                  return originalToSortedIndexMap.indexOf(sortedIndex);
-                }).filter(index => index !== -1);
-                
+                const originalRecommendedIndices =
+                  updatedData.recommendedRestaurantIndices
+                    .map((sortedIndex) => {
+                      return originalToSortedIndexMap.indexOf(sortedIndex);
+                    })
+                    .filter((index) => index !== -1);
+
                 console.log("📝 Setting original ratings from sorted data...");
                 setRatings(originalRatings);
-                
-                console.log("✅ Original ratings updated, useMemo hooks will recalculate");
+
+                console.log(
+                  "✅ Original ratings updated, useMemo hooks will recalculate"
+                );
               } else {
                 // No sorting, data is already in original order
                 console.log("📝 Setting new ratings (no sorting)...");
                 setRatings(updatedData.ratings);
-                
-                console.log("✅ Ratings updated, useMemo hooks will recalculate");
+
+                console.log(
+                  "✅ Ratings updated, useMemo hooks will recalculate"
+                );
               }
             }}
           />
@@ -397,21 +405,21 @@ export default function InteractiveGroupRecommender({
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <div className="mb-6" data-onboarding="page-header">
-        <h1 className="text-xl font-bold text-gray-800">
-          Scenario: {scenario.name}
-        </h1>
-        <p className="text-gray-600 mb-2">{scenario.description}</p>
-        <p className="text-gray-600 mb-4" data-onboarding="history-section">
+    <div className="max-w-7xl mx-auto p-4 bg-white rounded-lg shadow-lg">
+      <div className="mb-4" data-onboarding="page-header">
+        <p className="text-gray-600 mb-1 text-sm">{scenario.description}</p>
+        <p
+          className="text-gray-600 mb-2 text-sm"
+          data-onboarding="history-section"
+        >
           Previous visits: The group has previously visited the following
           restaurants in this order: {getVisitedOrder(scenario).join(", ")}.
         </p>
       </div>
 
       {/* Ratings Table */}
-      <div className="mb-8">
-        <div className="overflow-x-auto">
+      <div className="mb-4">
+        <div className="overflow-x-auto overflow-y-visible">
           <table
             className="min-w-full border-collapse border border-gray-300"
             data-onboarding={
@@ -420,17 +428,18 @@ export default function InteractiveGroupRecommender({
           >
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-300 px-4 py-2 text-left">
+                <th className="border border-gray-300 px-2 py-1.5 text-left text-sm">
                   Person
                 </th>
-                {sortedRestaurants.map((restaurant, index) => (
+                {scenario.restaurants.map((restaurant, index) => (
                   <th
                     key={restaurant.id}
-                    className={`border border-gray-300 px-2 py-2 text-center text-sm ${
+                    className={`border border-gray-300 px-1.5 py-1.5 text-center text-xs ${
                       restaurant.visited ? "bg-gray-300 text-gray-500" : ""
                     }`}
                     {...(restaurant.visited &&
-                      sortedRestaurants.findIndex((r) => r.visited) === index && {
+                      scenario.restaurants.findIndex((r) => r.visited) ===
+                        index && {
                         "data-onboarding": "grey-rows",
                       })}
                   >
@@ -445,56 +454,60 @@ export default function InteractiveGroupRecommender({
                   key={person.name}
                   style={{ backgroundColor: `${person.color}20` }}
                 >
-                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                  <td className="border border-gray-300 px-2 py-1.5 font-medium text-sm">
                     {person.name}
                   </td>
-                  {sortedRestaurants.map((restaurant, restaurantIndex) => {
+                  {scenario.restaurants.map((restaurant, restaurantIndex) => {
                     const isFirstVisited =
                       restaurant.visited &&
-                      sortedRestaurants.findIndex((r) => r.visited) ===
+                      scenario.restaurants.findIndex((r) => r.visited) ===
                         restaurantIndex;
                     return (
                       <td
                         key={restaurant.id}
-                        className={`border border-gray-300 px-2 py-2 text-center ${
+                        className={`border border-gray-300 px-1.5 py-1.5 text-center ${
                           restaurant.visited ? "bg-gray-200" : ""
                         }`}
                         {...(isFirstVisited && {
                           "data-onboarding": "grey-rows",
                         })}
                       >
-                      {isTableDisabled ? (
-                        <span
-                          className={`text-center ${
-                            restaurant.visited
-                              ? "text-gray-500"
-                              : "text-gray-900 font-medium"
-                          }`}
-                        >
-                          {sortedRatings[personIndex][restaurantIndex]}
-                        </span>
-                      ) : (
-                        <input
-                          type="number"
-                          min="1"
-                          max="5"
-                          value={sortedRatings[personIndex][restaurantIndex]}
-                          onChange={(e) => {
-                            if (!restaurant.visited) {
-                              const value = parseInt(e.target.value);
-                              if (value >= 1 && value <= 5) {
-                                updateRating(personIndex, restaurantIndex, value);
+                        {isTableDisabled ? (
+                          <span
+                            className={`text-center ${
+                              restaurant.visited
+                                ? "text-gray-500"
+                                : "text-gray-900 font-medium"
+                            }`}
+                          >
+                            {ratings[personIndex][restaurantIndex]}
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            value={ratings[personIndex][restaurantIndex]}
+                            onChange={(e) => {
+                              if (!restaurant.visited) {
+                                const value = parseInt(e.target.value);
+                                if (value >= 1 && value <= 5) {
+                                  updateRating(
+                                    personIndex,
+                                    restaurantIndex,
+                                    value
+                                  );
+                                }
                               }
-                            }
-                          }}
-                          disabled={restaurant.visited}
-                          className={`w-12 h-8 text-center border border-gray-300 rounded ${
-                            restaurant.visited
-                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                              : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          }`}
-                        />
-                      )}
+                            }}
+                            disabled={restaurant.visited}
+                            className={`w-10 h-7 text-sm text-center border border-gray-300 rounded ${
+                              restaurant.visited
+                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            }`}
+                          />
+                        )}
                       </td>
                     );
                   })}
@@ -506,20 +519,25 @@ export default function InteractiveGroupRecommender({
       </div>
 
       {/* Explanations */}
-      <div className="mb-8 space-y-4">{renderExplanation()}</div>
-
-      {/* Reset Button */}
-      <div
-        className="flex justify-center"
-        data-onboarding="footer-actions"
-      >
-        <button
-          onClick={resetRatings}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          Reset to Initial Values
-        </button>
+      <div className="mb-4 space-y-2 max-h-[calc(100vh-24rem)] overflow-y-auto">
+        {renderExplanation()}
       </div>
+
+      {/* Reset Button - Only show for interactive explanation methods */}
+      {(explanationStrategy === "graph_expl" ||
+        explanationStrategy === "pie_expl" ||
+        explanationStrategy === "heatmap_expl" ||
+        explanationStrategy === "chat_expl_with_tools" ||
+        explanationStrategy === "chat_expl_with_tools_graph") && (
+        <div className="flex justify-center" data-onboarding="footer-actions">
+          <button
+            onClick={resetRatings}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Reset to Initial Values
+          </button>
+        </div>
+      )}
     </div>
   );
 }

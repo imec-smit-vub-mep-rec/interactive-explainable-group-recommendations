@@ -83,13 +83,66 @@ export default function TextChatWithToolsGraph({
   originalRestaurants,
   originalRatings,
 }: TextChatWithToolsGraphProps) {
-  const [lastToolResult, setLastToolResult] = useState<any>(null);
+  interface ToolResult {
+    success: boolean;
+    message?: string;
+    updatedData?: {
+      personName?: string;
+      restaurantName?: string;
+      oldRating?: number;
+      newRating?: number;
+      newRatings?: number[][];
+      newGroupScores?: number[];
+      newRecommendedRestaurantIndices?: string[];
+      updates?: Array<{
+        personName: string;
+        restaurantName: string;
+        oldRating: number;
+        newRating: number;
+      }>;
+    };
+  }
+  const [lastToolResult, setLastToolResult] = useState<ToolResult | null>(null);
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
   });
+
+  // Helper function to parse suggestions from text
+  const parseSuggestions = (text: string): { cleanText: string; suggestions: string[] } => {
+    if (!text || typeof text !== 'string') return { cleanText: text || '', suggestions: [] };
+    
+    // More robust regex that handles various whitespace and formatting
+    // Match <suggestions>...</suggestions> with any whitespace
+    const suggestionRegex = /<suggestions\s*>([\s\S]*?)<\/suggestions\s*>/gi;
+    let cleanText = text;
+    const suggestions: string[] = [];
+    
+    // Find and extract all suggestion blocks
+    const matches = [...text.matchAll(suggestionRegex)];
+    
+    if (matches.length > 0) {
+      // Extract suggestions from all matches
+      matches.forEach(match => {
+        const suggestionsText = match[1].trim();
+        const extracted = suggestionsText
+          .split('\n')
+          .map(line => line.replace(/^[-•*]\s*/, '').trim())
+          .filter(line => line.length > 0);
+        suggestions.push(...extracted);
+      });
+      
+      // Remove all suggestion blocks from the text
+      cleanText = text.replace(suggestionRegex, '').trim();
+    }
+    
+    // Final safeguard: remove any remaining suggestion tags (in case of malformed tags)
+    cleanText = cleanText.replace(/<\/?suggestions\s*>/gi, '').trim();
+    
+    return { cleanText, suggestions };
+  };
 
   // Handle tool results and update parent component
   useEffect(() => {
@@ -130,7 +183,7 @@ export default function TextChatWithToolsGraph({
         if (toolResult && ('result' in toolResult || 'output' in toolResult)) {
           const result = ('result' in toolResult ? toolResult.result :
                          'output' in toolResult ? toolResult.output :
-                         toolResult) as any;
+                         toolResult) as ToolResult;
           console.log('📊 Tool result structure:', {
             toolResultType: toolResult.type,
             hasResult: 'result' in toolResult,
@@ -165,7 +218,7 @@ export default function TextChatWithToolsGraph({
               restaurantNames: restaurantList.map(r => r.name)
             });
 
-            const updatedRecommendedIndices = result.updatedData.newRecommendedRestaurantIndices
+            const updatedRecommendedIndices = (result.updatedData.newRecommendedRestaurantIndices || [])
               .map((name: string) => {
                 const index = restaurantList.findIndex(r => r.name === name);
                 console.log(`🔍 Mapping restaurant "${name}" to index: ${index}`);
@@ -174,6 +227,11 @@ export default function TextChatWithToolsGraph({
               .filter((index: number) => index !== -1);
 
             console.log('🎯 Final updated recommended indices:', updatedRecommendedIndices);
+
+            if (!result.updatedData.newRatings || !result.updatedData.newGroupScores) {
+              console.error('Missing required data in updatedData');
+              return;
+            }
 
             const updateData = {
               ratings: result.updatedData.newRatings,
@@ -234,14 +292,14 @@ export default function TextChatWithToolsGraph({
             const result = ('result' in toolCallPart ? toolCallPart.result :
                            'output' in toolCallPart ? toolCallPart.output :
                            'data' in toolCallPart ? toolCallPart.data :
-                           toolCallPart) as any;
+                           toolCallPart) as ToolResult;
 
             if (result && typeof result === 'object' && (result.success || result.message)) {
               console.log('✅ Found result in tool call part:', result);
               if (result.success && result.updatedData && onDataUpdate) {
                 console.log('🔄 Processing result from tool call part...');
                 const restaurantList = originalRestaurants || restaurants;
-                const updatedRecommendedIndices = result.updatedData.newRecommendedRestaurantIndices
+                const updatedRecommendedIndices = (result.updatedData.newRecommendedRestaurantIndices || [])
                   .map((name: string) => restaurantList.findIndex(r => r.name === name))
                   .filter((index: number) => index !== -1);
 
@@ -249,6 +307,11 @@ export default function TextChatWithToolsGraph({
                   updateType: result.updatedData.updates ? 'multiple' : 'single',
                   updateCount: result.updatedData.updates?.length || 1
                 });
+
+                if (!result.updatedData.newRatings || !result.updatedData.newGroupScores) {
+                  console.error('Missing required data in updatedData');
+                  return;
+                }
 
                 onDataUpdate({
                   ratings: result.updatedData.newRatings,
@@ -273,7 +336,7 @@ export default function TextChatWithToolsGraph({
     }
   }, [messages, onDataUpdate, people, restaurants, originalRestaurants]);
 
-  const handleFormSubmit = (message: { text?: string; files?: any[] }, event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = (message: { text?: string; files?: unknown[] }, event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const messageText = message.text;
     if (messageText?.trim()) {
@@ -493,54 +556,78 @@ export default function TextChatWithToolsGraph({
                     name={message.role === "user" ? "U" : "A"}
                   />
                   <MessageContent>
-                    {message.parts?.map((part: any, i: number) => (
-                      <div key={i}>
-                        {part.type === "text" ? (
-                          <Response key={i}>{part.text}</Response>
-                        ) : null}
-                        {part.type === "tool-call" ? (
-                          <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded border">
-                            🔧 Calling tool: {part.toolName}
+                    {message.parts?.map((part, i: number) => {
+                      if (part.type === "text") {
+                        const textContent = typeof part.text === 'string' ? part.text : String(part.text || '');
+                        const { cleanText, suggestions } = parseSuggestions(textContent);
+                        return (
+                          <div key={i}>
+                            <Response>{cleanText}</Response>
+                            {suggestions.length > 0 && (
+                              <div className="mt-3">
+                                <Suggestions>
+                                  {suggestions.map((suggestion, idx) => (
+                                    <Suggestion
+                                      key={idx}
+                                      suggestion={suggestion}
+                                      onClick={handleSuggestionClick}
+                                    />
+                                  ))}
+                                </Suggestions>
+                              </div>
+                            )}
                           </div>
-                        ) : null}
-                        {(part.type === "tool-result" || (part.type && part.type.startsWith("tool-") && part.type !== "tool-call")) ? (
-                          <div className="text-sm text-gray-600">
-                            {(() => {
-                              const result = part.result || part.output || part.data || part;
-                              return result?.success ? (
-                                <div className="text-green-600 bg-green-50 p-3 rounded border border-green-200">
-                                  <div className="flex items-center mb-2">
-                                    <span className="text-green-600 mr-2">✓</span>
-                                    <strong>{result.message}</strong>
+                        );
+                      }
+                      if (part.type === "tool-call") {
+                        return (
+                          <div key={i} className="text-sm text-blue-600 bg-blue-50 p-2 rounded border">
+                            🔧 Calling tool: {'toolName' in part ? String(part.toolName) : 'unknown'}
+                          </div>
+                        );
+                      }
+                      if (part.type === "tool-result" || (part.type && part.type.startsWith("tool-") && part.type !== "tool-call")) {
+                        const result = ('result' in part ? part.result : 
+                                       'output' in part ? part.output : 
+                                       'data' in part ? part.data : 
+                                       part) as ToolResult | null;
+                        if (!result) return null;
+                        return (
+                          <div key={i} className="text-sm text-gray-600">
+                            {result.success ? (
+                              <div className="text-green-600 bg-green-50 p-3 rounded border border-green-200">
+                                <div className="flex items-center mb-2">
+                                  <span className="text-green-600 mr-2">✓</span>
+                                  <strong>{result.message || 'Success'}</strong>
+                                </div>
+                                {result.updatedData && (
+                                  <div className="text-sm">
+                                    <p className="mb-2">New recommended restaurants: {(result.updatedData.newRecommendedRestaurantIndices || []).join(", ")}</p>
+                                    {result.updatedData.updates && result.updatedData.updates.length > 1 && (
+                                      <div>
+                                        <p className="font-medium mb-1">Updated ratings:</p>
+                                        <ul className="list-disc list-inside ml-2 space-y-1">
+                                          {result.updatedData.updates.map((update: { personName: string; restaurantName: string; oldRating: number; newRating: number }, index: number) => (
+                                            <li key={index}>
+                                              {update.personName}&apos;s rating for {update.restaurantName}: {update.oldRating} → {update.newRating}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
                                   </div>
-                                  {result.updatedData && (
-                                    <div className="text-sm">
-                                      <p className="mb-2">New recommended restaurants: {result.updatedData.newRecommendedRestaurantIndices.join(", ")}</p>
-                                      {result.updatedData.updates && result.updatedData.updates.length > 1 && (
-                                        <div>
-                                          <p className="font-medium mb-1">Updated ratings:</p>
-                                          <ul className="list-disc list-inside ml-2 space-y-1">
-                                            {result.updatedData.updates.map((update: any, index: number) => (
-                                              <li key={index}>
-                                                {update.personName}'s rating for {update.restaurantName}: {update.oldRating} → {update.newRating}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="text-red-600 bg-red-50 p-2 rounded border">
-                                  ✗ Tool error: {result?.message || "Unknown error"}
-                                </div>
-                              );
-                            })()}
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-red-600 bg-red-50 p-2 rounded border">
+                                ✗ Tool error: {result.message || "Unknown error"}
+                              </div>
+                            )}
                           </div>
-                        ) : null}
-                      </div>
-                    ))}
+                        );
+                      }
+                      return null;
+                    })}
                   </MessageContent>
                 </Message>
               ))

@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+// import { google } from "@ai-sdk/google";
 import { cerebras } from "@ai-sdk/cerebras";
 import { streamText, convertToModelMessages, tool } from "ai";
 import { z } from "zod";
@@ -76,11 +76,31 @@ ${currentContext?.restaurants
     ", "
   )} have been previously visited and are excluded from recommendations.
 
-When a user asks about changing ratings, you can simulate the changes and show how they would affect the recommendation.
-When a user asks to explain the current result, you can explain the current recommendation result based on the scores and the aggregation strategy.
+CRITICAL RESPONSE FORMATTING RULES:
+
+1. **BE CONCISE**: Keep responses short and to the point. Use the same information elements as the list-based explanation (rank, score, strategy explanation). Only provide detailed explanations when the user explicitly asks for more detail.
+
+2. **MATCH LIST-BASED EXPLANATION FORMAT**: When explaining recommendations, include:
+   - Restaurant rank (if relevant)
+   - Group score
+   - Strategy-specific explanation:
+     * LMS: "The lowest rating is X"
+     * ADD: "The total rating is X"
+     * APP: "X users gave a score of 4 or more"
+   - Which restaurants are recommended
+   - Keep it brief - match the style of the list view
+
+3. **SUGGESTIONS**: After EVERY response, end with exactly 2-3 follow-up suggestions in this exact format:
+   <suggestions>
+   - Suggestion 1
+   - Suggestion 2
+   - Suggestion 3 (optional)
+   </suggestions>
+   
+   Make suggestions relevant to the current conversation context and helpful for exploring the recommendation system.
 
 For rating changes, follow this natural flow:
-1. EXPLANATION REQUESTS: When users ask "why is X recommended?" or "how to make Y preferred?", provide a detailed explanation
+1. EXPLANATION REQUESTS: When users ask "why is X recommended?" or "how to make Y preferred?", provide a concise explanation matching the list format
 2. COUNTERFACTUAL SUGGESTIONS: When users ask "how to make X preferred?", suggest specific minimal changes and ask "Would you like me to simulate this change?"
 3. CONFIRMATION REQUESTS: Only when users explicitly confirm (say "yes", "do it", "simulate", etc.), then execute the tool calls
 4. DIRECT REQUESTS: When users directly ask to change ratings ("change X's rating to Y"), execute immediately without asking for confirmation
@@ -95,11 +115,15 @@ CONVERSATION FLOW EXAMPLES:
 
 **Explanation Request:**
 User: "Why is Rest 1 recommended?"
-You: Provide detailed explanation of current scores, strategy, and reasoning.
+You: "Rest 1 is recommended with a group score of X. [Strategy explanation]. <suggestions>
+- How to make Rest 2 preferred?
+- What if Alex's rating for Rest 1 increased?
+- Show individual ratings for Rest 1
+</suggestions>"
 
 **Counterfactual Request:**
 User: "How to make Rest 3 preferred?"
-You: Analyze current situation, suggest minimal changes (e.g., "To make Rest 3 preferred, we could increase Alex's rating for Rest 3 from 2 to 4. This would change the group score from X to Y. Would you like me to simulate this change?")
+You: Analyze current situation, suggest minimal changes concisely. End with suggestions.
 
 ANALYSIS GUIDANCE:
 - Look at current group scores and identify the highest scoring restaurant
@@ -109,11 +133,11 @@ ANALYSIS GUIDANCE:
 
 **Confirmation Response:**
 User: "Yes" / "Do it" / "Simulate it"
-You: Execute the tool call and show results.
+You: Execute the tool call and show results concisely. End with suggestions.
 
 **Direct Request:**
 User: "Change Alex's rating for Rest 3 to 4"
-You: Execute immediately without asking for confirmation.
+You: Execute immediately without asking for confirmation. Show impact concisely. End with suggestions.
 
 IMPORTANT: When using the tools:
 - Use exact person and restaurant names as they appear in the context
@@ -124,12 +148,11 @@ IMPORTANT: When using the tools:
 - For requests like "change X's rating for A to Y and Z's rating for B to W", use updateMultipleRatings
 - For single changes, use updateRating
 - If a user asks to reset ratings, direct them to use the "Reset to Initial Values" button in the interface
-- Always explain the impact of the change after updating ratings
+- Always explain the impact of the change concisely after updating ratings
 
 DO NOT just describe what you would do - ACTUALLY DO IT by calling the tools!
 
-Answer questions in a friendly and concise manner.
-You can use markdown to format your answers more clearly.
+Remember: Keep responses SHORT and match the list-based explanation format unless the user explicitly asks for more detail.
 
 
 ${
@@ -212,7 +235,7 @@ ${currentContext.ratings
 
           const results = [];
           const errors = [];
-          let updatedRatings = currentContext.ratings.map(personRatings => [...personRatings]);
+          const updatedRatings = currentContext.ratings.map(personRatings => [...personRatings]);
 
           // Process each update
           for (const update of updates) {
