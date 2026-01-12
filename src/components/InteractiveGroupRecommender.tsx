@@ -182,12 +182,51 @@ export default function InteractiveGroupRecommender({
     (i) => sortedRestaurants[i].name
   );
 
+  // Determine if table inputs should be disabled
+  const isTableDisabled = explanationStrategy === "no_expl" || explanationStrategy === "static_list";
+
   const renderExplanation = () => {
     switch (explanationStrategy) {
       case "no_expl":
         return (
           <NoExplanation
             recommendedRestaurantNames={recommendedRestaurantNames}
+          />
+        );
+      case "static_list":
+        return (
+          <OrderedListExplanation
+            people={people}
+            restaurants={sortedRestaurants}
+            ratings={sortedRatings}
+            strategy={strategy}
+            recommendedRestaurantIndices={recommendedRestaurantIndices}
+            groupScores={sortedGroupScores}
+          />
+        );
+      case "interactive_list":
+        return (
+          <OrderedListExplanation
+            people={people}
+            restaurants={sortedRestaurants}
+            ratings={sortedRatings}
+            strategy={strategy}
+            recommendedRestaurantIndices={recommendedRestaurantIndices}
+            groupScores={sortedGroupScores}
+          />
+        );
+      case "conversational":
+      case "chat_expl_basic":
+        return (
+          <TextChat
+            people={people}
+            restaurants={sortedRestaurants}
+            ratings={sortedRatings}
+            strategy={strategy}
+            groupScores={sortedGroupScores}
+            recommendedRestaurantIndices={recommendedRestaurantIndices}
+            originalRestaurants={scenario.restaurants}
+            // Don't pass onDataUpdate for basic chat - tools won't be able to update data
           />
         );
       case "text_expl":
@@ -359,12 +398,12 @@ export default function InteractiveGroupRecommender({
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <div className="mb-6">
+      <div className="mb-6" data-onboarding="page-header">
         <h1 className="text-xl font-bold text-gray-800">
           Scenario: {scenario.name}
         </h1>
         <p className="text-gray-600 mb-2">{scenario.description}</p>
-        <p className="text-gray-600 mb-4">
+        <p className="text-gray-600 mb-4" data-onboarding="history-section">
           Previous visits: The group has previously visited the following
           restaurants in this order: {getVisitedOrder(scenario).join(", ")}.
         </p>
@@ -373,18 +412,27 @@ export default function InteractiveGroupRecommender({
       {/* Ratings Table */}
       <div className="mb-8">
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse border border-gray-300">
+          <table
+            className="min-w-full border-collapse border border-gray-300"
+            data-onboarding={
+              isTableDisabled ? "ratings-table" : "interactive-table"
+            }
+          >
             <thead>
               <tr className="bg-gray-50">
                 <th className="border border-gray-300 px-4 py-2 text-left">
                   Person
                 </th>
-                {sortedRestaurants.map((restaurant) => (
+                {sortedRestaurants.map((restaurant, index) => (
                   <th
                     key={restaurant.id}
                     className={`border border-gray-300 px-2 py-2 text-center text-sm ${
                       restaurant.visited ? "bg-gray-300 text-gray-500" : ""
                     }`}
+                    {...(restaurant.visited &&
+                      sortedRestaurants.findIndex((r) => r.visited) === index && {
+                        "data-onboarding": "grey-rows",
+                      })}
                   >
                     {restaurant.name}
                   </th>
@@ -400,35 +448,56 @@ export default function InteractiveGroupRecommender({
                   <td className="border border-gray-300 px-4 py-2 font-medium">
                     {person.name}
                   </td>
-                  {sortedRestaurants.map((restaurant, restaurantIndex) => (
-                    <td
-                      key={restaurant.id}
-                      className={`border border-gray-300 px-2 py-2 text-center ${
-                        restaurant.visited ? "bg-gray-200" : ""
-                      }`}
-                    >
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={sortedRatings[personIndex][restaurantIndex]}
-                        onChange={(e) => {
-                          if (!restaurant.visited) {
-                            const value = parseInt(e.target.value);
-                            if (value >= 1 && value <= 5) {
-                              updateRating(personIndex, restaurantIndex, value);
-                            }
-                          }
-                        }}
-                        disabled={restaurant.visited}
-                        className={`w-12 h-8 text-center border border-gray-300 rounded ${
-                          restaurant.visited
-                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  {sortedRestaurants.map((restaurant, restaurantIndex) => {
+                    const isFirstVisited =
+                      restaurant.visited &&
+                      sortedRestaurants.findIndex((r) => r.visited) ===
+                        restaurantIndex;
+                    return (
+                      <td
+                        key={restaurant.id}
+                        className={`border border-gray-300 px-2 py-2 text-center ${
+                          restaurant.visited ? "bg-gray-200" : ""
                         }`}
-                      />
-                    </td>
-                  ))}
+                        {...(isFirstVisited && {
+                          "data-onboarding": "grey-rows",
+                        })}
+                      >
+                      {isTableDisabled ? (
+                        <span
+                          className={`text-center ${
+                            restaurant.visited
+                              ? "text-gray-500"
+                              : "text-gray-900 font-medium"
+                          }`}
+                        >
+                          {sortedRatings[personIndex][restaurantIndex]}
+                        </span>
+                      ) : (
+                        <input
+                          type="number"
+                          min="1"
+                          max="5"
+                          value={sortedRatings[personIndex][restaurantIndex]}
+                          onChange={(e) => {
+                            if (!restaurant.visited) {
+                              const value = parseInt(e.target.value);
+                              if (value >= 1 && value <= 5) {
+                                updateRating(personIndex, restaurantIndex, value);
+                              }
+                            }
+                          }}
+                          disabled={restaurant.visited}
+                          className={`w-12 h-8 text-center border border-gray-300 rounded ${
+                            restaurant.visited
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          }`}
+                        />
+                      )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -440,7 +509,10 @@ export default function InteractiveGroupRecommender({
       <div className="mb-8 space-y-4">{renderExplanation()}</div>
 
       {/* Reset Button */}
-      <div className="flex justify-center">
+      <div
+        className="flex justify-center"
+        data-onboarding="footer-actions"
+      >
         <button
           onClick={resetRatings}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"

@@ -38,6 +38,7 @@ This application simulates a group restaurant recommendation scenario where 5 pe
 - **AI Integration**: AI SDK with Cerebras and Google models
 - **Type Safety**: TypeScript 5
 - **Package Manager**: pnpm
+- **Onboarding flow**: https://nextstepjs.com/
 
 ## 📦 Installation
 

@@ -5,7 +5,10 @@ import { X } from "lucide-react";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
@@ -48,13 +51,16 @@ const getAggregationStrategyLabel = (strategy: AggregationStrategy) => {
 const getExplanationStrategyLabel = (strategy: ExplanationStrategy) => {
   const labels = {
     no_expl: "No Explanation",
+    static_list: "Static List",
+    interactive_list: "Interactive List",
+    conversational: "Conversational",
     ordered_list_expl: "Ordered List Explanation",
     graph_expl: "Graph Explanation",
     text_expl: "Text Explanation",
-    chat_expl: "Chat Explanation (Legacy)",
-    chat_expl_basic: "Chat Explanation (Basic)",
-    chat_expl_with_tools: "Chat Explanation (With Tools)",
-    chat_expl_with_tools_graph: "Chat Explanation (With Tools + Graph)",
+    chat_expl: "Conversational Explanation (Legacy)",
+    chat_expl_basic: "Conversational Explanation (Basic)",
+    chat_expl_with_tools: "Conversational Explanation (With Tools)",
+    chat_expl_with_tools_graph: "Conversational Explanation (With Tools + Graph)",
     pie_expl: "Pie Chart Explanation",
     heatmap_expl: "Heatmap Explanation",
   };
@@ -228,98 +234,129 @@ export default function SettingsSidebar({
                   <SelectValue placeholder="Select explanation strategy" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="no_expl">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">No Explanation</span>
-                      <span className="text-sm text-muted-foreground">
-                        Show only the recommendation without explanation
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="text_expl">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">Text Explanation</span>
-                      <span className="text-sm text-muted-foreground">
-                        Show recommendation with textual explanation
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="chat_expl">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">
-                        Chat Explanation (Legacy)
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Show interactive chat with explanation (legacy version)
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="chat_expl_basic">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">
-                        Chat Explanation (Basic)
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Read-only chat interface for explanations only
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="chat_expl_with_tools">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">
-                        Chat Explanation (With Tools)
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Interactive chat with tool calling and rating updates
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="chat_expl_with_tools_graph">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">
-                        Chat Explanation (With Tools + Graph)
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Interactive chat with tools and bar chart visualization
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="graph_expl">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">Graph Explanation</span>
-                      <span className="text-sm text-muted-foreground">
-                        Show interactive graph with visual explanation
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="pie_expl">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">Pie Chart Explanation</span>
-                      <span className="text-sm text-muted-foreground">
-                        Show interactive pie charts for each restaurant
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="heatmap_expl">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">Heatmap Explanation</span>
-                      <span className="text-sm text-muted-foreground">
-                        Show interactive heatmap of all person-restaurant
-                        ratings
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="ordered_list_expl">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">
-                        Ordered List Explanation
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Show restaurants ranked by score with contextual
-                        explanations
-                      </span>
-                    </div>
-                  </SelectItem>
+                  <SelectGroup>
+                    <SelectLabel>Experiment</SelectLabel>
+                    <SelectItem value="no_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">No Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show only the recommendation without explanation (no interactivity in table)
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="static_list">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Static List</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show ordered list explanation (no interactivity in table)
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="interactive_list">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Interactive List</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show ordered list explanation with table interactivity
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="conversational">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Conversational</span>
+                        <span className="text-sm text-muted-foreground">
+                          Basic conversational interface for explanations (without tools or bar chart)
+                        </span>
+                      </div>
+                    </SelectItem>
+                  </SelectGroup>
+                  <SelectSeparator />
+                  <SelectGroup>
+                    <SelectLabel>Other Explanation Modalities</SelectLabel>
+                    <SelectItem value="text_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Text Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show recommendation with textual explanation
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="chat_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">
+                          Conversational Explanation (Legacy)
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive conversational interface with explanation (legacy version)
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="chat_expl_basic">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">
+                          Conversational Explanation (Basic)
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Read-only conversational interface for explanations only
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="chat_expl_with_tools">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">
+                          Conversational Explanation (With Tools)
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Interactive conversational interface with tool calling and rating updates
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="chat_expl_with_tools_graph">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">
+                          Conversational Explanation (With Tools + Graph)
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Interactive conversational interface with tools and bar chart visualization
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="graph_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Graph Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive graph with visual explanation
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="pie_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Pie Chart Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive pie charts for each restaurant
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="heatmap_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Heatmap Explanation</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive heatmap of all person-restaurant
+                          ratings
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="ordered_list_expl">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">
+                          Ordered List Explanation
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Show restaurants ranked by score with contextual
+                          explanations
+                        </span>
+                      </div>
+                    </SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>

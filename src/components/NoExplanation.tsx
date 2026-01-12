@@ -8,7 +8,7 @@ interface NoExplanationProps {
 
 export default function NoExplanation({ recommendedRestaurantNames }: NoExplanationProps) {
   return (
-    <div className="p-4 bg-gray-50 rounded-lg">
+    <div className="p-4 bg-gray-50 rounded-lg" data-onboarding="recommendation-box">
       <h3 className="font-semibold mb-2">no_expl:</h3>
       <p>
         Using the provided ratings, the software system made a recommendation to the group. 

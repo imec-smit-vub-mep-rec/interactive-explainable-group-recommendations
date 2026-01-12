@@ -351,7 +351,7 @@ export default function TextChatWithTools({
 
       {/* Show suggestions when there are no messages */}
       {messages.length === 0 && (
-        <div className="mb-4">
+        <div className="mb-4" data-onboarding="presets">
           <Suggestions>
             {suggestions.map((suggestion) => (
               <Suggestion
@@ -364,7 +364,7 @@ export default function TextChatWithTools({
         </div>
       )}
 
-      <Conversation className="h-96 border rounded-lg">
+      <Conversation className="h-96 border rounded-lg" data-onboarding="chat-interface">
         <ConversationContent>
           {messages.length === 0 ? (
             <ConversationEmptyState
@@ -438,7 +438,7 @@ export default function TextChatWithTools({
         </ConversationContent>
       </Conversation>
 
-      <div className="mt-4">
+      <div className="mt-4" data-onboarding="chat-input">
         <PromptInput onSubmit={handleFormSubmit}>
           <PromptInputBody>
             <PromptInputTextarea

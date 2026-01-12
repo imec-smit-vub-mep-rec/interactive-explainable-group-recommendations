@@ -1,0 +1,250 @@
+import { Tour } from "nextstepjs";
+import { ExplanationStrategy } from "./types";
+
+export const onboardingTours: Tour[] = [
+  {
+    tour: "no_expl",
+    steps: [
+      {
+        icon: null,
+        title: "Welcome!",
+        content:
+          "Every month, your group of friends must decide on a restaurant for dinner.",
+        selector: "[data-onboarding='page-header']",
+        side: "bottom",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Ratings Table",
+        content:
+          "Here, you can see the 5-star ratings each group member gave to ten possible restaurants.",
+        selector: "[data-onboarding='ratings-table']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Visited Restaurants",
+        content:
+          "Restaurants in grey have already been visited. They are no longer an option for the upcoming decision.",
+        selector: "[data-onboarding='grey-rows']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Visit History",
+        content:
+          "Here is the chronological order of restaurants your group has visited in previous months.",
+        selector: "[data-onboarding='history-section']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Recommendation",
+        content:
+          "Finally, here is the system's recommendation based on a specific strategy taking everyone's scores into account.",
+        selector: "[data-onboarding='recommendation-box']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Get Started",
+        content:
+          "Use this system to answer the following questions correctly.",
+        selector: "[data-onboarding='footer-actions']",
+        side: "top",
+        showControls: true,
+        showSkip: false,
+      },
+    ],
+  },
+  {
+    tour: "static_list",
+    steps: [
+      {
+        icon: null,
+        title: "Welcome!",
+        content:
+          "Every month, your group of friends must decide on a restaurant for dinner.",
+        selector: "[data-onboarding='page-header']",
+        side: "bottom",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Ratings Table",
+        content:
+          "Each group member rated ten restaurants on a 5-star scale. These ratings are shown in this table.",
+        selector: "[data-onboarding='ratings-table']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Ranked List",
+        content:
+          "Here you find the restaurants ranked from best to worst based on the group's preferences.",
+        selector: "[data-onboarding='ranked-list']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Strategy Explanation",
+        content:
+          "The definition of \"best\" and \"worst\" is based on a specific strategy that weighs everyone's scores.",
+        selector: "[data-onboarding='strategy-label']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Get Started",
+        content:
+          "Use this system to answer the following questions correctly.",
+        selector: "[data-onboarding='footer-actions']",
+        side: "top",
+        showControls: true,
+        showSkip: false,
+      },
+    ],
+  },
+  {
+    tour: "interactive_list",
+    steps: [
+      {
+        icon: null,
+        title: "Welcome!",
+        content:
+          "Every month, your group of friends must decide on a restaurant for dinner.",
+        selector: "[data-onboarding='page-header']",
+        side: "bottom",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Interactive Table",
+        content:
+          "You can increase or decrease these scores using the arrows to see how the recommendations change.",
+        selector: "[data-onboarding='interactive-table']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Visited Restaurants",
+        content:
+          "Greyed-out restaurants are those already visited; they won't be recommended even if scores change.",
+        selector: "[data-onboarding='grey-rows']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Ranked List",
+        content:
+          "Here you find the restaurants ranked from best to worst. The ranking might shift as you edit the table above.",
+        selector: "[data-onboarding='ranked-list']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Strategy Explanation",
+        content:
+          "The \"best\" and \"worst\" logic is based on a specific strategy taking all scores into account.",
+        selector: "[data-onboarding='strategy-label']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Get Started",
+        content:
+          "Use this system to answer the following questions correctly.",
+        selector: "[data-onboarding='footer-actions']",
+        side: "top",
+        showControls: true,
+        showSkip: false,
+      },
+    ],
+  },
+  {
+    tour: "conversational",
+    steps: [
+      {
+        icon: null,
+        title: "Welcome!",
+        content:
+          "Every month, your group of friends must decide on a restaurant for dinner.",
+        selector: "[data-onboarding='page-header']",
+        side: "bottom",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Ratings Table",
+        content:
+          "This table shows the 5-star ratings given by each group member for the ten possible restaurants.",
+        selector: "[data-onboarding='ratings-table']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Chat Interface",
+        content:
+          "You can chat with an assistant to ask specific questions about the system's recommendations.",
+        selector: "[data-onboarding='chat-interface']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Chat Input",
+        content:
+          "Use one of the presets to get started, or type in your own question. Press \"Enter\" to submit.",
+        selector: "[data-onboarding='chat-input']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Get Started",
+        content:
+          "Use this system to answer the following questions correctly.",
+        selector: "[data-onboarding='footer-actions']",
+        side: "top",
+        showControls: true,
+        showSkip: false,
+      },
+    ],
+  },
+];
+
+export function getTourForStrategy(strategy: ExplanationStrategy): string | null {
+  const validTours = ["no_expl", "static_list", "interactive_list", "conversational"];
+  return validTours.includes(strategy) ? strategy : null;
+}

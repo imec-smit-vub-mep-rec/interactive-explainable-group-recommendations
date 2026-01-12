@@ -99,7 +99,7 @@ export default function OrderedListExplanation({
 
   return (
     <div className="space-y-4">
-      <div className="p-4 bg-gray-50 rounded-lg">
+      <div className="p-4 bg-gray-50 rounded-lg" data-onboarding="ranked-list">
         <p className="text-gray-700 mb-4">
           Restaurants ranked by group score (best to worst):
         </p>
@@ -157,7 +157,12 @@ export default function OrderedListExplanation({
                         Restaurant is already visited
                       </p>
                     ) : (
-                      <p className="text-sm text-gray-700">
+                      <p
+                        className="text-sm text-gray-700"
+                        {...(rankIndex === 0 && {
+                          "data-onboarding": "strategy-label",
+                        })}
+                      >
                         {getStrategyExplanation(restaurant)}
                       </p>
                     )}
