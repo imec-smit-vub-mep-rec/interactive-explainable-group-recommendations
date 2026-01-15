@@ -390,6 +390,7 @@ export default function GraphSliders({
         ref={chartRef}
         className="w-full overflow-x-auto"
         style={{ minHeight: '500px' }}
+        data-onboarding="interactive-graph"
       >
         <svg ref={svgRef} className="w-full h-full"></svg>
       </div>

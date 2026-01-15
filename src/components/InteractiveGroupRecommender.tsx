@@ -344,6 +344,7 @@ export default function InteractiveGroupRecommender({
             }}
           />
         );
+      case "interactive_graph":
       case "graph_expl":
         return (
           <GraphExplanation
@@ -524,7 +525,8 @@ export default function InteractiveGroupRecommender({
       </div>
 
       {/* Reset Button - Only show for interactive explanation methods */}
-      {(explanationStrategy === "graph_expl" ||
+      {(explanationStrategy === "interactive_graph" ||
+        explanationStrategy === "graph_expl" ||
         explanationStrategy === "pie_expl" ||
         explanationStrategy === "heatmap_expl" ||
         explanationStrategy === "chat_expl_with_tools" ||

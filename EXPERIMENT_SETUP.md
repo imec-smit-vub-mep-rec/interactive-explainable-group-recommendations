@@ -1,4 +1,4 @@
-explanation_modalities = ["no_expl", "static_list", "interactive_list", "conversational"]
+explanation_modalities = ["no_expl", "static_list", "interactive_list", "conversational", "interactive_graph"]
 aggregation_strategies = ["lms", "add", "app"]
 tasks = ["model_simulation", "counterfactual", "error_detection"]
 evaluation = ["subjective_understanding", "objective_understanding"]
@@ -61,7 +61,7 @@ reference VARCHAR(255) -- optional string from query parameter
 is_completed BOOLEAN DEFAULT FALSE -- whether the session has been completed
 
 -- experiment configuration for specific session
-explanation_modality ENUM('no_expl', 'static_list', 'interactive_list', 'conversational') -- one of four modalities semi-randomly assigned to each session
+explanation_modality ENUM('no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_graph') -- one of five modalities semi-randomly assigned to each session
 aggregation_strategy ENUM('lms', 'add', 'app') -- one of three strategies semi-randomly assigned to each session
 
 -- onboarding data

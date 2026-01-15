@@ -53,7 +53,7 @@ if (typeof window === 'undefined') {
 export { sql };
 
 // Type definitions for database operations
-export type ExplanationModality = 'no_expl' | 'static_list' | 'interactive_list' | 'conversational';
+export type ExplanationModality = 'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_graph';
 export type AggregationStrategy = 'lms' | 'add' | 'app';
 export type Gender = 'male' | 'female' | 'other';
 
@@ -144,9 +144,18 @@ export async function runMigrations() {
   // Create enum types if they don't exist
   await sql`
     DO $$ BEGIN
-      CREATE TYPE explanation_modality_enum AS ENUM ('no_expl', 'static_list', 'interactive_list', 'conversational');
+      CREATE TYPE explanation_modality_enum AS ENUM ('no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_graph');
     EXCEPTION
       WHEN duplicate_object THEN null;
+    END $$;
+    
+    -- Add 'interactive_graph' to existing enum if it doesn't exist (for existing databases)
+    DO $$ 
+    BEGIN
+      ALTER TYPE explanation_modality_enum ADD VALUE 'interactive_graph';
+    EXCEPTION
+      WHEN duplicate_object THEN 
+        RAISE NOTICE 'Value interactive_graph already exists in explanation_modality_enum';
     END $$;
   `;
 

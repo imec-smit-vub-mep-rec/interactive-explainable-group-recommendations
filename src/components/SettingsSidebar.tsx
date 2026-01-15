@@ -52,6 +52,7 @@ const getExplanationStrategyLabel = (strategy: ExplanationStrategy) => {
     static_list: "Static List",
     interactive_list: "Interactive List",
     conversational: "Conversational",
+    interactive_graph: "Interactive Graph",
     ordered_list_expl: "Ordered List Explanation",
     graph_expl: "Graph Explanation",
     text_expl: "Text Explanation",
@@ -266,6 +267,14 @@ export default function SettingsSidebar({
                         </span>
                       </div>
                     </SelectItem>
+                    <SelectItem value="interactive_graph">
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Interactive Graph</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show interactive graph with visual explanation and table interactivity
+                        </span>
+                      </div>
+                    </SelectItem>
                   </SelectGroup>
                   <SelectSeparator />
                   <SelectGroup>
@@ -315,14 +324,6 @@ export default function SettingsSidebar({
                         </span>
                         <span className="text-sm text-muted-foreground">
                           Interactive conversational interface with tools and bar chart visualization
-                        </span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="graph_expl">
-                      <div className="flex flex-col text-left">
-                        <span className="font-medium">Graph Explanation</span>
-                        <span className="text-sm text-muted-foreground">
-                          Show interactive graph with visual explanation
                         </span>
                       </div>
                     </SelectItem>

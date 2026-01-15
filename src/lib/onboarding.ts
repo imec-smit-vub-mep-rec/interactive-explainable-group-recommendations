@@ -242,9 +242,74 @@ export const onboardingTours: Tour[] = [
       },
     ],
   },
+  {
+    tour: "interactive_graph",
+    steps: [
+      {
+        icon: null,
+        title: "Welcome!",
+        content:
+          "Every month, your group of friends must decide on a restaurant for dinner.",
+        selector: "[data-onboarding='page-header']",
+        side: "bottom",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Interactive Table",
+        content:
+          "You can increase or decrease these scores using the arrows to see how the recommendations change.",
+        selector: "[data-onboarding='interactive-table']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Visited Restaurants",
+        content:
+          "Greyed-out restaurants are those already visited; they won't be recommended even if scores change.",
+        selector: "[data-onboarding='grey-rows']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Interactive Graph",
+        content:
+          "This graph shows the ratings visually. You can drag the bars up or down to change ratings and see how the recommendations update in real-time.",
+        selector: "[data-onboarding='interactive-graph']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Graph Explanation",
+        content:
+          "The graph visualizes how each person rated each restaurant. The recommended restaurant is highlighted in yellow. The group score is shown as a dashed line based on the strategy.",
+        selector: "[data-onboarding='graph-explanation']",
+        side: "top",
+        showControls: true,
+        showSkip: true,
+      },
+      {
+        icon: null,
+        title: "Get Started",
+        content:
+          "Use this system to answer the following questions correctly.",
+        selector: "[data-onboarding='footer-actions']",
+        side: "top",
+        showControls: true,
+        showSkip: false,
+      },
+    ],
+  },
 ];
 
 export function getTourForStrategy(strategy: ExplanationStrategy): string | null {
-  const validTours = ["no_expl", "static_list", "interactive_list", "conversational"];
+  const validTours = ["no_expl", "static_list", "interactive_list", "conversational", "interactive_graph"];
   return validTours.includes(strategy) ? strategy : null;
 }

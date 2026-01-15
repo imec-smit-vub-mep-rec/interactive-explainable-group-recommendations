@@ -13,56 +13,7 @@ import { RotateCcw } from "lucide-react";
 import type { InteractionEvent, TrainingTaskData } from "@/lib/db";
 import type { SessionData } from "../ExperimentFlow";
 import type { ExplanationStrategy } from "@/lib/types";
-
-// Define onboarding tour steps
-const onboardingSteps = [
-  {
-    tour: "training-onboarding",
-    steps: [
-      {
-        icon: "👋",
-        title: "Welcome to the Training!",
-        content:
-          "This training will help you understand how the recommendation system works. Let's walk through the interface.",
-        selector: '[data-onboarding="page-header"]',
-        side: "bottom" as const,
-        showControls: true,
-        showSkip: true,
-      },
-      {
-        icon: "📊",
-        title: "Ratings Table",
-        content:
-          "This table shows how each group member rated the restaurants. Each row is a person, and each column is a restaurant. Ratings are from 1 (worst) to 5 (best).",
-        selector:
-          '[data-onboarding="ratings-table"], [data-onboarding="interactive-table"]',
-        side: "bottom" as const,
-        showControls: true,
-        showSkip: true,
-      },
-      {
-        icon: "🔘",
-        title: "Visited Restaurants",
-        content:
-          "Grey columns indicate restaurants the group has already visited. The system will recommend from the unvisited restaurants.",
-        selector: '[data-onboarding="grey-rows"]',
-        side: "right" as const,
-        showControls: true,
-        showSkip: true,
-      },
-      {
-        icon: "🎯",
-        title: "System Recommendation",
-        content:
-          "Based on the ratings and the aggregation strategy, the system recommends the best restaurant for the group. This is shown in the explanation area below the table.",
-        selector: '[data-onboarding="footer-actions"]',
-        side: "top" as const,
-        showControls: true,
-        showSkip: false,
-      },
-    ],
-  },
-];
+import { onboardingTours, getTourForStrategy } from "@/lib/onboarding";
 
 interface TrainingScreenProps {
   session: SessionData;
@@ -106,6 +57,9 @@ export function TrainingScreen({
   // Get training scenario IDs from session
   const trainingScenarioIds = session.trainingScenarioIds;
 
+  // Get explanation strategy for display
+  const displayStrategy = session.explanationModality as ExplanationStrategy;
+  
   // Start onboarding tour on first task, step 2 (explore_explanation)
   useEffect(() => {
     if (
@@ -115,9 +69,12 @@ export function TrainingScreen({
     ) {
       // Small delay to ensure DOM is ready
       const timer = setTimeout(() => {
-        startNextStep("training-onboarding");
-        setHasShownOnboarding(true);
-        recordInteraction("view", { action: "onboarding_started" });
+        const tourName = getTourForStrategy(displayStrategy);
+        if (tourName) {
+          startNextStep(tourName);
+          setHasShownOnboarding(true);
+          recordInteraction("view", { action: "onboarding_started", tour: tourName });
+        }
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -127,6 +84,7 @@ export function TrainingScreen({
     hasShownOnboarding,
     startNextStep,
     recordInteraction,
+    displayStrategy,
   ]);
 
   // Get current scenario data
@@ -248,12 +206,10 @@ export function TrainingScreen({
     return <div>Loading scenario...</div>;
   }
 
-  // Get explanation strategy for display
-  const displayStrategy = session.explanationModality as ExplanationStrategy;
   const aggregationStrategy = strategyMap[session.aggregationStrategy];
 
   return (
-    <NextStep steps={onboardingSteps}>
+    <NextStep steps={onboardingTours}>
       <div className="space-y-4">
         {/* Header */}
         <div className="flex justify-between items-start">

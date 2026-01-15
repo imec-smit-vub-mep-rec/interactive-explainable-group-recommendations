@@ -5,6 +5,7 @@
 "use client";
 
 import React from "react";
+import { CheckCircle2, Star } from "lucide-react";
 
 interface Person {
   name: string;
@@ -104,6 +105,20 @@ export default function OrderedListExplanation({
           Restaurants ranked by group score (best to worst):
         </p>
 
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-700 mb-2">
+          <span className="inline-flex items-center gap-1">
+            <Star className="w-3.5 h-3.5 text-green-700" aria-hidden="true" />
+            <span>Recommended</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <CheckCircle2
+              className="w-3.5 h-3.5 text-gray-600"
+              aria-hidden="true"
+            />
+            <span>Already visited</span>
+          </span>
+        </div>
+
         <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
           {restaurantsWithRankings.map((restaurant, rankIndex) => (
             <div
@@ -152,8 +167,12 @@ export default function OrderedListExplanation({
 
                   <div className="ml-2 min-w-0 flex-1">
                     {restaurant.visited ? (
-                      <p className="text-xs text-gray-500 italic">
-                        Already visited
+                      <p className="text-xs text-gray-500 inline-flex items-center gap-1">
+                        <CheckCircle2
+                          className="w-3.5 h-3.5 text-gray-500"
+                          aria-hidden="true"
+                        />
+                        <span>Already visited</span>
                       </p>
                     ) : (
                       <p
@@ -169,8 +188,9 @@ export default function OrderedListExplanation({
                 </div>
 
                 {restaurant.isRecommended && !restaurant.visited && (
-                  <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full flex-shrink-0">
-                    Recommended
+                  <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full flex-shrink-0 inline-flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 text-green-800" aria-hidden="true" />
+                    <span>Recommended</span>
                   </span>
                 )}
               </div>

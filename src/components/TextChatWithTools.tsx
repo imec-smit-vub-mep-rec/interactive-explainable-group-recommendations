@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { CheckCircle2, Wrench, XCircle } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -475,8 +476,15 @@ export default function TextChatWithTools({
                     }
                     if (part.type === "tool-call") {
                       return (
-                        <div key={i} className="text-sm text-blue-600 bg-blue-50 p-2 rounded border">
-                          🔧 Calling tool: {'toolName' in part ? String(part.toolName) : 'unknown'}
+                        <div
+                          key={i}
+                          className="text-sm text-blue-700 bg-blue-50 p-2 rounded border border-blue-200 inline-flex items-center gap-2"
+                        >
+                          <Wrench className="w-4 h-4 text-blue-700" aria-hidden="true" />
+                          <span>
+                            Calling tool:{" "}
+                            {"toolName" in part ? String(part.toolName) : "unknown"}
+                          </span>
                         </div>
                       );
                     }
@@ -491,7 +499,7 @@ export default function TextChatWithTools({
                           {result.success ? (
                             <div className="text-green-600 bg-green-50 p-3 rounded border border-green-200">
                               <div className="flex items-center mb-2">
-                                <span className="text-green-600 mr-2">✓</span>
+                                <CheckCircle2 className="w-4 h-4 text-green-700 mr-2" aria-hidden="true" />
                                 <strong>{result.message || 'Success'}</strong>
                               </div>
                               {result.updatedData && (
@@ -513,8 +521,11 @@ export default function TextChatWithTools({
                               )}
                             </div>
                           ) : (
-                            <div className="text-red-600 bg-red-50 p-2 rounded border">
-                              ✗ Tool error: {result.message || "Unknown error"}
+                            <div className="text-red-700 bg-red-50 p-2 rounded border border-red-200 inline-flex items-start gap-2">
+                              <XCircle className="w-4 h-4 text-red-700 mt-0.5" aria-hidden="true" />
+                              <span>
+                                Tool error: {result.message || "Unknown error"}
+                              </span>
                             </div>
                           )}
                         </div>

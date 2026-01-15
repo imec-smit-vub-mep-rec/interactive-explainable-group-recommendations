@@ -9,7 +9,7 @@ export function generateSessionId(): string {
 
 // Get balanced assignment for explanation modality
 export async function getBalancedExplanationModality(): Promise<ExplanationModality> {
-  const modalities: ExplanationModality[] = ['no_expl', 'static_list', 'interactive_list', 'conversational'];
+  const modalities: ExplanationModality[] = ['no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_graph'];
   
   try {
     // Count sessions per modality

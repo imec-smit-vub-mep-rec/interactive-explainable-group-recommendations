@@ -39,8 +39,7 @@ export default function GraphExplanation({
   fadeNonContributing = false
 }: GraphExplanationProps) {
   return (
-    <div className="mb-8">
-      <h2 className="text-xl font-semibold mb-4">graph_expl</h2>
+    <div className="mb-8" data-onboarding="graph-explanation">
       <GraphSliders
         people={people}
         restaurants={restaurants}
