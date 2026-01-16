@@ -259,6 +259,7 @@ export function TrainingScreen({
               sortBestToWorst={true}
               fadeNonContributing={false}
               scenario={currentScenario}
+              hideExplanation={currentTaskIndex === 0}
             />
 
             {/* Radio selection */}

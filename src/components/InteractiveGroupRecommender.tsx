@@ -25,6 +25,7 @@ interface InteractiveGroupRecommenderProps {
   sortBestToWorst: boolean;
   fadeNonContributing: boolean;
   scenario: Scenario;
+  hideExplanation?: boolean;
 }
 
 export default function InteractiveGroupRecommender({
@@ -33,6 +34,7 @@ export default function InteractiveGroupRecommender({
   sortBestToWorst,
   fadeNonContributing,
   scenario,
+  hideExplanation = false,
 }: InteractiveGroupRecommenderProps) {
   const [ratings, setRatings] = useState<number[][]>(scenario.ratings);
 
@@ -520,9 +522,11 @@ export default function InteractiveGroupRecommender({
       </div>
 
       {/* Explanations */}
-      <div className="mb-4 space-y-2 max-h-[calc(100vh-24rem)] overflow-y-auto">
-        {renderExplanation()}
-      </div>
+      {!hideExplanation && (
+        <div className="mb-4 space-y-2 max-h-[calc(100vh-24rem)] overflow-y-auto">
+          {renderExplanation()}
+        </div>
+      )}
 
       {/* Reset Button - Only show for interactive explanation methods */}
       {(explanationStrategy === "interactive_graph" ||
