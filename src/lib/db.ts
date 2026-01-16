@@ -148,8 +148,11 @@ export async function runMigrations() {
     EXCEPTION
       WHEN duplicate_object THEN null;
     END $$;
-    
-    -- Add 'interactive_graph' to existing enum if it doesn't exist (for existing databases)
+  `;
+  
+  // Add 'interactive_graph' to existing enum if it doesn't exist (for existing databases)
+  // This is a separate call because we can't have multiple commands in a prepared statement
+  await sql`
     DO $$ 
     BEGIN
       ALTER TYPE explanation_modality_enum ADD VALUE 'interactive_graph';

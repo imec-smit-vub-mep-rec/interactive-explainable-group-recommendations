@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavigationButtons } from '../NavigationButtons';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -82,24 +82,26 @@ export function NasaTlxScreen({
   const [ratings, setRatings] = useState<NasaTlxData>(
     session.nasaTlxData || {}
   );
+  const prevRatingsRef = useRef<string>(JSON.stringify(session.nasaTlxData || {}));
 
-  // Save all ratings when they change
+  // Save ratings and update session data when they change from user input
   useEffect(() => {
-    const allAnswered = NASA_TLX_QUESTIONS.every(q => ratings[q.id] !== undefined);
-    if (allAnswered) {
+    const ratingsStr = JSON.stringify(ratings);
+    
+    // Only save if ratings actually changed (not just a re-render) and we have ratings
+    if (ratingsStr !== prevRatingsRef.current && Object.keys(ratings).length > 0) {
+      prevRatingsRef.current = ratingsStr;
       saveAnswer('nasa_tlx_data', ratings);
       updateSessionData({ nasaTlxData: ratings });
     }
-  }, [ratings]);
+  }, [ratings, saveAnswer, updateSessionData]);
 
   const handleRatingChange = (questionId: keyof NasaTlxData, value: number) => {
     setRatings(prev => {
       const updated = { ...prev, [questionId]: value };
-      // Save immediately on change
-      saveAnswer('nasa_tlx_data', updated);
-      updateSessionData({ nasaTlxData: updated });
       return updated;
     });
+    // The useEffect will handle saving and updating session data
     recordInteraction('click', { action: 'rate_nasa_tlx', questionId, value });
   };
 

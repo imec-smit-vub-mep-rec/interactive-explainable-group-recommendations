@@ -188,6 +188,7 @@ export function ObjectiveTestScreen({
         sortBestToWorst={true}
         fadeNonContributing={false}
         scenario={currentScenario}
+        hideExplanation={true}
       />
 
       {/* Question */}
