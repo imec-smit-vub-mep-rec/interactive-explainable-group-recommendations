@@ -3,27 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { CheckCircle2, Wrench, XCircle } from "lucide-react";
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-} from "@/components/ai-elements/conversation";
-import {
-  Message,
-  MessageContent,
-  MessageAvatar,
-} from "@/components/ai-elements/message";
-import {
-  PromptInput,
-  PromptInputBody,
-  PromptInputTextarea,
-  PromptInputToolbar,
-  PromptInputSubmit,
-  PromptInputTools,
-} from "@/components/ai-elements/prompt-input";
-import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
-import { Response } from "@/components/ai-elements/response";
+import { ChatInterface } from "@/components/chat/ChatInterface";
 
 interface Person {
   name: string;
@@ -113,39 +93,6 @@ export default function TextChatWithTools({
     recommendedRestaurantIndices,
   };
 
-  // Helper function to parse suggestions from text
-  const parseSuggestions = (text: string): { cleanText: string; suggestions: string[] } => {
-    if (!text || typeof text !== 'string') return { cleanText: text || '', suggestions: [] };
-    
-    // More robust regex that handles various whitespace and formatting
-    // Match <suggestions>...</suggestions> with any whitespace
-    const suggestionRegex = /<suggestions\s*>([\s\S]*?)<\/suggestions\s*>/gi;
-    let cleanText = text;
-    const suggestions: string[] = [];
-    
-    // Find and extract all suggestion blocks
-    const matches = [...text.matchAll(suggestionRegex)];
-    
-    if (matches.length > 0) {
-      // Extract suggestions from all matches
-      matches.forEach(match => {
-        const suggestionsText = match[1].trim();
-        const extracted = suggestionsText
-          .split('\n')
-          .map(line => line.replace(/^[-•*]\s*/, '').trim())
-          .filter(line => line.length > 0);
-        suggestions.push(...extracted);
-      });
-      
-      // Remove all suggestion blocks from the text
-      cleanText = text.replace(suggestionRegex, '').trim();
-    }
-    
-    // Final safeguard: remove any remaining suggestion tags (in case of malformed tags)
-    cleanText = cleanText.replace(/<\/?suggestions\s*>/gi, '').trim();
-    
-    return { cleanText, suggestions };
-  };
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -417,145 +364,16 @@ export default function TextChatWithTools({
       </div>
 
 
-      {/* Show suggestions when there are no messages */}
-      {messages.length === 0 && (
-        <div className="mb-4">
-          <Suggestions>
-            {suggestions.map((suggestion) => (
-              <Suggestion
-                key={suggestion}
-                suggestion={suggestion}
-                onClick={handleSuggestionClick}
-              />
-            ))}
-          </Suggestions>
-        </div>
-      )}
-
-      <Conversation className="h-96 border rounded-lg">
-        <ConversationContent>
-          {messages.length === 0 ? (
-            <ConversationEmptyState
-              title="No messages yet"
-              description="Click on a suggestion above or type your own question to get started"
-            />
-          ) : (
-            messages.map((message) => (
-              <Message key={message.id} from={message.role}>
-                <MessageAvatar
-                  src={
-                    message.role === "user"
-                      ? "/user-avatar.png"
-                      : "/assistant-avatar.png"
-                  }
-                  name={message.role === "user" ? "U" : "A"}
-                />
-                <MessageContent>
-                  {message.parts?.map((part, i: number) => {
-                    if (part.type === "text") {
-                      const textContent = typeof part.text === 'string' ? part.text : String(part.text || '');
-                      const { cleanText, suggestions } = parseSuggestions(textContent);
-                      return (
-                        <div key={i}>
-                          <Response>{cleanText}</Response>
-                          {suggestions.length > 0 && (
-                            <div className="mt-3">
-                              <Suggestions>
-                                {suggestions.map((suggestion, idx) => (
-                                  <Suggestion
-                                    key={idx}
-                                    suggestion={suggestion}
-                                    onClick={handleSuggestionClick}
-                                  />
-                                ))}
-                              </Suggestions>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-                    if (part.type === "tool-call") {
-                      return (
-                        <div
-                          key={i}
-                          className="text-sm text-blue-700 bg-blue-50 p-2 rounded border border-blue-200 inline-flex items-center gap-2"
-                        >
-                          <Wrench className="w-4 h-4 text-blue-700" aria-hidden="true" />
-                          <span>
-                            Calling tool:{" "}
-                            {"toolName" in part ? String(part.toolName) : "unknown"}
-                          </span>
-                        </div>
-                      );
-                    }
-                    if (part.type === "tool-result" || (part.type && part.type.startsWith("tool-") && part.type !== "tool-call")) {
-                      const result = ('result' in part ? part.result : 
-                                     'output' in part ? part.output : 
-                                     'data' in part ? part.data : 
-                                     part) as ToolResult | null;
-                      if (!result) return null;
-                      return (
-                        <div key={i} className="text-sm text-gray-600">
-                          {result.success ? (
-                            <div className="text-green-600 bg-green-50 p-3 rounded border border-green-200">
-                              <div className="flex items-center mb-2">
-                                <CheckCircle2 className="w-4 h-4 text-green-700 mr-2" aria-hidden="true" />
-                                <strong>{result.message || 'Success'}</strong>
-                              </div>
-                              {result.updatedData && (
-                                <div className="text-sm">
-                                  <p className="mb-2">New recommended restaurants: {(result.updatedData.newRecommendedRestaurantIndices || []).join(", ")}</p>
-                                  {result.updatedData.updates && result.updatedData.updates.length > 1 && (
-                                    <div>
-                                      <p className="font-medium mb-1">Updated ratings:</p>
-                                      <ul className="list-disc list-inside ml-2 space-y-1">
-                                        {result.updatedData.updates.map((update: { personName: string; restaurantName: string; oldRating: number; newRating: number }, index: number) => (
-                                          <li key={index}>
-                                            {update.personName}&apos;s rating for {update.restaurantName}: {update.oldRating} → {update.newRating}
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="text-red-700 bg-red-50 p-2 rounded border border-red-200 inline-flex items-start gap-2">
-                              <XCircle className="w-4 h-4 text-red-700 mt-0.5" aria-hidden="true" />
-                              <span>
-                                Tool error: {result.message || "Unknown error"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </MessageContent>
-              </Message>
-            ))
-          )}
-        </ConversationContent>
-      </Conversation>
-
-      <div className="mt-4">
-        <PromptInput onSubmit={handleFormSubmit}>
-          <PromptInputBody>
-            <PromptInputTextarea
-              value={input}
-              onChange={handleInputChangeWrapper}
-              placeholder="Ask about the restaurant recommendation or request changes..."
-              disabled={status !== "ready"}
-            />
-            <PromptInputToolbar className="border-t">
-              <PromptInputTools></PromptInputTools>
-              <PromptInputSubmit disabled={status !== "ready"} />
-            </PromptInputToolbar>
-          </PromptInputBody>
-        </PromptInput>
-      </div>
+      <ChatInterface
+        messages={messages}
+        status={status}
+        input={input}
+        onInputChange={handleInputChangeWrapper}
+        onSubmit={handleFormSubmit}
+        suggestions={suggestions}
+        onSuggestionClick={handleSuggestionClick}
+        conversationClassName="h-96 border rounded-lg"
+      />
     </div>
   );
 }

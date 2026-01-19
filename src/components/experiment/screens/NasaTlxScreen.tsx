@@ -146,6 +146,7 @@ export function NasaTlxScreen({
                   max={20}
                   step={1}
                   className="flex-1"
+                  isUnset={ratings[question.id] === undefined}
                 />
                 <span className="w-8 text-center font-medium text-gray-700">
                   {ratings[question.id] ?? '-'}

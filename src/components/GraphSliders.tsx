@@ -1,12 +1,12 @@
 /**
  * Based on TasteWeights with one feature (rating) https://dl.acm.org/doi/10.1145/2365952.2365964
- * Ratings for items in table 6 of https://dl.acm.org/doi/10.1145/3555161 
+ * Ratings for items in table 6 of https://dl.acm.org/doi/10.1145/3555161
  */
 
-'use client';
+"use client";
 
-import React, { useEffect, useRef } from 'react';
-import * as d3 from 'd3';
+import React, { useEffect, useRef } from "react";
+import * as d3 from "d3";
 
 interface Person {
   name: string;
@@ -20,7 +20,7 @@ interface Restaurant {
   visited: boolean;
 }
 
-type AggregationStrategy = 'LMS' | 'ADD' | 'APP';
+type AggregationStrategy = "LMS" | "ADD" | "APP";
 
 interface GraphSlidersProps {
   people: Person[];
@@ -29,7 +29,11 @@ interface GraphSlidersProps {
   strategy: AggregationStrategy;
   recommendedRestaurantIndices: number[];
   groupScores: number[];
-  updateRating: (personIndex: number, restaurantIndex: number, value: number) => void;
+  updateRating: (
+    personIndex: number,
+    restaurantIndex: number,
+    value: number
+  ) => void;
   resetRatings: () => void;
   fadeNonContributing?: boolean;
 }
@@ -43,28 +47,34 @@ export default function GraphSliders({
   groupScores,
   updateRating,
   resetRatings,
-  fadeNonContributing = false
+  fadeNonContributing = false,
 }: GraphSlidersProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Helper function to determine if a bar should be faded based on strategy
-  const shouldFadeBar = (personIndex: number, restaurantIndex: number, rating: number): boolean => {
+  const shouldFadeBar = (
+    personIndex: number,
+    restaurantIndex: number,
+    rating: number
+  ): boolean => {
     if (!fadeNonContributing) return false;
-    
-    const restaurantRatings = ratings.map(personRatings => personRatings[restaurantIndex]);
-    
+
+    const restaurantRatings = ratings.map(
+      (personRatings) => personRatings[restaurantIndex]
+    );
+
     switch (strategy) {
-      case 'LMS': // Least Misery Strategy - fade bars higher than the minimum
+      case "LMS": // Least Misery Strategy - fade bars higher than the minimum
         const minRating = Math.min(...restaurantRatings);
         return rating > minRating;
-      
-      case 'APP': // Approval Voting Strategy - fade bars with rating <= 3
+
+      case "APP": // Approval Voting Strategy - fade bars with rating <= 3
         return rating <= 3;
-      
-      case 'ADD': // Additive Strategy - all bars contribute, so nothing is faded
+
+      case "ADD": // Additive Strategy - all bars contribute, so nothing is faded
         return false;
-      
+
       default:
         return false;
     }
@@ -76,7 +86,7 @@ export default function GraphSliders({
 
     const container = chartRef.current;
     const svg = d3.select(svgRef.current);
-    
+
     // Clear previous chart
     svg.selectAll("*").remove();
 
@@ -84,27 +94,30 @@ export default function GraphSliders({
     const containerWidth = container.clientWidth;
     const margin = { top: 20, right: 20, bottom: 80, left: 60 };
     const width = containerWidth - margin.left - margin.right;
-    const height = 400;
+    const height = 280;
 
     // Set up SVG
-    svg.attr("width", containerWidth).attr("height", height + margin.top + margin.bottom);
+    svg
+      .attr("width", containerWidth)
+      .attr("height", height + margin.top + margin.bottom);
 
-    const g = svg.append("g")
+    const g = svg
+      .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
     // Scales
-    const xScale = d3.scaleBand()
-      .domain(restaurants.map(r => r.name))
+    const xScale = d3
+      .scaleBand()
+      .domain(restaurants.map((r) => r.name))
       .range([0, width])
       .paddingInner(0.1)
       .paddingOuter(0.1);
 
-    const yScale = d3.scaleLinear()
-      .domain([0, 5])
-      .range([height, 0]);
+    const yScale = d3.scaleLinear().domain([0, 5]).range([height, 0]);
 
-    const personScale = d3.scaleBand()
-      .domain(people.map(p => p.name))
+    const personScale = d3
+      .scaleBand()
+      .domain(people.map((p) => p.name))
       .range([0, xScale.bandwidth()])
       .paddingInner(0.1);
 
@@ -116,15 +129,20 @@ export default function GraphSliders({
       person: string;
       restaurant: string;
     }
-    const drag = d3.drag<SVGRectElement, BarDatum>()
-      .on("start", function(_event, d) {
-        const shouldFade = shouldFadeBar(d.personIndex, d.restaurantIndex, d.rating);
+    const drag = d3
+      .drag<SVGRectElement, BarDatum>()
+      .on("start", function (_event, d) {
+        const shouldFade = shouldFadeBar(
+          d.personIndex,
+          d.restaurantIndex,
+          d.rating
+        );
         d3.select(this)
           .attr("opacity", shouldFade ? 0.5 : 0.8)
           .attr("stroke", "#3B82F6")
           .attr("stroke-width", 2);
       })
-      .on("drag", function(event, d) {
+      .on("drag", function (event, d) {
         // Move bar visually during drag without triggering full React redraw
         const pointer = d3.pointer(event, g.node() as SVGGElement);
         const pointerY = pointer[1];
@@ -133,8 +151,12 @@ export default function GraphSliders({
           .attr("y", clampedY)
           .attr("height", height - clampedY);
       })
-      .on("end", function(event, d) {
-        const shouldFade = shouldFadeBar(d.personIndex, d.restaurantIndex, d.rating);
+      .on("end", function (event, d) {
+        const shouldFade = shouldFadeBar(
+          d.personIndex,
+          d.restaurantIndex,
+          d.rating
+        );
         d3.select(this)
           .attr("opacity", shouldFade ? 0.3 : 1)
           .attr("stroke", "none");
@@ -144,24 +166,30 @@ export default function GraphSliders({
         const pointerY = pointer[1];
         const clampedY = Math.max(0, Math.min(height, pointerY));
         const continuousRating = 5 - (clampedY / height) * 4;
-        const newRating = Math.max(1, Math.min(5, Math.round(continuousRating)));
+        const newRating = Math.max(
+          1,
+          Math.min(5, Math.round(continuousRating))
+        );
         updateRating(d.personIndex, d.restaurantIndex, newRating);
       });
 
     // Draw bars
     restaurants.forEach((restaurant, restaurantIndex) => {
-      const isRecommended = recommendedRestaurantIndices.includes(restaurantIndex);
+      const isRecommended =
+        recommendedRestaurantIndices.includes(restaurantIndex);
       const isVisited = restaurant.visited;
       const groupScore = groupScores[restaurantIndex];
 
       // Restaurant group
-      const restaurantGroup = g.append("g")
+      const restaurantGroup = g
+        .append("g")
         .attr("class", "restaurant-group")
         .attr("transform", `translate(${xScale(restaurant.name)}, 0)`);
 
       // Background for visited/recommended restaurants
       if (isVisited || isRecommended) {
-        restaurantGroup.append("rect")
+        restaurantGroup
+          .append("rect")
           .attr("x", 0)
           .attr("y", 0)
           .attr("width", xScale.bandwidth())
@@ -180,22 +208,23 @@ export default function GraphSliders({
         const personWidth = personScale.bandwidth() || 0;
 
         const shouldFade = shouldFadeBar(personIndex, restaurantIndex, rating);
-        restaurantGroup.append("rect")
+        restaurantGroup
+          .append("rect")
           .attr("x", personX)
           .attr("y", barY)
           .attr("width", personWidth)
           .attr("height", barHeight)
           .attr("fill", isVisited ? "#6B7280" : person.color)
-          .attr("opacity", isVisited ? 0.6 : (shouldFade ? 0.3 : 1))
+          .attr("opacity", isVisited ? 0.6 : shouldFade ? 0.3 : 1)
           .attr("cursor", "ns-resize")
           .datum({
             personIndex,
             restaurantIndex,
             rating,
             person: person.name,
-            restaurant: restaurant.name
+            restaurant: restaurant.name,
           })
-          .on("mouseover", function() {
+          .on("mouseover", function () {
             if (!isVisited) {
               d3.select(this)
                 .attr("opacity", shouldFade ? 0.5 : 0.8)
@@ -203,7 +232,7 @@ export default function GraphSliders({
                 .attr("stroke-width", 1);
             }
           })
-          .on("mouseout", function() {
+          .on("mouseout", function () {
             if (!isVisited) {
               d3.select(this)
                 .attr("opacity", shouldFade ? 0.3 : 1)
@@ -215,7 +244,8 @@ export default function GraphSliders({
 
         // Add rating text only if bar is tall enough
         if (barHeight > 20) {
-          restaurantGroup.append("text")
+          restaurantGroup
+            .append("text")
             .attr("x", personX + personWidth / 2)
             .attr("y", barY + barHeight / 2)
             .attr("text-anchor", "middle")
@@ -227,7 +257,8 @@ export default function GraphSliders({
             .text(rating);
         } else {
           // For short bars, place text above
-          restaurantGroup.append("text")
+          restaurantGroup
+            .append("text")
             .attr("x", personX + personWidth / 2)
             .attr("y", barY - 3)
             .attr("text-anchor", "middle")
@@ -239,10 +270,11 @@ export default function GraphSliders({
       });
 
       // Group score visualization based on strategy
-      if (strategy === 'LMS') {
+      if (strategy === "LMS") {
         // For LMS, show the minimum rating line
         const groupScoreY = yScale(groupScore);
-        restaurantGroup.append("line")
+        restaurantGroup
+          .append("line")
           .attr("x1", 0)
           .attr("x2", xScale.bandwidth())
           .attr("y1", groupScoreY)
@@ -252,7 +284,8 @@ export default function GraphSliders({
           .attr("stroke-dasharray", "5,5");
 
         // Group score text
-        restaurantGroup.append("text")
+        restaurantGroup
+          .append("text")
           .attr("x", xScale.bandwidth() / 2)
           .attr("y", groupScoreY - 8)
           .attr("text-anchor", "middle")
@@ -264,14 +297,15 @@ export default function GraphSliders({
           .attr("stroke-width", "3px")
           .attr("paint-order", "stroke fill")
           .text(groupScore);
-      } else if (strategy === 'ADD') {
+      } else if (strategy === "ADD") {
         // For ADD, show the sum as a scaled line with total score overlayed
         // Scale the group score to fit within the 0-5 rating scale for visualization
         const maxPossibleSum = people.length * 5; // Maximum possible sum
         const scaledScore = (groupScore / maxPossibleSum) * 5; // Scale to 0-5 range
         const groupScoreY = yScale(scaledScore);
-        
-        restaurantGroup.append("line")
+
+        restaurantGroup
+          .append("line")
           .attr("x1", 0)
           .attr("x2", xScale.bandwidth())
           .attr("y1", groupScoreY)
@@ -281,7 +315,8 @@ export default function GraphSliders({
           .attr("stroke-dasharray", "5,5");
 
         // Group score text showing the actual sum
-        restaurantGroup.append("text")
+        restaurantGroup
+          .append("text")
           .attr("x", xScale.bandwidth() / 2)
           .attr("y", groupScoreY - 8)
           .attr("text-anchor", "middle")
@@ -299,8 +334,9 @@ export default function GraphSliders({
         const maxPossibleVotes = people.length; // Maximum possible approval votes
         const scaledScore = (groupScore / maxPossibleVotes) * 5; // Scale to 0-5 range
         const groupScoreY = yScale(scaledScore);
-        
-        restaurantGroup.append("line")
+
+        restaurantGroup
+          .append("line")
           .attr("x1", 0)
           .attr("x2", xScale.bandwidth())
           .attr("y1", groupScoreY)
@@ -310,7 +346,8 @@ export default function GraphSliders({
           .attr("stroke-dasharray", "5,5");
 
         // Group score text showing the actual approval votes count
-        restaurantGroup.append("text")
+        restaurantGroup
+          .append("text")
           .attr("x", xScale.bandwidth() / 2)
           .attr("y", groupScoreY - 8)
           .attr("text-anchor", "middle")
@@ -339,7 +376,8 @@ export default function GraphSliders({
       .text("Rating");
 
     // X-axis
-    const xAxis = g.append("g")
+    const xAxis = g
+      .append("g")
       .attr("class", "x-axis")
       .attr("transform", `translate(0, ${height})`)
       .call(d3.axisBottom(xScale));
@@ -349,12 +387,13 @@ export default function GraphSliders({
     xText
       .attr("font-size", "12px")
       .style("fill", "#000000") // Keep text black
-      .each(function(_d, i) {
+      .each(function (_d, i) {
         if (!recommendedRestaurantIndices.includes(i)) return;
         // Add yellow background for recommended restaurants
         const bbox = (this as SVGTextElement).getBBox();
         const padding = 2;
-        const parent = (this as SVGTextElement).parentNode as SVGGElement | null;
+        const parent = (this as SVGTextElement)
+          .parentNode as SVGGElement | null;
         if (!parent) return;
         // Insert background rectangle before the text
         d3.select(parent)
@@ -371,7 +410,13 @@ export default function GraphSliders({
   // Effect to create/update chart
   useEffect(() => {
     createChart();
-  }, [ratings, recommendedRestaurantIndices, groupScores, strategy, fadeNonContributing]);
+  }, [
+    ratings,
+    recommendedRestaurantIndices,
+    groupScores,
+    strategy,
+    fadeNonContributing,
+  ]);
 
   // Effect to handle window resize
   useEffect(() => {
@@ -379,37 +424,45 @@ export default function GraphSliders({
       createChart();
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [ratings, recommendedRestaurantIndices, groupScores, strategy, fadeNonContributing]);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [
+    ratings,
+    recommendedRestaurantIndices,
+    groupScores,
+    strategy,
+    fadeNonContributing,
+  ]);
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg p-6 max-h-[calc(100vh-20rem)] overflow-y-auto">
+    <div className="bg-white border border-gray-300 rounded-lg p-4 max-h-[calc(100vh-20rem)] overflow-y-auto">
       {/* D3 Chart Container */}
-      <div 
+      <div
         ref={chartRef}
         className="w-full overflow-x-auto"
-        style={{ minHeight: '500px' }}
+        style={{ minHeight: "360px" }}
         data-onboarding="interactive-graph"
       >
         <svg ref={svgRef} className="w-full h-full"></svg>
       </div>
 
       {/* Legend */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mt-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm w-[50%] min-w-[400px] mx-auto">
         <div>
           <h4 className="font-semibold mb-2">People:</h4>
-          {people.map(person => (
-            <div key={person.name} className="flex items-center mb-1">
-              <div 
-                className="w-4 h-4 mr-2 rounded"
-                style={{ backgroundColor: person.color }}
-              />
-              <span>{person.name}</span>
-            </div>
-          ))}
+          <div className="grid grid-cols-2 gap-1">
+            {people.map((person) => (
+              <div key={person.name} className="flex items-center mb-1">
+                <div
+                  className="w-4 h-4 mr-2 rounded"
+                  style={{ backgroundColor: person.color }}
+                />
+                <span>{person.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        
+
         <div>
           <h4 className="font-semibold mb-2">Restaurant States:</h4>
           <div className="flex items-center mb-1">
@@ -421,25 +474,27 @@ export default function GraphSliders({
             <span>Recommended restaurant</span>
           </div>
         </div>
-        
+
         <div>
           <h4 className="font-semibold mb-2">Scoring ({strategy}):</h4>
-          {strategy === 'LMS' && (
+          {strategy === "LMS" && (
             <div className="flex items-center mb-1">
               <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-red-500" />
               <span>Group score: lowest rating</span>
             </div>
           )}
-          {strategy === 'ADD' && (
+          {strategy === "ADD" && (
             <div className="flex items-center mb-1">
               <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-black" />
               <span>Group score: total rating for the restaurant</span>
             </div>
           )}
-          {strategy === 'APP' && (
+          {strategy === "APP" && (
             <div className="flex items-center mb-1">
               <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-black" />
-              <span>Group score: number of ratings above 3 for the restaurant</span>
+              <span>
+                Group score: number of ratings above 3 for the restaurant
+              </span>
             </div>
           )}
           <div className="text-xs text-gray-600 mt-2">

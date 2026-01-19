@@ -58,9 +58,8 @@ export const onboardingTours: Tour[] = [
       {
         icon: null,
         title: "Get Started",
-        content:
-          "Use this system to answer the following questions correctly.",
-        selector: "[data-onboarding='footer-actions']",
+        content: "Use this system to answer the questions in the next screen correctly.",
+        selector: "[data-onboarding='page-header']",
         side: "top",
         showControls: true,
         showSkip: false,
@@ -104,7 +103,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Strategy Explanation",
         content:
-          "The definition of \"best\" and \"worst\" is based on a specific strategy that weighs everyone's scores.",
+          'The definition of "best" and "worst" is based on a specific strategy that weighs everyone\'s scores.',
         selector: "[data-onboarding='strategy-label']",
         side: "top",
         showControls: true,
@@ -113,9 +112,8 @@ export const onboardingTours: Tour[] = [
       {
         icon: null,
         title: "Get Started",
-        content:
-          "Use this system to answer the following questions correctly.",
-        selector: "[data-onboarding='footer-actions']",
+        content: "Use this system to answer the questions in the next step correctly.",
+        selector: "[data-onboarding='page-header']",
         side: "top",
         showControls: true,
         showSkip: false,
@@ -169,7 +167,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Strategy Explanation",
         content:
-          "The \"best\" and \"worst\" logic is based on a specific strategy taking all scores into account.",
+          'The "best" and "worst" logic is based on a specific strategy taking all scores into account.',
         selector: "[data-onboarding='strategy-label']",
         side: "top",
         showControls: true,
@@ -178,9 +176,8 @@ export const onboardingTours: Tour[] = [
       {
         icon: null,
         title: "Get Started",
-        content:
-          "Use this system to answer the following questions correctly.",
-        selector: "[data-onboarding='footer-actions']",
+        content: "Use this system to answer the questions in the next step correctly.",
+        selector: "[data-onboarding='page-header']",
         side: "top",
         showControls: true,
         showSkip: false,
@@ -224,7 +221,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Chat Input",
         content:
-          "Use one of the presets to get started, or type in your own question. Press \"Enter\" to submit.",
+          'Use one of the presets to get started, or type in your own question. Press "Enter" to submit.',
         selector: "[data-onboarding='chat-input']",
         side: "top",
         showControls: true,
@@ -233,9 +230,8 @@ export const onboardingTours: Tour[] = [
       {
         icon: null,
         title: "Get Started",
-        content:
-          "Use this system to answer the following questions correctly.",
-        selector: "[data-onboarding='footer-actions']",
+        content: "Use this system to answer the questions in the next step correctly.",
+        selector: "[data-onboarding='page-header']",
         side: "top",
         showControls: true,
         showSkip: false,
@@ -298,9 +294,8 @@ export const onboardingTours: Tour[] = [
       {
         icon: null,
         title: "Get Started",
-        content:
-          "Use this system to answer the following questions correctly.",
-        selector: "[data-onboarding='footer-actions']",
+        content: "Use this system to answer the questions in the next step correctly.",
+        selector: "[data-onboarding='page-header']",
         side: "top",
         showControls: true,
         showSkip: false,
@@ -309,7 +304,15 @@ export const onboardingTours: Tour[] = [
   },
 ];
 
-export function getTourForStrategy(strategy: ExplanationStrategy): string | null {
-  const validTours = ["no_expl", "static_list", "interactive_list", "conversational", "interactive_graph"];
+export function getTourForStrategy(
+  strategy: ExplanationStrategy
+): string | null {
+  const validTours = [
+    "no_expl",
+    "static_list",
+    "interactive_list",
+    "conversational",
+    "interactive_graph",
+  ];
   return validTours.includes(strategy) ? strategy : null;
 }

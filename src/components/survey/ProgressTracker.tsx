@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Progress } from '@/components/ui/progress';
+import { Progress } from "@/components/ui/progress";
 
 interface ProgressTrackerProps {
   current: number;
@@ -8,11 +8,16 @@ interface ProgressTrackerProps {
   className?: string;
 }
 
-export function ProgressTracker({ current, total, className = '' }: ProgressTrackerProps) {
+export function ProgressTracker({
+  current,
+  total,
+  className = "",
+}: ProgressTrackerProps) {
   const progress = total > 0 ? (current / total) * 100 : 0;
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full ${className} flex flex-row`}>
+      <Progress value={progress} className="h-2 bg-ivory [&>div]:bg-maize" />
       <div className="flex justify-between items-center mb-2">
         <span className="text-sm font-medium text-dark-purple">
           {/* Question {current} - {inBlock ? `${current + inBlock - 1}` : ''} of {total} */}
@@ -21,10 +26,6 @@ export function ProgressTracker({ current, total, className = '' }: ProgressTrac
           {Math.round(progress)}%
         </span>
       </div>
-      <Progress 
-        value={progress} 
-        className="h-2 bg-ivory [&>div]:bg-maize"
-      />
     </div>
   );
 }

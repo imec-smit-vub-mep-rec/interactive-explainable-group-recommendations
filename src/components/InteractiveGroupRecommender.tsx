@@ -180,7 +180,9 @@ export default function InteractiveGroupRecommender({
 
   // Determine if table inputs should be disabled
   const isTableDisabled =
-    explanationStrategy === "no_expl" || explanationStrategy === "static_list";
+    explanationStrategy === "no_expl" || 
+    explanationStrategy === "static_list" || 
+    explanationStrategy === "conversational";
 
   const renderExplanation = () => {
     switch (explanationStrategy) {
@@ -408,7 +410,7 @@ export default function InteractiveGroupRecommender({
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 bg-white rounded-lg shadow-lg">
+    <div className="max-w-7xl mx-auto  bg-white rounded-lg ">
       <div className="mb-4" data-onboarding="page-header">
         <p className="text-gray-600 mb-1 text-sm">{scenario.description}</p>
         <p

@@ -231,7 +231,7 @@ export function TrainingScreen({
                 "Given the advice of the recommender system, what is your final decision for the best restaurant to go to."}
             </p>
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 min-w-24">
             Step{" "}
             {currentStep === "initial_guess"
               ? 1
