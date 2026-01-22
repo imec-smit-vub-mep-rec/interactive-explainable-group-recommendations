@@ -12,7 +12,7 @@ export const scenarios: Scenario[] = [
       [3, 4, 5, 3, 1, 3, 5, 3, 1, 5],
       [5, 1, 1, 3, 5, 4, 1, 2, 3, 4],
     ],
-    previous_visits: [9, 1, 6],
+    previous_visits: [9, 1, 6], // zero-indexed, so previous visits are 10,2,7
     questions: [],
   },
   {
@@ -164,23 +164,23 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "add9_c1",
-            text: "Change Rest 7 for Freddy to 5 and Rest 10 for Alex to 4.",
+            text: "Change Rest 7 for Jess to 5 and Rest 10 for Freddy to 4.",
             value: "1",
           },
           {
             id: "add9_c2",
-            text: "Change Rest 6 for Darcy to 4 and Rest 4 for Alex to 2.",
+            text: "Change Rest 6 for Tony to 4 and Rest 4 for Freddy to 2.",
             value: "2",
             isCorrectAnswer: true,
           },
           {
             id: "add9_c3",
-            text: "Change Rest 4 for Alex to 5 and Rest 8 for Freddy to 5.",
+            text: "Change Rest 4 for Freddy to 5 and Rest 8 for Jess to 5.",
             value: "3",
           },
           {
             id: "add9_c4",
-            text: "Change Rest 7 for Darcy to 5 and Rest 2 for Jess to 2.",
+            text: "Change Rest 7 for Alex to 5 and Rest 2 for Jackie to 2.",
             value: "4",
           },
         ],
@@ -209,23 +209,23 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "add10_c1",
-            text: "Change Rest 10 for Alex to 2 and Rest 4 for Jess to 3.",
+            text: "Change Rest 10 for Freddy to 2 and Rest 4 for Alex to 3.",
             value: "1",
           },
           {
             id: "add10_c2",
-            text: "Change Rest 7 for Jackie to 3 and Rest 6 for Alex to 4.",
+            text: "Change Rest 7 for Darcy to 3 and Rest 6 for Freddy to 4.",
             value: "2",
           },
           {
             id: "add10_c3",
-            text: "Change Rest 9 for Darcy to 2 and Rest 2 for Jess to 4.",
+            text: "Change Rest 9 for Darcy to 2 and Rest 2 for Jackie to 4.",
             value: "3",
             isCorrectAnswer: true,
           },
           {
             id: "add10_c4",
-            text: "Change Rest 2 for Darcy to 2 and Rest 5 for Alex to 3.",
+            text: "Change Rest 2 for Jess to 2 and Rest 5 for Freddy to 3.",
             value: "4",
           },
         ],
@@ -458,22 +458,22 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "lms9_c1",
-            text: "Change Rest 2 for Jess to 5 and Rest 1 for Freddy to 4.",
+            text: "Change Rest 2 for Darcy to 5 and Rest 1 for Jackie to 4.",
             value: "1",
           },
           {
             id: "lms9_c2",
-            text: "Change Rest 4 for Jackie to 3 and Rest 1 for Jess to 3.",
+            text: "Change Rest 4 for Freddy to 3 and Rest 1 for Darcy to 3.",
             value: "2",
           },
           {
             id: "lms9_c3",
-            text: "Change Rest 10 for Freddy to 5 and Rest 8 for Jess to 5.",
+            text: "Change Rest 10 for Alex to 5 and Rest 8 for Darcy to 5.",
             value: "3",
           },
           {
             id: "lms9_c4",
-            text: "Change Rest 7 for Jackie to 3 and Rest 6 for Freddy to 4.",
+            text: "Change Rest 7 for Freddy to 3 and Rest 6 for Jess to 4.",
             value: "4",
             isCorrectAnswer: true,
           },
@@ -503,23 +503,23 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "lms10_c1",
-            text: "Change Rest 1 for Darcy to 3 and Rest 2 for Freddy to 4.",
+            text: "Change Rest 1 for Darcy to 3 and Rest 2 for Alex to 4.",
             value: "1",
           },
           {
             id: "lms10_c2",
-            text: "Change Rest 6 for Freddy to 3 and Rest 1 for Alex to 5.",
+            text: "Change Rest 6 for Freddy to 3 and Rest 1 for Jess to 5.",
             value: "2",
             isCorrectAnswer: true,
           },
           {
             id: "lms10_c3",
-            text: "Change Rest 2 for Alex to 4 and Rest 8 for Jess to 3.",
+            text: "Change Rest 2 for Alex to 4 and Rest 8 for Jackie to 3.",
             value: "3",
           },
           {
             id: "lms10_c4",
-            text: "Change Rest 4 for Jess to 5 and Rest 10 for Darcy to 5.",
+            text: "Change Rest 4 for Jackie to 5 and Rest 10 for Darcy to 5.",
             value: "4",
           },
         ],
@@ -561,11 +561,11 @@ export const scenarios: Scenario[] = [
     id: "lms12",
     type: "lms",
     ratings: [
-      [1, 4, 3, 5, 5, 5, 4, 1, 5, 2],
-      [1, 5, 3, 3, 1, 1, 5, 3, 4, 2],
-      [1, 4, 5, 5, 1, 1, 4, 3, 4, 3],
-      [1, 5, 4, 2, 2, 2, 5, 3, 5, 3],
-      [5, 3, 4, 1, 5, 5, 1, 2, 4, 5],
+      [1, 4, 3, 5, 5, 4, 1, 5, 2, 1],
+      [1, 5, 3, 3, 1, 5, 3, 4, 2, 1],
+      [1, 4, 5, 5, 1, 4, 3, 4, 3, 2],
+      [1, 5, 4, 2, 2, 5, 3, 5, 3, 1],
+      [5, 3, 4, 1, 5, 1, 2, 4, 5, 3],
     ],
     previous_visits: [7, 1, 2],
     questions: [
@@ -613,7 +613,7 @@ export const scenarios: Scenario[] = [
       [5, 1, 3, 5, 1, 2, 2, 2, 4, 3],
       [2, 2, 5, 1, 4, 4, 1, 4, 1, 5],
     ],
-    previous_visits: [5, 8, 0],
+    previous_visits: [0, 5, 8],
     questions: [],
   },
   {
@@ -639,7 +639,7 @@ export const scenarios: Scenario[] = [
       [2, 1, 5, 4, 5, 2, 2, 2, 2, 1],
       [4, 3, 1, 1, 3, 5, 2, 2, 3, 5],
     ],
-    previous_visits: [3, 4, 2],
+    previous_visits: [2, 3, 4],
     questions: [],
   },
   {
@@ -665,7 +665,7 @@ export const scenarios: Scenario[] = [
       [1, 2, 3, 5, 3, 1, 5, 5, 2, 2],
       [3, 2, 4, 1, 1, 5, 1, 2, 2, 5],
     ],
-    previous_visits: [3, 7, 6],
+    previous_visits: [6, 3, 7],
     questions: [],
   },
   {
@@ -752,12 +752,12 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "app9_c1",
-            text: "Change Rest 1 for Jackie to 3 and Rest 9 for Darcy to 2.",
+            text: "Change Rest 1 for Darcy to 3 and Rest 9 for Jackie to 2.",
             value: "1",
           },
           {
             id: "app9_c2",
-            text: "Change Rest 4 for Freddy to 5 and Rest 5 for Jackie to 2.",
+            text: "Change Rest 4 for Jess to 5 and Rest 5 for Darcy to 2.",
             value: "2",
             isCorrectAnswer: true,
           },
@@ -768,7 +768,7 @@ export const scenarios: Scenario[] = [
           },
           {
             id: "app9_c4",
-            text: "Change Rest 8 for Darcy to 5 and Rest 3 for Jess to 1.",
+            text: "Change Rest 8 for Jackie to 5 and Rest 3 for Freddy to 1.",
             value: "4",
           },
         ],
@@ -797,22 +797,22 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "app10_c1",
-            text: "Change Rest 6 for Jess to 5 and Rest 2 for Freddy to 3.",
+            text: "Change Rest 6 for Jess to 5 and Rest 2 for Jackie to 3.",
             value: "1",
           },
           {
             id: "app10_c2",
-            text: "Change Rest 9 for Freddy to 2 and Rest 7 for Alex to 5.",
+            text: "Change Rest 9 for Jackie to 2 and Rest 7 for Alex to 5.",
             value: "2",
           },
           {
             id: "app10_c3",
-            text: "Change Rest 1 for Darcy to 5 and Rest 2 for Jess to 2.",
+            text: "Change Rest 1 for Freddy to 5 and Rest 2 for Jess to 2.",
             value: "3",
           },
           {
             id: "app10_c4",
-            text: "Change Rest 7 for Jess to 5 and Rest 1 for Darcy to 3.",
+            text: "Change Rest 7 for Jess to 5 and Rest 1 for Freddy to 3.",
             value: "4",
             isCorrectAnswer: true,
           },
