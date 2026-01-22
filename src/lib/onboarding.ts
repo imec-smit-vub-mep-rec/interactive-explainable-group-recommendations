@@ -1,6 +1,8 @@
 import { Tour } from "nextstepjs";
 import { ExplanationStrategy } from "./types";
 
+const welcomeContent = "Every month, a group of friends must decide on a restaurant for dinner. The goal of this system is to help them choose the best restaurant to visit next.";
+
 export const onboardingTours: Tour[] = [
   {
     tour: "no_expl",
@@ -9,7 +11,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Welcome!",
         content:
-          "Every month, your group of friends must decide on a restaurant for dinner.",
+          welcomeContent,
         selector: "[data-onboarding='page-header']",
         side: "bottom",
         showControls: true,
@@ -73,7 +75,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Welcome!",
         content:
-          "Every month, your group of friends must decide on a restaurant for dinner.",
+          welcomeContent,
         selector: "[data-onboarding='page-header']",
         side: "bottom",
         showControls: true,
@@ -127,7 +129,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Welcome!",
         content:
-          "Every month, your group of friends must decide on a restaurant for dinner.",
+          welcomeContent,
         selector: "[data-onboarding='page-header']",
         side: "bottom",
         showControls: true,
@@ -137,7 +139,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Interactive Table",
         content:
-          "You can increase or decrease these scores using the arrows to see how the recommendations change.",
+          "You can increase or decrease these scores using the arrows. Below the table, you can see how the recommendations change.",
         selector: "[data-onboarding='interactive-table']",
         side: "top",
         showControls: true,
@@ -191,7 +193,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Welcome!",
         content:
-          "Every month, your group of friends must decide on a restaurant for dinner.",
+          welcomeContent,
         selector: "[data-onboarding='page-header']",
         side: "bottom",
         showControls: true,
@@ -245,7 +247,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Welcome!",
         content:
-          "Every month, your group of friends must decide on a restaurant for dinner.",
+          welcomeContent,
         selector: "[data-onboarding='page-header']",
         side: "bottom",
         showControls: true,
@@ -255,7 +257,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Interactive Table",
         content:
-          "You can increase or decrease these scores using the arrows to see how the recommendations change.",
+          "You can increase or decrease these scores using the arrows. Below the table, you can see how the recommendations change.",
         selector: "[data-onboarding='interactive-table']",
         side: "top",
         showControls: true,
@@ -275,7 +277,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Interactive Graph",
         content:
-          "This graph shows the ratings visually. You can drag the bars up or down to change ratings and see how the recommendations update in real-time.",
+          "This graph shows the ratings and recommendations visually. You can drag the bars up or down to change ratings and see how the recommendations update in real-time.",
         selector: "[data-onboarding='interactive-graph']",
         side: "top",
         showControls: true,

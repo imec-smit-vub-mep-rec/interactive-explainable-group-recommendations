@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { NextStep, useNextStep } from "nextstepjs";
 import { NavigationButtons } from "../NavigationButtons";
 import InteractiveGroupRecommender from "@/components/InteractiveGroupRecommender";
@@ -51,6 +51,9 @@ export function TrainingScreen({
   );
   const [hasShownOnboarding, setHasShownOnboarding] = useState(false);
 
+  // Ref to access resetRatings function from InteractiveGroupRecommender
+  const resetRatingsRef = useRef<(() => void) | null>(null);
+
   // NextStep hook for onboarding tour
   const { startNextStep } = useNextStep();
 
@@ -59,7 +62,7 @@ export function TrainingScreen({
 
   // Get explanation strategy for display
   const displayStrategy = session.explanationModality as ExplanationStrategy;
-  
+
   // Start onboarding tour on first task, step 2 (explore_explanation)
   useEffect(() => {
     if (
@@ -213,7 +216,7 @@ export function TrainingScreen({
       <div className="space-y-4">
         {/* Header */}
         <div className="flex justify-between items-start">
-          <div>
+          <div data-onboarding="page-header">
             <h1 className="text-xl font-bold text-gray-900 mb-1">
               Training Task {currentTaskIndex + 1} of{" "}
               {trainingScenarioIds.length}
@@ -223,10 +226,10 @@ export function TrainingScreen({
                 "The following tasks are to make you familiar with the system and the task."}
               {currentStep === "explore_explanation" &&
                 "Using the provided ratings, the software system made a recommendation to the group." +
-                  (displayStrategy !== "no_expl" &&
+                (displayStrategy !== "no_expl" &&
                   displayStrategy !== "static_list"
-                    ? " Edit a few ratings to see how the recommendation changes."
-                    : "")}
+                  ? " Edit a few ratings to see how the recommendation changes."
+                  : "")}
               {currentStep === "final_decision" &&
                 "Given the advice of the recommender system, what is your final decision for the best restaurant to go to."}
             </p>
@@ -236,8 +239,8 @@ export function TrainingScreen({
             {currentStep === "initial_guess"
               ? 1
               : currentStep === "explore_explanation"
-              ? 2
-              : 3}{" "}
+                ? 2
+                : 3}{" "}
             of 3
           </div>
         </div>
@@ -308,6 +311,7 @@ export function TrainingScreen({
               sortBestToWorst={true}
               fadeNonContributing={false}
               scenario={currentScenario}
+              onResetRatingsRef={resetRatingsRef}
             />
           </div>
         )}
@@ -315,18 +319,6 @@ export function TrainingScreen({
         {/* Step 3: Final Decision */}
         {currentStep === "final_decision" && (
           <div className="space-y-4">
-            <div className="flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  recordTaskInteraction("click", { action: "reset_to_initial" })
-                }
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset to Initial Values
-              </Button>
-            </div>
 
             <InteractiveGroupRecommender
               strategy={aggregationStrategy}
@@ -334,6 +326,7 @@ export function TrainingScreen({
               sortBestToWorst={true}
               fadeNonContributing={false}
               scenario={currentScenario}
+              onResetRatingsRef={resetRatingsRef}
             />
 
             {/* Radio selection for final decision */}
@@ -378,18 +371,21 @@ export function TrainingScreen({
 
         {/* Navigation */}
         <NavigationButtons
+          explanationStrategy={displayStrategy}
+          currentStep={currentStep}
           onBack={handleBack}
           onNext={handleNextStep}
           canGoBack={true}
           canGoNext={canProceed()}
           isLoading={isLoading}
+          onResetRatings={() => resetRatingsRef.current?.()}
           nextLabel={
             currentStep === "final_decision" &&
-            currentTaskIndex === trainingScenarioIds.length - 1
+              currentTaskIndex === trainingScenarioIds.length - 1
               ? "Complete Training"
               : currentStep === "final_decision"
-              ? "Next Task"
-              : "Continue"
+                ? "Next Task"
+                : "Continue"
           }
         />
       </div>

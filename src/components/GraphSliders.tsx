@@ -7,6 +7,7 @@
 
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
+import { CheckIcon } from "lucide-react";
 
 interface Person {
   name: string;
@@ -198,6 +199,37 @@ export default function GraphSliders({
           .attr("opacity", 0.3);
       }
 
+      // Add checkmark for recommended restaurants (color blind accessible)
+      if (isRecommended && !isVisited) {
+        const checkmarkSize = 16;
+        const checkmarkX = xScale.bandwidth() / 2;
+        const checkmarkY = -25; // Position above the chart area
+
+        // Create checkmark group
+        const checkmarkGroup = restaurantGroup
+          .append("g")
+          .attr("transform", `translate(${checkmarkX}, ${checkmarkY})`)
+          .attr("class", "recommended-checkmark");
+
+        // Background circle for checkmark
+        checkmarkGroup
+          .append("circle")
+          .attr("r", checkmarkSize / 2 + 2)
+          .attr("fill", "#10B981") // Green color
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+
+        // Checkmark path
+        checkmarkGroup
+          .append("path")
+          .attr("d", "M -6,-2 L -2,2 L 6,-6")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2.5)
+          .attr("stroke-linecap", "round")
+          .attr("stroke-linejoin", "round")
+          .attr("fill", "none");
+      }
+
       // Individual bars
       people.forEach((person, personIndex) => {
         const rating = ratings[personIndex][restaurantIndex];
@@ -240,7 +272,7 @@ export default function GraphSliders({
             }
           })
           // Enable dragging only for non-visited restaurants
-          .call(isVisited ? () => {} : drag);
+          .call(isVisited ? () => { } : drag);
 
         // Add rating text only if bar is tall enough
         if (barHeight > 20) {
@@ -404,6 +436,34 @@ export default function GraphSliders({
           .attr("height", bbox.height + 2 * padding)
           .attr("fill", "#FFFF00")
           .attr("rx", 2); // Rounded corners
+
+        // Add checkmark next to restaurant name for color blind accessibility
+        const checkmarkSize = 12;
+        const checkmarkX = bbox.x + bbox.width + 8;
+        const checkmarkY = bbox.y + bbox.height / 2;
+
+        const checkmarkGroup = d3.select(parent)
+          .append("g")
+          .attr("transform", `translate(${checkmarkX}, ${checkmarkY})`)
+          .attr("class", "recommended-checkmark-label");
+
+        // Background circle for checkmark
+        checkmarkGroup
+          .append("circle")
+          .attr("r", checkmarkSize / 2 + 1)
+          .attr("fill", "#10B981") // Green color
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 1.5);
+
+        // Checkmark path
+        checkmarkGroup
+          .append("path")
+          .attr("d", "M -4,-1.5 L -1.5,1.5 L 4,-4.5")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2)
+          .attr("stroke-linecap", "round")
+          .attr("stroke-linejoin", "round")
+          .attr("fill", "none");
       });
   };
 
@@ -447,61 +507,61 @@ export default function GraphSliders({
       </div>
 
       {/* Legend */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm w-[50%] min-w-[400px] mx-auto">
-        <div>
-          <h4 className="font-semibold mb-2">People:</h4>
-          <div className="grid grid-cols-2 gap-1">
-            {people.map((person) => (
-              <div key={person.name} className="flex items-center mb-1">
-                <div
-                  className="w-4 h-4 mr-2 rounded"
-                  style={{ backgroundColor: person.color }}
-                />
-                <span>{person.name}</span>
+      <details className="mt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-gray-700 select-none">
+          Legend
+        </summary>
+        <div className="mt-3 grid grid-cols-2 md:grid-cols-2 gap-4 text-sm w-[80%] min-w-[400px] mx-auto">
+          <div>
+            <div className="grid grid-cols-2 gap-1">
+              {people.map((person) => (
+                <div key={person.name} className="flex items-center mb-1">
+                  <div
+                    className="w-4 h-4 mr-2 rounded"
+                    style={{ backgroundColor: person.color }}
+                  />
+                  <span>{person.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center mb-1">
+              <div className="w-4 h-4 mr-2 bg-gray-400 rounded" />
+              <span>Restaurants already visited</span>
+            </div>
+            <div className="flex items-center mb-1">
+              <div className="w-4 h-4 mr-2 bg-yellow-200 rounded" />
+              <span>Recommended restaurant</span>
+              <CheckIcon className="w-3 h-3 ml-2 text-white bg-green-500 rounded-full" />
+            </div>
+            {strategy === "LMS" && (
+              <div className="flex items-center mb-1">
+                <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-red-500" />
+                <span>Group score: lowest rating</span>
               </div>
-            ))}
+            )}
+            {strategy === "ADD" && (
+              <div className="flex items-center mb-1">
+                <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-black" />
+                <span>Group score: total rating for the restaurant</span>
+              </div>
+            )}
+            {strategy === "APP" && (
+              <div className="flex items-center mb-1">
+                <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-black" />
+                <span>
+                  Group score: number of ratings above 3 for the restaurant
+                </span>
+              </div>
+            )}
+            <div className="text-xs text-gray-600 mt-2">
+              💡 Drag bars up/down to change ratings
+            </div>
           </div>
         </div>
-
-        <div>
-          <h4 className="font-semibold mb-2">Restaurant States:</h4>
-          <div className="flex items-center mb-1">
-            <div className="w-4 h-4 mr-2 bg-gray-400 rounded" />
-            <span>Restaurants already visited</span>
-          </div>
-          <div className="flex items-center mb-1">
-            <div className="w-4 h-4 mr-2 bg-yellow-200 rounded" />
-            <span>Recommended restaurant</span>
-          </div>
-        </div>
-
-        <div>
-          <h4 className="font-semibold mb-2">Scoring ({strategy}):</h4>
-          {strategy === "LMS" && (
-            <div className="flex items-center mb-1">
-              <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-red-500" />
-              <span>Group score: lowest rating</span>
-            </div>
-          )}
-          {strategy === "ADD" && (
-            <div className="flex items-center mb-1">
-              <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-black" />
-              <span>Group score: total rating for the restaurant</span>
-            </div>
-          )}
-          {strategy === "APP" && (
-            <div className="flex items-center mb-1">
-              <div className="w-4 h-0.5 mr-2 border-t-2 border-dashed border-black" />
-              <span>
-                Group score: number of ratings above 3 for the restaurant
-              </span>
-            </div>
-          )}
-          <div className="text-xs text-gray-600 mt-2">
-            💡 Drag bars up/down to change ratings
-          </div>
-        </div>
-      </div>
+      </details>
     </div>
   );
 }

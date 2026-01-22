@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import NoExplanation from "./NoExplanation";
 import TextExplanation from "./TextExplanation";
 import GraphExplanation from "./GraphExplanation";
@@ -12,6 +12,7 @@ import TextChatWithTools from "./TextChatWithTools";
 import TextChatWithToolsGraph from "./TextChatWithToolsGraph";
 import { Scenario, people, getVisitedOrder } from "@/lib/scenario_helpers";
 import { ExplanationStrategy } from "@/lib/types";
+import { RotateCcw } from "lucide-react";
 
 // Remove duplicate interfaces since they're now imported from scenarios.ts
 
@@ -26,6 +27,7 @@ interface InteractiveGroupRecommenderProps {
   fadeNonContributing: boolean;
   scenario: Scenario;
   hideExplanation?: boolean;
+  onResetRatingsRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export default function InteractiveGroupRecommender({
@@ -35,6 +37,7 @@ export default function InteractiveGroupRecommender({
   fadeNonContributing,
   scenario,
   hideExplanation = false,
+  onResetRatingsRef,
 }: InteractiveGroupRecommenderProps) {
   const [ratings, setRatings] = useState<number[][]>(scenario.ratings);
 
@@ -72,13 +75,16 @@ export default function InteractiveGroupRecommender({
     sortedRatings,
     sortedGroupScores,
     originalToSortedIndexMap,
+    sortedToOriginalIndexMap,
   } = useMemo(() => {
     if (!sortBestToWorst) {
+      const identityMap = scenario.restaurants.map((_, index) => index);
       return {
         sortedRestaurants: scenario.restaurants,
         sortedRatings: ratings,
         sortedGroupScores: groupScores,
-        originalToSortedIndexMap: scenario.restaurants.map((_, index) => index),
+        originalToSortedIndexMap: identityMap,
+        sortedToOriginalIndexMap: identityMap,
       };
     }
 
@@ -102,8 +108,11 @@ export default function InteractiveGroupRecommender({
 
     // Create mapping from original index to sorted index
     const originalToSortedIndexMap = new Array(scenario.restaurants.length);
+    // Create mapping from sorted index to original index
+    const sortedToOriginalIndexMap = new Array(scenario.restaurants.length);
     sortedRestaurantScores.forEach((item, sortedIndex) => {
       originalToSortedIndexMap[item.originalIndex] = sortedIndex;
+      sortedToOriginalIndexMap[sortedIndex] = item.originalIndex;
     });
 
     // Reorder ratings array to match sorted restaurants
@@ -116,6 +125,7 @@ export default function InteractiveGroupRecommender({
       sortedRatings,
       sortedGroupScores,
       originalToSortedIndexMap,
+      sortedToOriginalIndexMap,
     };
   }, [scenario.restaurants, ratings, groupScores, sortBestToWorst]);
 
@@ -170,9 +180,41 @@ export default function InteractiveGroupRecommender({
     });
   };
 
-  const resetRatings = () => {
+  // Wrapper function for GraphSliders that converts sorted indices to original indices
+  const updateRatingForGraph = useMemo(() => {
+    if (!sortBestToWorst) {
+      return updateRating;
+    }
+    return (personIndex: number, sortedRestaurantIndex: number, value: number) => {
+      const originalRestaurantIndex = sortedToOriginalIndexMap[sortedRestaurantIndex];
+      updateRating(personIndex, originalRestaurantIndex, value);
+    };
+  }, [sortBestToWorst, sortedToOriginalIndexMap]);
+
+  const graphRecommendedRestaurantIndices = useMemo(() => {
+    if (!sortBestToWorst) {
+      return recommendedRestaurantIndices;
+    }
+    return recommendedRestaurantIndices.map(
+      (sortedIndex) => sortedToOriginalIndexMap[sortedIndex]
+    );
+  }, [recommendedRestaurantIndices, sortBestToWorst, sortedToOriginalIndexMap]);
+
+  const resetRatings = useCallback(() => {
     setRatings(scenario.ratings);
-  };
+  }, [scenario]);
+
+  // Expose resetRatings function via ref if provided
+  useEffect(() => {
+    if (onResetRatingsRef) {
+      onResetRatingsRef.current = resetRatings;
+    }
+    return () => {
+      if (onResetRatingsRef) {
+        onResetRatingsRef.current = null;
+      }
+    };
+  }, [onResetRatingsRef, resetRatings]);
 
   const recommendedRestaurantNames = recommendedRestaurantIndices.map(
     (i) => sortedRestaurants[i].name
@@ -279,11 +321,11 @@ export default function InteractiveGroupRecommender({
         return (
           <TextChatWithToolsGraph
             people={people}
-            restaurants={sortedRestaurants}
-            ratings={sortedRatings}
+            restaurants={scenario.restaurants}
+            ratings={ratings}
             strategy={strategy}
-            groupScores={sortedGroupScores}
-            recommendedRestaurantIndices={recommendedRestaurantIndices}
+            groupScores={groupScores}
+            recommendedRestaurantIndices={graphRecommendedRestaurantIndices}
             originalRestaurants={scenario.restaurants}
             originalRatings={scenario.ratings}
             onDataUpdate={(updatedData) => {
@@ -353,11 +395,11 @@ export default function InteractiveGroupRecommender({
         return (
           <GraphExplanation
             people={people}
-            restaurants={sortedRestaurants}
-            ratings={sortedRatings}
+            restaurants={scenario.restaurants}
+            ratings={ratings}
             strategy={strategy}
-            recommendedRestaurantIndices={recommendedRestaurantIndices}
-            groupScores={sortedGroupScores}
+            recommendedRestaurantIndices={graphRecommendedRestaurantIndices}
+            groupScores={groupScores}
             updateRating={updateRating}
             resetRatings={resetRatings}
             fadeNonContributing={fadeNonContributing}
@@ -372,7 +414,7 @@ export default function InteractiveGroupRecommender({
             strategy={strategy}
             recommendedRestaurantIndices={recommendedRestaurantIndices}
             groupScores={sortedGroupScores}
-            updateRating={updateRating}
+            updateRating={updateRatingForGraph}
             resetRatings={resetRatings}
           />
         );
@@ -385,7 +427,7 @@ export default function InteractiveGroupRecommender({
             strategy={strategy}
             recommendedRestaurantIndices={recommendedRestaurantIndices}
             groupScores={sortedGroupScores}
-            updateRating={updateRating}
+            updateRating={updateRatingForGraph}
             resetRatings={resetRatings}
           />
         );
@@ -530,22 +572,7 @@ export default function InteractiveGroupRecommender({
         </div>
       )}
 
-      {/* Reset Button - Only show for interactive explanation methods */}
-      {(explanationStrategy === "interactive_graph" ||
-        explanationStrategy === "graph_expl" ||
-        explanationStrategy === "pie_expl" ||
-        explanationStrategy === "heatmap_expl" ||
-        explanationStrategy === "chat_expl_with_tools" ||
-        explanationStrategy === "chat_expl_with_tools_graph") && (
-        <div className="flex justify-center" data-onboarding="footer-actions">
-          <button
-            onClick={resetRatings}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Reset to Initial Values
-          </button>
-        </div>
-      )}
+    
     </div>
   );
 }
