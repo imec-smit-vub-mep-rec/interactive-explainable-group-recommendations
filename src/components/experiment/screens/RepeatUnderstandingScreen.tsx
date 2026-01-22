@@ -80,7 +80,7 @@ export function RepeatUnderstandingScreen({
       </div>
 
       {/* Question 1: Understanding */}
-      <div className="space-y-4">
+      <div className="space-y-8">
         <Label className="text-lg font-medium text-gray-900">
           I understand how the model works to predict the best recommendation for the group.
         </Label>
@@ -90,9 +90,9 @@ export function RepeatUnderstandingScreen({
             setUnderstand(parseInt(value));
             recordInteraction('click', { action: 'rate_understand', value: parseInt(value) });
           }}
-          className="flex flex-col space-y-3"
+          className="flex flex-col space-y-3 mt-4"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             {SCALE.map((value) => (
               <div key={value} className="flex flex-col items-center">
                 <RadioGroupItem value={value.toString()} id={`repeat-understand-${value}`} />
@@ -124,9 +124,9 @@ export function RepeatUnderstandingScreen({
             setPredict(parseInt(value));
             recordInteraction('click', { action: 'rate_predict', value: parseInt(value) });
           }}
-          className="flex flex-col space-y-3"
+          className="flex flex-col space-y-3 mt-4"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             {SCALE.map((value) => (
               <div key={value} className="flex flex-col items-center">
                 <RadioGroupItem value={value.toString()} id={`repeat-predict-${value}`} />

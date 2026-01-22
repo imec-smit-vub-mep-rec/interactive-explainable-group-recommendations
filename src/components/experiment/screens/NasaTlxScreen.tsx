@@ -139,26 +139,28 @@ export function NasaTlxScreen({
               </div>
               
               <div className="flex items-center gap-4">
-                <Slider
-                  value={[ratings[question.id] ?? 10]}
-                  onValueChange={([value]) => handleRatingChange(question.id, value)}
-                  min={1}
-                  max={20}
-                  step={1}
-                  className="flex-1"
-                  isUnset={ratings[question.id] === undefined}
-                />
+                <div className="flex-1 relative">
+                  <Slider
+                    value={[ratings[question.id] ?? 10]}
+                    onValueChange={([value]) => handleRatingChange(question.id, value)}
+                    min={1}
+                    max={20}
+                    step={1}
+                    className="w-full"
+                    isUnset={ratings[question.id] === undefined}
+                  />
+                  {/* Numerical labels positioned to align with slider track */}
+                  <div className="relative mt-1 h-4">
+                    <span className="absolute text-xs text-gray-400 left-0 transform -translate-x-1/2">1</span>
+                    <span className="absolute text-xs text-gray-400 left-[21.05%] transform -translate-x-1/2">5</span>
+                    <span className="absolute text-xs text-gray-400 left-[47.37%] transform -translate-x-1/2">10</span>
+                    <span className="absolute text-xs text-gray-400 left-[73.68%] transform -translate-x-1/2">15</span>
+                    <span className="absolute text-xs text-gray-400 right-0 transform translate-x-1/2">20</span>
+                  </div>
+                </div>
                 <span className="w-8 text-center font-medium text-gray-700">
                   {ratings[question.id] ?? '-'}
                 </span>
-              </div>
-              
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>1</span>
-                <span>5</span>
-                <span>10</span>
-                <span>15</span>
-                <span>20</span>
               </div>
             </div>
           </div>

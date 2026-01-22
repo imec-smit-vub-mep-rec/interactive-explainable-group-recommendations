@@ -507,7 +507,7 @@ export default function GraphSliders({
       </div>
 
       {/* Legend */}
-      <details className="mt-4">
+      <details className="mt-0">
         <summary className="cursor-pointer text-sm font-semibold text-gray-700 select-none">
           Legend
         </summary>
