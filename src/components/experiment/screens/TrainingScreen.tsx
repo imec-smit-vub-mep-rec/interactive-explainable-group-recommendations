@@ -5,6 +5,7 @@ import { NextStep, useNextStep } from "nextstepjs";
 import { NavigationButtons } from "../NavigationButtons";
 import InteractiveGroupRecommender from "@/components/InteractiveGroupRecommender";
 import { scenarios as allScenarios } from "@/lib/data/scenarios";
+import { questions } from "@/lib/data/questions";
 import { createScenarioFromData } from "@/lib/scenario_helpers";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import type { InteractionEvent, TrainingTaskData } from "@/lib/db";
 import type { SessionData } from "../ExperimentFlow";
-import type { ExplanationStrategy } from "@/lib/types";
+import type { ExplanationStrategy, MultipleChoiceQuestion } from "@/lib/types";
 import { onboardingTours, getTourForStrategy } from "@/lib/onboarding";
 
 interface TrainingScreenProps {
@@ -50,6 +51,20 @@ export function TrainingScreen({
     []
   );
   const [hasShownOnboarding, setHasShownOnboarding] = useState(false);
+  const [tableRatingEdits, setTableRatingEdits] = useState(0);
+  const [graphRatingEdits, setGraphRatingEdits] = useState(0);
+  const [suggestionsClicked, setSuggestionsClicked] = useState<string[]>([]);
+  const [typedQueries, setTypedQueries] = useState<string[]>([]);
+  
+  // Attention check state (shown ONLY in second task's step 2 - explore_explanation)
+  const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
+  const [attentionCheckCompleted, setAttentionCheckCompleted] = useState(false);
+  
+  // Get attention check question from questions.ts
+  const attentionCheckQuestion = questions.training?.questions[1] as MultipleChoiceQuestion | undefined;
+  
+  // Only show attention check in second training task's step 2
+  const showAttentionCheck = currentTaskIndex === 1 && currentStep === "explore_explanation" && !attentionCheckCompleted;
 
   // Ref to access resetRatings function from InteractiveGroupRecommender
   const resetRatingsRef = useRef<(() => void) | null>(null);
@@ -122,6 +137,11 @@ export function TrainingScreen({
     setFinalDecision(null);
     setTaskStartTime(new Date().toISOString());
     setTaskInteractions([]);
+    setTableRatingEdits(0);
+    setGraphRatingEdits(0);
+    setSuggestionsClicked([]);
+    setTypedQueries([]);
+    setAttentionCheckAnswer(null);
   }, [currentTaskIndex]);
 
   // Record task interaction
@@ -145,6 +165,18 @@ export function TrainingScreen({
       step1Answer: initialGuess,
       step3Answer: finalDecision,
       interactions: taskInteractions,
+      interaction_table_rating_edits: tableRatingEdits,
+      interactive_graph_rating_edits: graphRatingEdits,
+      interaction_query_submissions: {
+        click_suggestion: {
+          count: suggestionsClicked.length,
+          suggestions_clicked: suggestionsClicked,
+        },
+        typed_query: {
+          count: typedQueries.length,
+          queries_submitted: typedQueries,
+        },
+      },
       startTime: taskStartTime,
       endTime: new Date().toISOString(),
     };
@@ -154,6 +186,16 @@ export function TrainingScreen({
 
     await saveAnswer("training_tasks_data", updatedTasks);
     updateSessionData({ trainingTasksData: updatedTasks });
+    
+    // Save attention check answer if provided
+    if (attentionCheckAnswer !== null) {
+      const isCorrect = attentionCheckAnswer === '4'; // Restaurant 4 is the correct answer
+      await saveAnswer('attn_check_1', {
+        answer: attentionCheckAnswer,
+        isCorrect,
+        timestamp: new Date().toISOString(),
+      });
+    }
   };
 
   // Handle step transitions
@@ -166,6 +208,10 @@ export function TrainingScreen({
       setCurrentStep("explore_explanation");
     } else if (currentStep === "explore_explanation") {
       recordTaskInteraction("click", { action: "complete_exploration" });
+      // Mark attention check as completed after second task's step 2
+      if (currentTaskIndex === 1 && attentionCheckAnswer !== null) {
+        setAttentionCheckCompleted(true);
+      }
       setCurrentStep("final_decision");
     } else if (currentStep === "final_decision") {
       recordTaskInteraction("click", {
@@ -200,7 +246,13 @@ export function TrainingScreen({
   // Determine if can proceed
   const canProceed = () => {
     if (currentStep === "initial_guess") return initialGuess !== null;
-    if (currentStep === "explore_explanation") return true;
+    if (currentStep === "explore_explanation") {
+      // Only require attention check answer on second task
+      if (currentTaskIndex === 1 && !attentionCheckCompleted) {
+        return attentionCheckAnswer !== null;
+      }
+      return true;
+    }
     if (currentStep === "final_decision") return finalDecision !== null;
     return false;
   };
@@ -312,7 +364,62 @@ export function TrainingScreen({
               fadeNonContributing={false}
               scenario={currentScenario}
               onResetRatingsRef={resetRatingsRef}
+              onTableRatingChange={(event) => {
+                setTableRatingEdits((prev) => prev + 1);
+                recordTaskInteraction("rating_change", {
+                  source: "table",
+                  ...event,
+                });
+              }}
+              onGraphRatingChange={(event) => {
+                setGraphRatingEdits((prev) => prev + 1);
+                recordTaskInteraction("rating_change", {
+                  source: "graph",
+                  ...event,
+                });
+              }}
+              onSuggestionClick={(suggestion) => {
+                setSuggestionsClicked((prev) => [...prev, suggestion]);
+                recordTaskInteraction("chat_message", {
+                  source: "suggestion",
+                  query: suggestion,
+                });
+              }}
+              onTypedQuerySubmit={(query) => {
+                setTypedQueries((prev) => [...prev, query]);
+                recordTaskInteraction("chat_message", {
+                  source: "typed_query",
+                  query,
+                });
+              }}
             />
+            
+            {/* Attention Check - only shown in first training task */}
+            {showAttentionCheck && attentionCheckQuestion && (
+              <div className="bg-white border rounded-lg p-3">
+                <h4 className="font-medium mb-3 text-sm">
+                  {attentionCheckQuestion.text}
+                </h4>
+                <RadioGroup
+                  value={attentionCheckAnswer || ''}
+                  onValueChange={(value) => {
+                    setAttentionCheckAnswer(value);
+                    recordTaskInteraction('click', { action: 'attention_check', questionId: 'attn_check_1', value });
+                  }}
+                >
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {attentionCheckQuestion.choices?.map((choice) => (
+                      <div key={choice.id} className="flex items-center space-x-2">
+                        <RadioGroupItem value={choice.value} id={`attn-${choice.id}`} />
+                        <Label htmlFor={`attn-${choice.id}`} className="cursor-pointer">
+                          {choice.text}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
           </div>
         )}
 
@@ -327,6 +434,34 @@ export function TrainingScreen({
               fadeNonContributing={false}
               scenario={currentScenario}
               onResetRatingsRef={resetRatingsRef}
+              onTableRatingChange={(event) => {
+                setTableRatingEdits((prev) => prev + 1);
+                recordTaskInteraction("rating_change", {
+                  source: "table",
+                  ...event,
+                });
+              }}
+              onGraphRatingChange={(event) => {
+                setGraphRatingEdits((prev) => prev + 1);
+                recordTaskInteraction("rating_change", {
+                  source: "graph",
+                  ...event,
+                });
+              }}
+              onSuggestionClick={(suggestion) => {
+                setSuggestionsClicked((prev) => [...prev, suggestion]);
+                recordTaskInteraction("chat_message", {
+                  source: "suggestion",
+                  query: suggestion,
+                });
+              }}
+              onTypedQuerySubmit={(query) => {
+                setTypedQueries((prev) => [...prev, query]);
+                recordTaskInteraction("chat_message", {
+                  source: "typed_query",
+                  query,
+                });
+              }}
             />
 
             {/* Radio selection for final decision */}

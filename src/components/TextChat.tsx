@@ -32,6 +32,8 @@ interface TextChatProps {
     recommendedRestaurantIndices: number[];
   }) => void;
   originalRestaurants?: Restaurant[];
+  onSuggestionClick?: (suggestion: string) => void;
+  onQuerySubmit?: (query: string) => void;
 }
 
 // Starter suggestions for users
@@ -60,6 +62,8 @@ export default function TextChatWithTools({
   recommendedRestaurantIndices,
   onDataUpdate,
   originalRestaurants,
+  onSuggestionClick,
+  onQuerySubmit,
 }: TextChatProps) {
   const [input, setInput] = useState("");
   interface ToolResult {
@@ -237,8 +241,9 @@ export default function TextChatWithTools({
     event.preventDefault();
     if (!input.trim()) return;
 
+    const submittedQuery = input.trim();
     console.log("📤 Sending message:", {
-      text: input,
+      text: submittedQuery,
       context: {
         peopleCount: context.people.length,
         restaurantsCount: context.restaurants.length,
@@ -247,7 +252,8 @@ export default function TextChatWithTools({
       },
     });
 
-    sendMessage({ text: input, metadata: { context } });
+    sendMessage({ text: submittedQuery, metadata: { context } });
+    onQuerySubmit?.(submittedQuery);
     setInput("");
   };
 
@@ -262,7 +268,13 @@ export default function TextChatWithTools({
     setInput(suggestion);
     sendMessage({ text: suggestion, metadata: { context } });
     setInput("");
+    onSuggestionClick?.(suggestion);
   };
+
+  const excludedSuggestionRestaurants = [
+    ...restaurants.filter((restaurant) => restaurant.visited).map((r) => r.name),
+    ...recommendedRestaurantIndices.map((index) => restaurants[index]?.name),
+  ].filter((name): name is string => Boolean(name));
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -284,6 +296,7 @@ export default function TextChatWithTools({
         onSubmit={handleFormSubmit}
         suggestions={suggestions}
         onSuggestionClick={handleSuggestionClick}
+        excludedSuggestionRestaurants={excludedSuggestionRestaurants}
         conversationClassName="h-72 border rounded-lg"
         dataOnboardingConversation="chat-interface"
         dataOnboardingPresets="presets"

@@ -80,8 +80,24 @@ CREATE TABLE IF NOT EXISTS experiment_sessions (
   screen_timings JSONB DEFAULT '[]',
   
   -- Raw session data with all user interactions backup
-  raw_session_data JSONB DEFAULT '{}'
+  raw_session_data JSONB DEFAULT '{}',
+  
+  -- Attention checks
+  -- Structure: { answer, isCorrect, timestamp }
+  attn_check_1 JSONB DEFAULT NULL,
+  attn_check_2 JSONB DEFAULT NULL
 );
+
+-- Add attention check columns to existing tables (run if table already exists)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'attn_check_1') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN attn_check_1 JSONB DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'attn_check_2') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN attn_check_2 JSONB DEFAULT NULL;
+  END IF;
+END $$;
 
 -- Create indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_experiment_sessions_prolific_pid ON experiment_sessions(prolific_pid);

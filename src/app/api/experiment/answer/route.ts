@@ -17,6 +17,8 @@ const VALID_FIELDS = [
   'additional_feedback',
   'screen_timings',
   'raw_session_data',
+  'attn_check_1',
+  'attn_check_2',
 ] as const;
 
 type ValidField = typeof VALID_FIELDS[number];
@@ -27,7 +29,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { sessionId, field, value, screenIndex } = body;
     
+    console.log('[POST /api/experiment/answer] Received request:', { sessionId, field, value: typeof value === 'object' ? JSON.stringify(value) : value, screenIndex });
+    
     if (!sessionId) {
+      console.log('[POST /api/experiment/answer] Error: Session ID required');
       return NextResponse.json(
         { success: false, error: 'Session ID required' },
         { status: 400 }
@@ -35,6 +40,7 @@ export async function POST(request: NextRequest) {
     }
     
     if (!field || !VALID_FIELDS.includes(field as ValidField)) {
+      console.log('[POST /api/experiment/answer] Error: Invalid field:', field, '| Valid fields:', VALID_FIELDS);
       return NextResponse.json(
         { success: false, error: `Invalid field: ${field}` },
         { status: 400 }
@@ -152,6 +158,22 @@ export async function POST(request: NextRequest) {
         await sql`
           UPDATE experiment_sessions 
           SET raw_session_data = ${JSON.stringify(value)}::jsonb
+          WHERE id = ${sessionId}
+        `;
+        break;
+        
+      case 'attn_check_1':
+        await sql`
+          UPDATE experiment_sessions 
+          SET attn_check_1 = ${JSON.stringify(value)}::jsonb
+          WHERE id = ${sessionId}
+        `;
+        break;
+        
+      case 'attn_check_2':
+        await sql`
+          UPDATE experiment_sessions 
+          SET attn_check_2 = ${JSON.stringify(value)}::jsonb
           WHERE id = ${sessionId}
         `;
         break;
@@ -274,6 +296,12 @@ async function processFieldUpdate(sessionId: string, field: ValidField, value: u
       break;
     case 'raw_session_data':
       await sql`UPDATE experiment_sessions SET raw_session_data = ${JSON.stringify(value)}::jsonb WHERE id = ${sessionId}`;
+      break;
+    case 'attn_check_1':
+      await sql`UPDATE experiment_sessions SET attn_check_1 = ${JSON.stringify(value)}::jsonb WHERE id = ${sessionId}`;
+      break;
+    case 'attn_check_2':
+      await sql`UPDATE experiment_sessions SET attn_check_2 = ${JSON.stringify(value)}::jsonb WHERE id = ${sessionId}`;
       break;
   }
 }

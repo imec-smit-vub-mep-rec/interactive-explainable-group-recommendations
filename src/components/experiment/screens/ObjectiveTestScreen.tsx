@@ -4,13 +4,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { NavigationButtons } from '../NavigationButtons';
 import InteractiveGroupRecommender from '@/components/InteractiveGroupRecommender';
 import { scenarios as allScenarios } from '@/lib/data/scenarios';
+import { questions } from '@/lib/data/questions';
 import { createScenarioFromData } from '@/lib/scenario_helpers';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import type { InteractionEvent, ObjectiveTaskData } from '@/lib/db';
 import type { SessionData } from '../ExperimentFlow';
-import type { ExplanationStrategy, ScenarioQuestion } from '@/lib/types';
+import type { ExplanationStrategy, ScenarioQuestion, MultipleChoiceQuestion } from '@/lib/types';
 
 interface ObjectiveTestScreenProps {
   session: SessionData;
@@ -36,9 +36,8 @@ export function ObjectiveTestScreen({
   const [taskStartTime, setTaskStartTime] = useState<string>(new Date().toISOString());
   const [taskInteractions, setTaskInteractions] = useState<InteractionEvent[]>([]);
   
-  // Attention check state (shown on first counterfactual)
-  const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<boolean>(false);
-  const [showAttentionCheck, setShowAttentionCheck] = useState(false);
+  // Attention check state (shown on 4th question, index 3)
+  const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
   
   // Get test scenario IDs from session
   const testScenarioIds = session.testScenarioIds;
@@ -58,23 +57,11 @@ export function ObjectiveTestScreen({
   // Get current question
   const currentQuestion: ScenarioQuestion | undefined = currentScenarioData?.questions[0];
   
-  // Determine if this is the first counterfactual question (for attention check)
-  const isFirstCounterfactual = useMemo(() => {
-    if (!currentQuestion) return false;
-    
-    // Check if this is the first counterfactual in our test sequence
-    const counterfactualIndices = testScenarioIds.map((id, idx) => {
-      const scenario = allScenarios.find(s => s.id === id);
-      return scenario?.questions[0]?.task === 'counterfactual' ? idx : -1;
-    }).filter(idx => idx !== -1);
-    
-    return counterfactualIndices[0] === currentTaskIndex;
-  }, [currentQuestion, testScenarioIds, currentTaskIndex]);
+  // Show attention check on 4th question (index 3)
+  const showAttentionCheck = currentTaskIndex === 3;
   
-  // Show attention check for first counterfactual
-  useEffect(() => {
-    setShowAttentionCheck(isFirstCounterfactual);
-  }, [isFirstCounterfactual]);
+  // Get attention check question from questions.ts
+  const attentionCheckQuestion = questions.objective_attention_checks?.questions[0] as MultipleChoiceQuestion | undefined;
   
   // Strategy mapping
   const strategyMap: Record<string, 'LMS' | 'ADD' | 'APP'> = {
@@ -88,7 +75,7 @@ export function ObjectiveTestScreen({
     setSelectedAnswer(null);
     setTaskStartTime(new Date().toISOString());
     setTaskInteractions([]);
-    setAttentionCheckAnswer(false);
+    setAttentionCheckAnswer(null);
   }, [currentTaskIndex]);
   
   // Record task interaction
@@ -130,6 +117,16 @@ export function ObjectiveTestScreen({
     
     await saveAnswer('objective_understanding_tasks_data', updatedTasks);
     updateSessionData({ objectiveTasksData: updatedTasks });
+    
+    // Save attention check answer if shown on this question
+    if (showAttentionCheck && attentionCheckAnswer !== null) {
+      const isCorrect = attentionCheckAnswer === '3'; // Restaurant 3 is the correct answer
+      await saveAnswer('attn_check_2', {
+        answer: attentionCheckAnswer,
+        isCorrect,
+        timestamp: new Date().toISOString(),
+      });
+    }
   };
   
   // Handle next task
@@ -154,7 +151,7 @@ export function ObjectiveTestScreen({
   };
   
   // Check if can proceed (answer selected, and attention check if needed)
-  const canProceed = selectedAnswer !== null && (!showAttentionCheck || attentionCheckAnswer);
+  const canProceed = selectedAnswer !== null && (!showAttentionCheck || attentionCheckAnswer !== null);
   
   if (!currentScenario || !currentScenarioData || !currentQuestion) {
     return <div>Loading scenario...</div>;
@@ -217,25 +214,30 @@ export function ObjectiveTestScreen({
         </RadioGroup>
       </div>
 
-      {/* Attention Check (only for first counterfactual) */}
-      {showAttentionCheck && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="font-medium text-yellow-800 mb-3">
-            Attention Check
-          </h4>
-          <div className="flex items-start space-x-3">
-            <Checkbox
-              id="attention-check"
-              checked={attentionCheckAnswer}
-              onCheckedChange={(checked) => {
-                setAttentionCheckAnswer(checked === true);
-                recordTaskInteraction('click', { action: 'attention_check', checked });
-              }}
-            />
-            <Label htmlFor="attention-check" className="cursor-pointer text-gray-700">
-              Please check this box to confirm you are paying attention to the questions.
-            </Label>
-          </div>
+      {/* Attention Check (shown on 4th question) */}
+      {showAttentionCheck && attentionCheckQuestion && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <h3 className="font-medium text-blue-900 mb-3 text-sm">
+            {attentionCheckQuestion.text}
+          </h3>
+          <RadioGroup
+            value={attentionCheckAnswer || ''}
+            onValueChange={(value) => {
+              setAttentionCheckAnswer(value);
+              recordTaskInteraction('click', { action: 'attention_check', questionId: 'attn_check_2', value });
+            }}
+          >
+            <div className="space-y-3">
+              {attentionCheckQuestion.choices?.map((choice) => (
+                <div key={choice.id} className="flex items-start space-x-3">
+                  <RadioGroupItem value={choice.value} id={`attn-${choice.id}`} className="mt-1" />
+                  <Label htmlFor={`attn-${choice.id}`} className="cursor-pointer text-gray-700">
+                    {choice.text}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </RadioGroup>
         </div>
       )}
 

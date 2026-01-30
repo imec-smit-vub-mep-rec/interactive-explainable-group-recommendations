@@ -351,6 +351,11 @@ export default function TextChatWithTools({
     setInput("");
   };
 
+  const excludedSuggestionRestaurants = [
+    ...restaurants.filter((restaurant) => restaurant.visited).map((r) => r.name),
+    ...recommendedRestaurantIndices.map((index) => restaurants[index]?.name),
+  ].filter((name): name is string => Boolean(name));
+
   return (
     <div className="w-full max-w-4xl mx-auto">
       <div className="mb-4">
@@ -372,6 +377,7 @@ export default function TextChatWithTools({
         onSubmit={handleFormSubmit}
         suggestions={suggestions}
         onSuggestionClick={handleSuggestionClick}
+        excludedSuggestionRestaurants={excludedSuggestionRestaurants}
         conversationClassName="h-96 border rounded-lg"
       />
     </div>

@@ -12,6 +12,7 @@ import {
   MessageContent,
   MessageAvatar,
 } from "@/components/ai-elements/message";
+import { Loader } from "@/components/ai-elements/loader";
 import {
   PromptInput,
   PromptInputBody,
@@ -37,6 +38,7 @@ export type ChatInterfaceProps = {
   onSubmit: PromptInputProps["onSubmit"];
   suggestions: string[];
   onSuggestionClick: (suggestion: string) => void;
+  excludedSuggestionRestaurants?: string[];
   conversationClassName?: string;
   emptyStateTitle?: string;
   emptyStateDescription?: string;
@@ -45,8 +47,15 @@ export type ChatInterfaceProps = {
   dataOnboardingInput?: string;
 };
 
+const normalizeText = (value: string) => value.trim().toLowerCase();
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const containsRestaurantName = (text: string, restaurantName: string) =>
+  new RegExp(`\\b${escapeRegExp(restaurantName)}\\b`, "i").test(text);
+
 const parseSuggestions = (
-  text: string
+  text: string,
+  excludedRestaurants: string[] = []
 ): { cleanText: string; suggestions: string[] } => {
   if (!text || typeof text !== "string") {
     return { cleanText: text || "", suggestions: [] };
@@ -73,7 +82,17 @@ const parseSuggestions = (
 
   cleanText = cleanText.replace(/<\/?suggestions\s*>/gi, "").trim();
 
-  return { cleanText, suggestions };
+  const excluded = excludedRestaurants.filter((name) => name.trim().length > 0);
+  const filteredSuggestions =
+    excluded.length === 0
+      ? suggestions
+      : suggestions.filter((suggestion) => {
+          return !excluded.some((name) =>
+            containsRestaurantName(suggestion, name)
+          );
+        });
+
+  return { cleanText, suggestions: filteredSuggestions };
 };
 
 export const ChatInterface = ({
@@ -84,6 +103,7 @@ export const ChatInterface = ({
   onSubmit,
   suggestions,
   onSuggestionClick,
+  excludedSuggestionRestaurants,
   conversationClassName = "h-72 border rounded-lg",
   emptyStateTitle = "No messages yet",
   emptyStateDescription = "Click on a suggestion above or type your own question to get started",
@@ -91,6 +111,18 @@ export const ChatInterface = ({
   dataOnboardingPresets,
   dataOnboardingInput,
 }: ChatInterfaceProps) => {
+  const excludedPresets = (excludedSuggestionRestaurants ?? []).filter(
+    (name) => name.trim().length > 0
+  );
+  const filteredPresetSuggestions =
+    excludedPresets.length === 0
+      ? suggestions
+      : suggestions.filter((suggestion) => {
+          return !excludedPresets.some((name) =>
+            containsRestaurantName(suggestion, name)
+          );
+        });
+
   return (
     <>
       <Conversation
@@ -107,7 +139,7 @@ export const ChatInterface = ({
 
               <div className="mb-4 pt-2" data-onboarding={dataOnboardingPresets}>
                 <Suggestions>
-                  {suggestions.map((suggestion) => (
+                  {filteredPresetSuggestions.map((suggestion) => (
                     <Suggestion
                       key={suggestion}
                       suggestion={suggestion}
@@ -118,8 +150,10 @@ export const ChatInterface = ({
               </div>
             </div>
           ) : (
-            messages.map((message) => (
-              <Message key={message.id} from={message.role}>
+            messages.map((message) => {
+              const isAssistant = message.role === "assistant";
+              return (
+                <Message key={message.id} from={message.role}>
                 <MessageAvatar
                   src={
                     message.role === "user"
@@ -135,8 +169,17 @@ export const ChatInterface = ({
                         typeof part.text === "string"
                           ? part.text
                           : String(part.text || "");
-                      const { cleanText, suggestions } =
-                        parseSuggestions(textContent);
+                      if (!isAssistant) {
+                        return (
+                          <div key={i}>
+                            <Response>{textContent}</Response>
+                          </div>
+                        );
+                      }
+                      const { cleanText, suggestions } = parseSuggestions(
+                        textContent,
+                        excludedSuggestionRestaurants
+                      );
                       return (
                         <div key={i}>
                           <Response>{cleanText}</Response>
@@ -156,7 +199,7 @@ export const ChatInterface = ({
                         </div>
                       );
                     }
-                    if (part.type === "tool-call") {
+                    if (part.type === "tool-call" && isAssistant) {
                       return (
                         <div
                           key={i}
@@ -172,14 +215,19 @@ export const ChatInterface = ({
                               ? String(part.toolName)
                               : "unknown"}
                           </span>
+                          <span className="inline-flex items-center gap-1 text-blue-600">
+                            <Loader className="text-blue-600" size={14} />
+                            Verifying...
+                          </span>
                         </div>
                       );
                     }
                     if (
-                      part.type === "tool-result" ||
+                      (part.type === "tool-result" && isAssistant) ||
                       (typeof part.type === "string" &&
                         part.type.startsWith("tool-") &&
-                        part.type !== "tool-call")
+                        part.type !== "tool-call" &&
+                        isAssistant)
                     ) {
                       const result = (
                         "result" in part
@@ -346,8 +394,9 @@ export const ChatInterface = ({
                     return null;
                   })}
                 </MessageContent>
-              </Message>
-            ))
+                </Message>
+              );
+            })
           )}
         </ConversationContent>
       </Conversation>

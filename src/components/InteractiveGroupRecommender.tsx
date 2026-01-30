@@ -28,6 +28,18 @@ interface InteractiveGroupRecommenderProps {
   scenario: Scenario;
   hideExplanation?: boolean;
   onResetRatingsRef?: React.MutableRefObject<(() => void) | null>;
+  onTableRatingChange?: (event: {
+    personIndex: number;
+    restaurantIndex: number;
+    value: number;
+  }) => void;
+  onGraphRatingChange?: (event: {
+    personIndex: number;
+    restaurantIndex: number;
+    value: number;
+  }) => void;
+  onSuggestionClick?: (suggestion: string) => void;
+  onTypedQuerySubmit?: (query: string) => void;
 }
 
 export default function InteractiveGroupRecommender({
@@ -38,6 +50,10 @@ export default function InteractiveGroupRecommender({
   scenario,
   hideExplanation = false,
   onResetRatingsRef,
+  onTableRatingChange,
+  onGraphRatingChange,
+  onSuggestionClick,
+  onTypedQuerySubmit,
 }: InteractiveGroupRecommenderProps) {
   const [ratings, setRatings] = useState<number[][]>(scenario.ratings);
 
@@ -267,6 +283,8 @@ export default function InteractiveGroupRecommender({
             groupScores={sortedGroupScores}
             recommendedRestaurantIndices={recommendedRestaurantIndices}
             originalRestaurants={scenario.restaurants}
+            onSuggestionClick={onSuggestionClick}
+            onQuerySubmit={onTypedQuerySubmit}
             // Don't pass onDataUpdate for basic chat - tools won't be able to update data
           />
         );
@@ -403,6 +421,7 @@ export default function InteractiveGroupRecommender({
             updateRating={updateRating}
             resetRatings={resetRatings}
             fadeNonContributing={fadeNonContributing}
+            onRatingChange={onGraphRatingChange}
           />
         );
       case "pie_expl":
@@ -544,6 +563,11 @@ export default function InteractiveGroupRecommender({
                                     restaurantIndex,
                                     value
                                   );
+                                onTableRatingChange?.({
+                                  personIndex,
+                                  restaurantIndex,
+                                  value,
+                                });
                                 }
                               }
                             }}

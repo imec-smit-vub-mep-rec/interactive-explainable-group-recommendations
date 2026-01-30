@@ -67,6 +67,20 @@ export const questions: Record<string, QuestionSection> = {
         isAttentionCheck: false,
         choices: [],
       } as MultipleChoiceQuestion,
+      {
+        id: "attn_check_1",
+        type: "multipleChoice",
+        text: "Please indicate restaurant 4",
+        required: true,
+        isAttentionCheck: true,
+        choices: [
+          { id: "attn1_r1", text: "Restaurant 1", value: "1" },
+          { id: "attn1_r2", text: "Restaurant 2", value: "2" },
+          { id: "attn1_r3", text: "Restaurant 3", value: "3" },
+          { id: "attn1_r4", text: "Restaurant 4", value: "4", isCorrectAnswer: true },
+          { id: "attn1_r5", text: "Restaurant 5", value: "5" },
+        ],
+      } as MultipleChoiceQuestion,
     ],
   },
   preliminary_subjective_understanding: {
@@ -208,6 +222,27 @@ export const questions: Record<string, QuestionSection> = {
         isAttentionCheck: false,
         placeholder: "",
       } as TextInputQuestion,
+    ],
+  },
+  objective_attention_checks: {
+    id: "objective_attention_checks",
+    title: "Attention Checks",
+    intro: "",
+    questions: [
+      {
+        id: "attn_check_2",
+        type: "multipleChoice",
+        text: "Please indicate restaurant 3",
+        required: true,
+        isAttentionCheck: true,
+        choices: [
+          { id: "attn2_r1", text: "Restaurant 1", value: "1" },
+          { id: "attn2_r2", text: "Restaurant 2", value: "2" },
+          { id: "attn2_r3", text: "Restaurant 3", value: "3", isCorrectAnswer: true },
+          { id: "attn2_r4", text: "Restaurant 4", value: "4" },
+          { id: "attn2_r5", text: "Restaurant 5", value: "5" },
+        ],
+      } as MultipleChoiceQuestion,
     ],
   },
 };

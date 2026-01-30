@@ -100,6 +100,18 @@ export interface TrainingTaskData {
   step1Answer: string | null; // User's initial guess
   step3Answer: string | null; // User's final decision after seeing explanation
   interactions: InteractionEvent[];
+  interaction_table_rating_edits: number;
+  interactive_graph_rating_edits: number;
+  interaction_query_submissions: {
+    click_suggestion: {
+      count: number;
+      suggestions_clicked: string[];
+    };
+    typed_query: {
+      count: number;
+      queries_submitted: string[];
+    };
+  };
   startTime: string;
   endTime: string | null;
 }

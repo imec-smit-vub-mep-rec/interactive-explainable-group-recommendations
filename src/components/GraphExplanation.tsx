@@ -25,6 +25,11 @@ interface GraphExplanationProps {
   updateRating: (personIndex: number, restaurantIndex: number, value: number) => void;
   resetRatings: () => void;
   fadeNonContributing?: boolean;
+  onRatingChange?: (event: {
+    personIndex: number;
+    restaurantIndex: number;
+    value: number;
+  }) => void;
 }
 
 export default function GraphExplanation({
@@ -36,7 +41,8 @@ export default function GraphExplanation({
   groupScores,
   updateRating,
   resetRatings,
-  fadeNonContributing = false
+  fadeNonContributing = false,
+  onRatingChange,
 }: GraphExplanationProps) {
   return (
     <div className="mb-8" data-onboarding="graph-explanation">
@@ -50,6 +56,7 @@ export default function GraphExplanation({
         updateRating={updateRating}
         resetRatings={resetRatings}
         fadeNonContributing={fadeNonContributing}
+        onRatingChange={onRatingChange}
       />
     </div>
   );

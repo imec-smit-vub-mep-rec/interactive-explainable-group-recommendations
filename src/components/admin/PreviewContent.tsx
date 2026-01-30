@@ -32,6 +32,18 @@ function createMockSession(explanationModality: 'no_expl' | 'static_list' | 'int
         step1Answer: '4',
         step3Answer: '4',
         interactions: [],
+        interaction_table_rating_edits: 0,
+        interactive_graph_rating_edits: 0,
+        interaction_query_submissions: {
+          click_suggestion: {
+            count: 0,
+            suggestions_clicked: [],
+          },
+          typed_query: {
+            count: 0,
+            queries_submitted: [],
+          },
+        },
         startTime: new Date().toISOString(),
         endTime: null,
       },

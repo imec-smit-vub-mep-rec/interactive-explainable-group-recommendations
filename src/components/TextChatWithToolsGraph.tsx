@@ -344,6 +344,11 @@ export default function TextChatWithToolsGraph({
     setInput(event.target.value);
   };
 
+  const excludedSuggestionRestaurants = [
+    ...restaurants.filter((restaurant) => restaurant.visited).map((r) => r.name),
+    ...recommendedRestaurantIndices.map((index) => restaurants[index]?.name),
+  ].filter((name): name is string => Boolean(name));
+
   const updateRating = (personIndex: number, restaurantIndex: number, newRating: number) => {
     console.log('🎛️ Graph slider rating update requested:', { 
       personIndex, 
@@ -514,6 +519,7 @@ export default function TextChatWithToolsGraph({
           onSubmit={handleFormSubmit}
           suggestions={suggestions}
           onSuggestionClick={handleSuggestionClick}
+          excludedSuggestionRestaurants={excludedSuggestionRestaurants}
           conversationClassName="h-96 border rounded-lg"
         />
       </div>

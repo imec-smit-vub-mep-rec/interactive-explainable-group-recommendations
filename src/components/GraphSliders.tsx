@@ -37,6 +37,11 @@ interface GraphSlidersProps {
   ) => void;
   resetRatings: () => void;
   fadeNonContributing?: boolean;
+  onRatingChange?: (event: {
+    personIndex: number;
+    restaurantIndex: number;
+    value: number;
+  }) => void;
 }
 
 export default function GraphSliders({
@@ -49,6 +54,7 @@ export default function GraphSliders({
   updateRating,
   resetRatings,
   fadeNonContributing = false,
+  onRatingChange,
 }: GraphSlidersProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -172,6 +178,11 @@ export default function GraphSliders({
           Math.min(5, Math.round(continuousRating))
         );
         updateRating(d.personIndex, d.restaurantIndex, newRating);
+        onRatingChange?.({
+          personIndex: d.personIndex,
+          restaurantIndex: d.restaurantIndex,
+          value: newRating,
+        });
       });
 
     // Draw bars
