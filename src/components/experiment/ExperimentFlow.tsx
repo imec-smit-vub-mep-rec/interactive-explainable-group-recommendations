@@ -48,6 +48,8 @@ export interface SessionData {
   textualDebriefing?: string;
   nasaTlxData: NasaTlxData;
   additionalFeedback?: string;
+  recaptchaToken?: string;
+  reverseShibbolethResponse?: string;
   screenTimings: ScreenTiming[];
 }
 
@@ -71,9 +73,9 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
   }, [session]);
 
   // Create session function - called from WelcomeScreen after consent
-  const createSession = useCallback(async () => {
+  const createSession = useCallback(async (recaptchaToken?: string): Promise<SessionData | null> => {
     if (session) {
-      return; // Session already exists
+      return session; // Session already exists
     }
 
     setIsLoading(true);
@@ -93,6 +95,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           prolificStudyId,
           prolificSessionId,
           reference,
+          recaptchaToken: recaptchaToken || null,
         }),
       });
       
@@ -128,6 +131,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
       
       setSession(newSession);
       // Don't change screen here - let onNext handle navigation
+      return newSession;
     } catch (error) {
       console.error('Error creating session:', error);
       throw error;
@@ -143,15 +147,16 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
   }, [currentScreen]);
 
   // Save answer to database
-  const saveAnswer = useCallback(async (field: string, value: unknown) => {
-    if (!session) return; // Can't save without session
+  const saveAnswer = useCallback(async (field: string, value: unknown, sessionIdOverride?: string) => {
+    const targetSessionId = sessionIdOverride || session?.id;
+    if (!targetSessionId) return; // Can't save without session
     
     try {
       const response = await fetch('/api/experiment/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId: session.id,
+          sessionId: targetSessionId,
           field,
           value,
           screenIndex: currentScreen,

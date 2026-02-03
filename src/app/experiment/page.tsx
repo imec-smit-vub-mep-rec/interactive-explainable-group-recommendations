@@ -46,6 +46,8 @@ function ExperimentContent() {
                 textualDebriefing: data.session.textualDebriefing,
                 nasaTlxData: data.session.nasaTlxData || {},
                 additionalFeedback: data.session.additionalFeedback,
+                reverseShibbolethResponse: data.session.reverseShibbolethResponse,
+                recaptchaToken: data.session.recaptchaToken,
                 screenTimings: data.session.screenTimings || [],
               };
               

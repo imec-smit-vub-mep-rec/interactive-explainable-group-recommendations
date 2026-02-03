@@ -15,7 +15,63 @@ export async function POST(request: NextRequest) {
     await runMigrations();
     
     const body = await request.json();
-    const { prolificPid, prolificStudyId, prolificSessionId, reference } = body;
+    const { prolificPid, prolificStudyId, prolificSessionId, reference, recaptchaToken } = body;
+    
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
+    if (!recaptchaSecret) {
+      return NextResponse.json(
+        { success: false, error: 'Missing reCAPTCHA secret key.' },
+        { status: 500 }
+      );
+    }
+    
+    if (!recaptchaToken) {
+      return NextResponse.json(
+        { success: false, error: 'Missing reCAPTCHA token.' },
+        { status: 400 }
+      );
+    }
+    
+    const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${encodeURIComponent(recaptchaSecret)}&response=${encodeURIComponent(recaptchaToken)}`,
+    });
+    
+    if (!recaptchaResponse.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to verify reCAPTCHA.' },
+        { status: 500 }
+      );
+    }
+    
+    const recaptchaResult = (await recaptchaResponse.json()) as {
+      success: boolean;
+      score?: number;
+      action?: string;
+      'error-codes'?: string[];
+    };
+
+    console.log('[reCAPTCHA] verification result', {
+      success: recaptchaResult.success,
+      score: recaptchaResult.score ?? null,
+      action: recaptchaResult.action ?? null,
+      errorCodes: recaptchaResult['error-codes'] ?? null,
+    });
+    
+    if (!recaptchaResult.success || recaptchaResult.action !== 'start_experiment') {
+      return NextResponse.json(
+        { success: false, error: 'reCAPTCHA verification failed.' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof recaptchaResult.score === 'number' && recaptchaResult.score < 0.5) {
+      return NextResponse.json(
+        { success: false, error: 'reCAPTCHA score too low.' },
+        { status: 403 }
+      );
+    }
     
     // Generate session ID and get balanced assignments
     const sessionId = generateSessionId();
@@ -34,6 +90,7 @@ export async function POST(request: NextRequest) {
         prolific_study_id,
         prolific_session_id,
         reference,
+        recaptcha_token,
         explanation_modality,
         aggregation_strategy,
         start_time
@@ -43,6 +100,7 @@ export async function POST(request: NextRequest) {
         ${prolificStudyId || null},
         ${prolificSessionId || null},
         ${reference || null},
+        ${recaptchaToken},
         ${explanationModality},
         ${aggregationStrategy},
         NOW()
@@ -106,6 +164,8 @@ export async function GET(request: NextRequest) {
         textual_debriefing,
         nasa_tlx_data,
         additional_feedback,
+        reverse_shibboleth_response,
+        recaptcha_token,
         screen_timings,
         raw_session_data
       FROM experiment_sessions
@@ -133,6 +193,8 @@ export async function GET(request: NextRequest) {
       textual_debriefing: string | null;
       nasa_tlx_data: unknown;
       additional_feedback: string | null;
+      reverse_shibboleth_response: string | null;
+      recaptcha_token: string | null;
       screen_timings: unknown;
       raw_session_data: unknown;
     }>;
@@ -183,6 +245,8 @@ export async function GET(request: NextRequest) {
         textualDebriefing: session.textual_debriefing,
         nasaTlxData: session.nasa_tlx_data,
         additionalFeedback: session.additional_feedback,
+        reverseShibbolethResponse: session.reverse_shibboleth_response,
+        recaptchaToken: session.recaptcha_token,
         screenTimings: session.screen_timings,
         rawSessionData: session.raw_session_data,
       },

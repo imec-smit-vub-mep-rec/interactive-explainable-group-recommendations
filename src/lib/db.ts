@@ -90,6 +90,9 @@ export interface ExperimentSession {
   nasa_tlx_data: NasaTlxData;
   
   additional_feedback: string | null;
+
+  reverse_shibboleth_response: string | null;
+  recaptcha_token: string | null;
   
   screen_timings: ScreenTiming[];
   raw_session_data: Record<string, unknown>;
@@ -225,9 +228,24 @@ export async function runMigrations() {
       nasa_tlx_data JSONB DEFAULT '{}',
       
       additional_feedback TEXT,
+
+      reverse_shibboleth_response TEXT,
+      recaptcha_token TEXT,
       
       screen_timings JSONB DEFAULT '[]',
       raw_session_data JSONB DEFAULT '{}'
     )
+  `;
+
+  await sql`
+    DO $$ 
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'reverse_shibboleth_response') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN reverse_shibboleth_response TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'recaptcha_token') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN recaptcha_token TEXT;
+      END IF;
+    END $$;
   `;
 }

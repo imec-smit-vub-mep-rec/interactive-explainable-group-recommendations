@@ -74,6 +74,10 @@ CREATE TABLE IF NOT EXISTS experiment_sessions (
   
   -- Feedback
   additional_feedback TEXT,
+
+  -- Reverse shibboleth (bot trap) and reCAPTCHA
+  reverse_shibboleth_response TEXT,
+  recaptcha_token TEXT,
   
   -- Screen timings and all interaction data
   -- Structure: [{ screenIndex, screenName, startTime, endTime, interactions }]
@@ -96,6 +100,17 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'attn_check_2') THEN
     ALTER TABLE experiment_sessions ADD COLUMN attn_check_2 JSONB DEFAULT NULL;
+  END IF;
+END $$;
+
+-- Add bot protection columns to existing tables (run if table already exists)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'reverse_shibboleth_response') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN reverse_shibboleth_response TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'recaptcha_token') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN recaptcha_token TEXT;
   END IF;
 END $$;
 

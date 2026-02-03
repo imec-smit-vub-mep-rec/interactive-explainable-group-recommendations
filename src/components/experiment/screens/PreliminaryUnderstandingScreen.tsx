@@ -2,27 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { NavigationButtons } from '../NavigationButtons';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { UnderstandingQuestion } from '../UnderstandingQuestion';
 import type { InteractionEvent } from '@/lib/db';
 import type { SessionData } from '../ExperimentFlow';
 
 interface PreliminaryUnderstandingScreenProps {
   session: SessionData;
-  saveAnswer: (field: string, value: unknown) => Promise<void>;
+  saveAnswer: (field: string, value: unknown, sessionIdOverride?: string) => Promise<void>;
   updateSessionData: (updates: Partial<SessionData>) => void;
   recordInteraction: (type: InteractionEvent['type'], data: Record<string, unknown>) => void;
   isLoading: boolean;
   onNext: () => void;
   onBack: () => void;
 }
-
-const SCALE = [1, 2, 3, 4, 5, 6, 7];
-const SCALE_LABELS = {
-  1: 'Strongly Disagree',
-  4: 'Neutral',
-  7: 'Strongly Agree',
-};
 
 export function PreliminaryUnderstandingScreen({
   session,
@@ -80,72 +72,26 @@ export function PreliminaryUnderstandingScreen({
       </div>
 
       {/* Question 1: Understanding */}
-      <div className="space-y-4">
-        <Label className="text-lg font-medium text-gray-900">
-          I understand how the model works to predict the best recommendation for the group.
-        </Label>
-        <RadioGroup
-          value={understand?.toString() || ''}
-          onValueChange={(value) => {
-            setUnderstand(parseInt(value));
-            recordInteraction('click', { action: 'rate_understand', value: parseInt(value) });
-          }}
-          className="flex flex-col space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            {SCALE.map((value) => (
-              <div key={value} className="flex flex-col items-center">
-                <RadioGroupItem value={value.toString()} id={`understand-${value}`} />
-                <Label
-                  htmlFor={`understand-${value}`}
-                  className="mt-2 text-sm text-gray-600 cursor-pointer"
-                >
-                  {value}
-                </Label>
-                {SCALE_LABELS[value as keyof typeof SCALE_LABELS] && (
-                  <span className="text-xs text-gray-400 mt-1 text-center max-w-16">
-                    {SCALE_LABELS[value as keyof typeof SCALE_LABELS]}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </RadioGroup>
-      </div>
+      <UnderstandingQuestion
+        idPrefix="preliminary-understand"
+        label="I understand how the model works to predict the best recommendation for the group."
+        value={understand}
+        onChange={(value) => {
+          setUnderstand(value);
+          recordInteraction('click', { action: 'rate_understand', value });
+        }}
+      />
 
       {/* Question 2: Prediction */}
-      <div className="space-y-4">
-        <Label className="text-lg font-medium text-gray-900">
-          I can predict how the model will behave.
-        </Label>
-        <RadioGroup
-          value={predict?.toString() || ''}
-          onValueChange={(value) => {
-            setPredict(parseInt(value));
-            recordInteraction('click', { action: 'rate_predict', value: parseInt(value) });
-          }}
-          className="flex flex-col space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            {SCALE.map((value) => (
-              <div key={value} className="flex flex-col items-center">
-                <RadioGroupItem value={value.toString()} id={`predict-${value}`} />
-                <Label
-                  htmlFor={`predict-${value}`}
-                  className="mt-2 text-sm text-gray-600 cursor-pointer"
-                >
-                  {value}
-                </Label>
-                {SCALE_LABELS[value as keyof typeof SCALE_LABELS] && (
-                  <span className="text-xs text-gray-400 mt-1 text-center max-w-16">
-                    {SCALE_LABELS[value as keyof typeof SCALE_LABELS]}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </RadioGroup>
-      </div>
+      <UnderstandingQuestion
+        idPrefix="preliminary-predict"
+        label="I can predict how the model will behave."
+        value={predict}
+        onChange={(value) => {
+          setPredict(value);
+          recordInteraction('click', { action: 'rate_predict', value });
+        }}
+      />
 
       {/* Navigation */}
       <NavigationButtons

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { NavigationButtons } from '../NavigationButtons';
@@ -10,17 +10,20 @@ import type { SessionData } from '../ExperimentFlow';
 
 interface WelcomeScreenProps {
   session?: SessionData;
-  saveAnswer: (field: string, value: unknown) => Promise<void>;
+  saveAnswer: (field: string, value: unknown, sessionIdOverride?: string) => Promise<void>;
   updateSessionData: (updates: Partial<SessionData>) => void;
   recordInteraction: (type: InteractionEvent['type'], data: Record<string, unknown>) => void;
   isLoading: boolean;
   onNext: () => void;
   onBack: () => void;
-  onCreateSession?: () => Promise<void>;
+  onCreateSession?: (recaptchaToken?: string) => Promise<SessionData | null>;
   hasSession?: boolean;
 }
 
 export function WelcomeScreen({
+  session,
+  saveAnswer,
+  updateSessionData,
   isLoading,
   onNext,
   recordInteraction,
@@ -29,6 +32,74 @@ export function WelcomeScreen({
 }: WelcomeScreenProps) {
   const [hasConsented, setHasConsented] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
+  const [isRecaptchaReady, setIsRecaptchaReady] = useState(false);
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '';
+
+  useEffect(() => {
+    if (!recaptchaSiteKey) return;
+    if (typeof window === 'undefined') return;
+
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      'script[src^="https://www.google.com/recaptcha/api.js"]'
+    );
+
+    if (existingScript) {
+      if ((window as typeof window & { grecaptcha?: { ready: (cb: () => void) => void } }).grecaptcha) {
+        (window as typeof window & { grecaptcha?: { ready: (cb: () => void) => void } }).grecaptcha?.ready(() => {
+          setIsRecaptchaReady(true);
+        });
+      }
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=${recaptchaSiteKey}`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      (window as typeof window & { grecaptcha?: { ready: (cb: () => void) => void } }).grecaptcha?.ready(() => {
+        setIsRecaptchaReady(true);
+      });
+    };
+    script.onerror = () => {
+      setRecaptchaError('Failed to load reCAPTCHA.');
+    };
+    document.head.appendChild(script);
+  }, [recaptchaSiteKey]);
+
+  const executeRecaptcha = async (): Promise<string | null> => {
+    if (!recaptchaSiteKey) {
+      setRecaptchaError('reCAPTCHA site key is missing. Please set NEXT_PUBLIC_RECAPTCHA_SITE_KEY.');
+      return null;
+    }
+    if (!isRecaptchaReady) {
+      setRecaptchaError('reCAPTCHA is still loading. Please try again.');
+      return null;
+    }
+
+    const grecaptcha = (window as typeof window & {
+      grecaptcha?: { execute: (key: string, options: { action: string }) => Promise<string> };
+    }).grecaptcha;
+
+    if (!grecaptcha) {
+      setRecaptchaError('reCAPTCHA is not available. Please refresh the page.');
+      return null;
+    }
+
+    try {
+      const token = await grecaptcha.execute(recaptchaSiteKey, { action: 'start_experiment' });
+      setRecaptchaToken(token);
+      setRecaptchaError(null);
+      recordInteraction('click', { action: 'recaptcha_execute', tokenPresent: Boolean(token) });
+      return token;
+    } catch (error) {
+      console.error('reCAPTCHA execution failed:', error);
+      setRecaptchaError('reCAPTCHA failed. Please try again.');
+      return null;
+    }
+  };
 
   const handleConsentChange = (checked: boolean) => {
     setHasConsented(checked);
@@ -41,14 +112,22 @@ export function WelcomeScreen({
 
   const handleStartExperiment = async () => {
     if (!hasConsented) return;
+    const token = await executeRecaptcha();
+    if (!token) return;
     
     setIsCreatingSession(true);
     recordInteraction('click', { action: 'start_experiment' });
     
     try {
       // Create session if it doesn't exist yet
+      let createdSession = session || null;
       if (!hasSession && onCreateSession) {
-        await onCreateSession();
+        createdSession = await onCreateSession(token);
+      }
+      const sessionId = createdSession?.id || session?.id;
+      if (sessionId) {
+        await saveAnswer('recaptcha_token', token, sessionId);
+        updateSessionData({ recaptchaToken: token });
       }
       // Move to next screen (demographics)
       onNext();
@@ -143,10 +222,22 @@ export function WelcomeScreen({
         </div>
       </div>
 
+      {/* reCAPTCHA (v3) */}
+      <div className="space-y-2">
+        {!recaptchaSiteKey && (
+          <p className="text-sm text-red-600">
+            reCAPTCHA site key is missing. Please set `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`.
+          </p>
+        )}
+        {recaptchaError && (
+          <p className="text-sm text-red-600">{recaptchaError}</p>
+        )}
+      </div>
+
       {/* Navigation */}
       <NavigationButtons
         onNext={handleStartExperiment}
-        canGoNext={hasConsented && !isCreatingSession}
+        canGoNext={hasConsented && !isCreatingSession && !!recaptchaSiteKey}
         isLoading={isLoading || isCreatingSession}
         nextLabel={isCreatingSession ? 'Starting...' : 'Start Experiment'}
         showBack={false}

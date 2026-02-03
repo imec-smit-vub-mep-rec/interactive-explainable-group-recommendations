@@ -18,7 +18,7 @@ import { onboardingTours, getTourForStrategy } from "@/lib/onboarding";
 
 interface TrainingScreenProps {
   session: SessionData;
-  saveAnswer: (field: string, value: unknown) => Promise<void>;
+  saveAnswer: (field: string, value: unknown, sessionIdOverride?: string) => Promise<void>;
   updateSessionData: (updates: Partial<SessionData>) => void;
   recordInteraction: (
     type: InteractionEvent["type"],

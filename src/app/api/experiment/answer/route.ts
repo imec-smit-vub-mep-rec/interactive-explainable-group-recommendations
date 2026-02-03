@@ -15,6 +15,8 @@ const VALID_FIELDS = [
   'textual_debriefing',
   'nasa_tlx_data',
   'additional_feedback',
+  'reverse_shibboleth_response',
+  'recaptcha_token',
   'screen_timings',
   'raw_session_data',
   'attn_check_1',
@@ -142,6 +144,22 @@ export async function POST(request: NextRequest) {
         await sql`
           UPDATE experiment_sessions 
           SET additional_feedback = ${value}
+          WHERE id = ${sessionId}
+        `;
+        break;
+
+      case 'reverse_shibboleth_response':
+        await sql`
+          UPDATE experiment_sessions 
+          SET reverse_shibboleth_response = ${value}
+          WHERE id = ${sessionId}
+        `;
+        break;
+
+      case 'recaptcha_token':
+        await sql`
+          UPDATE experiment_sessions 
+          SET recaptcha_token = ${value}
           WHERE id = ${sessionId}
         `;
         break;
@@ -290,6 +308,12 @@ async function processFieldUpdate(sessionId: string, field: ValidField, value: u
       break;
     case 'additional_feedback':
       await sql`UPDATE experiment_sessions SET additional_feedback = ${value as string} WHERE id = ${sessionId}`;
+      break;
+    case 'reverse_shibboleth_response':
+      await sql`UPDATE experiment_sessions SET reverse_shibboleth_response = ${value as string} WHERE id = ${sessionId}`;
+      break;
+    case 'recaptcha_token':
+      await sql`UPDATE experiment_sessions SET recaptcha_token = ${value as string} WHERE id = ${sessionId}`;
       break;
     case 'screen_timings':
       await sql`UPDATE experiment_sessions SET screen_timings = ${JSON.stringify(value)}::jsonb WHERE id = ${sessionId}`;

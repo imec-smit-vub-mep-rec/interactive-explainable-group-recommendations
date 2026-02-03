@@ -14,7 +14,7 @@ import type { ExplanationStrategy, ScenarioQuestion, MultipleChoiceQuestion } fr
 
 interface ObjectiveTestScreenProps {
   session: SessionData;
-  saveAnswer: (field: string, value: unknown) => Promise<void>;
+  saveAnswer: (field: string, value: unknown, sessionIdOverride?: string) => Promise<void>;
   updateSessionData: (updates: Partial<SessionData>) => void;
   recordInteraction: (type: InteractionEvent['type'], data: Record<string, unknown>) => void;
   isLoading: boolean;
@@ -167,14 +167,11 @@ export function ObjectiveTestScreen({
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-xl font-bold text-gray-900 mb-1">
-            Understanding Test - Question {currentTaskIndex + 1} of {testScenarioIds.length}
+            Test - Question {currentTaskIndex + 1} of {testScenarioIds.length}
           </h1>
           <p className="text-gray-600 text-sm">
             You will now be tested on your understanding of the system. Please answer the following questions based on your understanding.
           </p>
-        </div>
-        <div className="text-sm font-medium px-3 py-1 rounded bg-gray-100">
-          {currentQuestion.task.replace('_', ' ')}
         </div>
       </div>
 
