@@ -114,15 +114,24 @@ export function getTestScenarios(aggregationStrategy: AggregationStrategy): Scen
     error_detection: testScenarios.filter(s => s.questions.some(q => q.task === 'error_detection')),
   };
   
-  // Select 2 from each, shuffle, and combine
-  const selected: Scenario[] = [
-    ...shuffleArray(byTaskType.model_simulation).slice(0, 2),
-    ...shuffleArray(byTaskType.counterfactual).slice(0, 2),
-    ...shuffleArray(byTaskType.error_detection).slice(0, 2),
-  ];
-  
-  // Shuffle the final selection
-  return shuffleArray(selected);
+  // Select 2 from each task type
+  const modelSimulation = shuffleArray(byTaskType.model_simulation).slice(0, 2);
+  const counterfactual = shuffleArray(byTaskType.counterfactual).slice(0, 2);
+  const errorDetection = shuffleArray(byTaskType.error_detection).slice(0, 2);
+
+  const firstThree = shuffleArray([
+    modelSimulation[0],
+    counterfactual[0],
+    errorDetection[0],
+  ]);
+
+  const remainingThree = shuffleArray([
+    modelSimulation[1],
+    counterfactual[1],
+    errorDetection[1],
+  ]);
+
+  return [...firstThree, ...remainingThree];
 }
 
 // Fisher-Yates shuffle
@@ -147,6 +156,7 @@ export const SCREENS = {
   NASA_TLX: 7,
   FEEDBACK: 8,
   THANK_YOU: 9,
+  ATTENTION_FAIL: 10,
 } as const;
 
 export const SCREEN_NAMES: Record<number, string> = {
@@ -160,9 +170,10 @@ export const SCREEN_NAMES: Record<number, string> = {
   7: 'nasa_tlx',
   8: 'feedback',
   9: 'thank_you',
+  10: 'attention_fail',
 };
 
-export const TOTAL_SCREENS = 10;
+export const TOTAL_SCREENS = 11;
 
 // LocalStorage keys
 export const STORAGE_KEYS = {

@@ -17,17 +17,22 @@ export const questions: Record<string, QuestionSection> = {
   onboarding: {
     id: "onboarding_demographics",
     title: "About You",
-    intro: "Please provide some basic information about yourself.",
+    intro: "Please provide some basic information about yourself. This information is only used to report on the representativeness of the sample.",
     questions: [
       {
         id: "onboarding_demographics_1_birth_year",
-        type: "number",
+        type: "searchableSelect",
         text: "What is your birth year?",
         required: true,
         isAttentionCheck: false,
-        min: 1900,
-        max: 2024,
-      } as NumberQuestion,
+        placeholder: "Type or select your birth year...",
+        choices: [
+          ...Array.from({ length: 2008 - 1900 + 1 }, (_, i) => {
+            const year = (2008 - i).toString();
+            return { id: `year_${year}`, text: year, value: year };
+          }),
+        ],
+      } as MultipleChoiceQuestion,
       {
         id: "onboarding_demographics_2_gender",
         type: "multipleChoice",
@@ -50,6 +55,11 @@ export const questions: Record<string, QuestionSection> = {
             text: "Other",
             value: "other",
           },
+          {
+            id: "prefer_not_to_say",
+            text: "Prefer not to say",
+            value: "prefer_not_to_say",
+          },
         ],
       } as MultipleChoiceQuestion,
     ],
@@ -70,7 +80,7 @@ export const questions: Record<string, QuestionSection> = {
       {
         id: "attn_check_1",
         type: "multipleChoice",
-        text: "Please indicate restaurant 4",
+        text: "This is an attention check. Please indicate restaurant 4",
         required: true,
         isAttentionCheck: true,
         choices: [
@@ -79,6 +89,11 @@ export const questions: Record<string, QuestionSection> = {
           { id: "attn1_r3", text: "Restaurant 3", value: "3" },
           { id: "attn1_r4", text: "Restaurant 4", value: "4", isCorrectAnswer: true },
           { id: "attn1_r5", text: "Restaurant 5", value: "5" },
+          { id: "attn1_r6", text: "Restaurant 6", value: "6" },
+          { id: "attn1_r7", text: "Restaurant 7", value: "7" },
+          { id: "attn1_r8", text: "Restaurant 8", value: "8" },
+          { id: "attn1_r9", text: "Restaurant 9", value: "9" },
+          { id: "attn1_r10", text: "Restaurant 10", value: "10" },
         ],
       } as MultipleChoiceQuestion,
     ],
@@ -232,7 +247,7 @@ export const questions: Record<string, QuestionSection> = {
       {
         id: "attn_check_2",
         type: "multipleChoice",
-        text: "Please indicate restaurant 3",
+        text: "This is an attention check. Please indicate restaurant 3",
         required: true,
         isAttentionCheck: true,
         choices: [
@@ -241,6 +256,11 @@ export const questions: Record<string, QuestionSection> = {
           { id: "attn2_r3", text: "Restaurant 3", value: "3", isCorrectAnswer: true },
           { id: "attn2_r4", text: "Restaurant 4", value: "4" },
           { id: "attn2_r5", text: "Restaurant 5", value: "5" },
+          { id: "attn2_r6", text: "Restaurant 6", value: "6" },
+          { id: "attn2_r7", text: "Restaurant 7", value: "7" },
+          { id: "attn2_r8", text: "Restaurant 8", value: "8" },
+          { id: "attn2_r9", text: "Restaurant 9", value: "9" },
+          { id: "attn2_r10", text: "Restaurant 10", value: "10" },
         ],
       } as MultipleChoiceQuestion,
     ],

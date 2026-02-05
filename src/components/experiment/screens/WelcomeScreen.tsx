@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { NavigationButtons } from '../NavigationButtons';
+import { Button } from '@/components/ui/button';
 import { FileText, ExternalLink } from 'lucide-react';
 import type { InteractionEvent } from '@/lib/db';
 import type { SessionData } from '../ExperimentFlow';
@@ -16,6 +17,7 @@ interface WelcomeScreenProps {
   isLoading: boolean;
   onNext: () => void;
   onBack: () => void;
+  onCancelParticipation?: () => void;
   onCreateSession?: (recaptchaToken?: string) => Promise<SessionData | null>;
   hasSession?: boolean;
 }
@@ -27,6 +29,7 @@ export function WelcomeScreen({
   isLoading,
   onNext,
   recordInteraction,
+  onCancelParticipation,
   onCreateSession,
   hasSession,
 }: WelcomeScreenProps) {
@@ -139,6 +142,11 @@ export function WelcomeScreen({
     }
   };
 
+  const handleCancelParticipation = () => {
+    recordInteraction('click', { action: 'cancel_participation' });
+    onCancelParticipation?.();
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -235,13 +243,24 @@ export function WelcomeScreen({
       </div>
 
       {/* Navigation */}
-      <NavigationButtons
-        onNext={handleStartExperiment}
-        canGoNext={hasConsented && !isCreatingSession && !!recaptchaSiteKey}
-        isLoading={isLoading || isCreatingSession}
-        nextLabel={isCreatingSession ? 'Starting...' : 'Start Experiment'}
-        showBack={false}
-      />
+      <div className="space-y-3">
+        <NavigationButtons
+          onNext={handleStartExperiment}
+          canGoNext={hasConsented && !isCreatingSession && !!recaptchaSiteKey}
+          isLoading={isLoading || isCreatingSession}
+          nextLabel={isCreatingSession ? 'Starting...' : 'Start Experiment'}
+          showBack={false}
+        />
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCancelParticipation}
+          >
+            Cancel participation
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

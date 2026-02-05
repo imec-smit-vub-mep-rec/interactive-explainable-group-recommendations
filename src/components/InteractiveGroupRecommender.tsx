@@ -494,13 +494,13 @@ export default function InteractiveGroupRecommender({
           >
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-300 px-2 py-1.5 text-left text-sm">
+                <th className="border border-gray-300 px-2 py-1.5 text-left text-base">
                   Person
                 </th>
                 {scenario.restaurants.map((restaurant, index) => (
                   <th
                     key={restaurant.id}
-                    className={`border border-gray-300 px-1.5 py-1.5 text-center text-xs ${
+                    className={`border border-gray-300 px-1.5 py-1.5 text-center text-sm ${
                       restaurant.visited ? "bg-gray-300 text-gray-500" : ""
                     }`}
                     {...(restaurant.visited &&
@@ -515,12 +515,22 @@ export default function InteractiveGroupRecommender({
               </tr>
             </thead>
             <tbody>
-              {people.map((person, personIndex) => (
-                <tr
-                  key={person.name}
-                  style={{ backgroundColor: `${person.color}20` }}
-                >
-                  <td className="border border-gray-300 px-2 py-1.5 font-medium text-sm">
+              {people.map((person, personIndex) => {
+                const usePersonTint = explanationStrategy === "interactive_graph";
+                const rowClassName = usePersonTint
+                  ? ""
+                  : personIndex % 2 === 0
+                    ? "bg-white"
+                    : "bg-gray-50";
+                return (
+                  <tr
+                    key={person.name}
+                    className={rowClassName}
+                    style={
+                      usePersonTint ? { backgroundColor: `${person.color}20` } : undefined
+                    }
+                  >
+                  <td className="border border-gray-300 px-2 py-1.5 font-medium text-base">
                     {person.name}
                   </td>
                   {scenario.restaurants.map((restaurant, restaurantIndex) => {
@@ -572,7 +582,7 @@ export default function InteractiveGroupRecommender({
                               }
                             }}
                             disabled={restaurant.visited}
-                            className={`w-10 h-7 text-sm text-center border border-gray-300 rounded ${
+                            className={`w-10 h-7 text-base text-center border border-gray-300 rounded ${
                               restaurant.visited
                                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                                 : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -582,8 +592,9 @@ export default function InteractiveGroupRecommender({
                       </td>
                     );
                   })}
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

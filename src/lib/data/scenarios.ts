@@ -254,11 +254,11 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "add11_c1",
-            text: "Right",
+            text: "Yes, the system will recommend Rest 4.",
             value: "right",
             isCorrectAnswer: true,
           },
-          { id: "add11_c2", text: "Wrong", value: "wrong" },
+          { id: "add11_c2", text: "No, the system will not recommend Rest 4.", value: "wrong" },
         ],
       },
     ],
@@ -283,10 +283,10 @@ export const scenarios: Scenario[] = [
         required: true,
         text: "The group has already visited Rest 6, Rest 10, and Rest 8. Based on your previous interaction with the system, do you think the system will recommend Rest 2?",
         choices: [
-          { id: "add12_c1", text: "Right", value: "right" },
+          { id: "add12_c1", text: "Yes, the system will recommend Rest 2.", value: "right" },
           {
             id: "add12_c2",
-            text: "Wrong",
+            text: "No, the system will not recommend Rest 2.",
             value: "wrong",
             isCorrectAnswer: true,
           },
@@ -548,11 +548,11 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "lms11_c1",
-            text: "Right",
+            text: "Yes, the system will recommend Rest 8.",
             value: "right",
             isCorrectAnswer: true,
           },
-          { id: "lms11_c2", text: "Wrong", value: "wrong" },
+          { id: "lms11_c2", text: "No, the system will not recommend Rest 8.", value: "wrong" },
         ],
       },
     ],
@@ -577,10 +577,10 @@ export const scenarios: Scenario[] = [
         required: true,
         text: "The group has already visited Rest 8, Rest 2, and Rest 3. They asked the system for a new recommendation. Based on your previous interaction with the system, do you think the system will recommend Rest 1?",
         choices: [
-          { id: "lms12_c1", text: "Right", value: "right" },
+          { id: "lms12_c1", text: "Yes, the system will recommend Rest 1.", value: "right" },
           {
             id: "lms12_c2",
-            text: "Wrong",
+            text: "No, the system will not recommend Rest 1.",
             value: "wrong",
             isCorrectAnswer: true,
           },
@@ -842,11 +842,11 @@ export const scenarios: Scenario[] = [
         choices: [
           {
             id: "app11_c1",
-            text: "Right",
+            text: "Yes, the system will recommend Rest 6.",
             value: "right",
             isCorrectAnswer: true,
           },
-          { id: "app11_c2", text: "Wrong", value: "wrong" },
+          { id: "app11_c2", text: "No, the system will not recommend Rest 6.", value: "wrong" },
         ],
       },
     ],
@@ -871,10 +871,10 @@ export const scenarios: Scenario[] = [
         required: true,
         text: "The group has already visited Rest 5, Rest 2, and Rest 3. They asked the system for a new recommendation. Based on your previous interaction with the system, do you think the system will recommend Rest 7?",
         choices: [
-          { id: "app12_c1", text: "Right", value: "right" },
+          { id: "app12_c1", text: "Yes, the system will recommend Rest 7.", value: "right" },
           {
             id: "app12_c2",
-            text: "Wrong",
+            text: "No, the system will not recommend Rest 7.",
             value: "wrong",
             isCorrectAnswer: true,
           },

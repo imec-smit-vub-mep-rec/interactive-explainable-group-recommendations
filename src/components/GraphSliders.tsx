@@ -53,7 +53,7 @@ export default function GraphSliders({
   groupScores,
   updateRating,
   resetRatings,
-  fadeNonContributing = false,
+  fadeNonContributing = true,
   onRatingChange,
 }: GraphSlidersProps) {
   const chartRef = useRef<HTMLDivElement>(null);
@@ -333,11 +333,11 @@ export default function GraphSliders({
           .attr("y", groupScoreY - 8)
           .attr("text-anchor", "middle")
           .attr("font-size", "11px")
-          .attr("font-weight", "bold")
+          .attr("font-weight", "800")
           .attr("fill", "#EF4444")
           .attr("background", "white")
           .attr("stroke", "white")
-          .attr("stroke-width", "3px")
+          .attr("stroke-width", "4px")
           .attr("paint-order", "stroke fill")
           .text(groupScore);
       } else if (strategy === "ADD") {
@@ -364,11 +364,11 @@ export default function GraphSliders({
           .attr("y", groupScoreY - 8)
           .attr("text-anchor", "middle")
           .attr("font-size", "11px")
-          .attr("font-weight", "bold")
+          .attr("font-weight", "800")
           .attr("fill", "#000000")
           .attr("background", "white")
           .attr("stroke", "white")
-          .attr("stroke-width", "3px")
+          .attr("stroke-width", "4px")
           .attr("paint-order", "stroke fill")
           .text(groupScore);
       } else {
@@ -395,11 +395,11 @@ export default function GraphSliders({
           .attr("y", groupScoreY - 8)
           .attr("text-anchor", "middle")
           .attr("font-size", "11px")
-          .attr("font-weight", "bold")
+          .attr("font-weight", "800")
           .attr("fill", "#000000")
           .attr("background", "white")
           .attr("stroke", "white")
-          .attr("stroke-width", "3px")
+          .attr("stroke-width", "4px")
           .attr("paint-order", "stroke fill")
           .text(groupScore);
       }

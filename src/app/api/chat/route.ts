@@ -1036,7 +1036,7 @@ Group scores: ${currentContext?.groupScores
     .map((score, i) => `${currentContext!.restaurants[i].name}: ${score}`)
     .join(", ")}`;
 
-  // console.log(systemPrompt);
+  console.log("system prompt: ", systemPrompt);
 
   const lastMessage = messages[messages.length - 1] ?? {};
   const lastUserText = extractMessageText(lastMessage);

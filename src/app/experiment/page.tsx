@@ -49,12 +49,16 @@ function ExperimentContent() {
                 reverseShibbolethResponse: data.session.reverseShibbolethResponse,
                 recaptchaToken: data.session.recaptchaToken,
                 screenTimings: data.session.screenTimings || [],
+                isAttentionFail: data.session.isAttentionFail || false,
               };
               
               // If completed, show thank you screen
               if (restoredSession.isCompleted || isCompleted) {
                 restoredSession.currentScreen = SCREENS.THANK_YOU;
                 restoredSession.isCompleted = true;
+              }
+              if (restoredSession.isAttentionFail) {
+                restoredSession.currentScreen = SCREENS.ATTENTION_FAIL;
               }
               
               setSession(restoredSession);

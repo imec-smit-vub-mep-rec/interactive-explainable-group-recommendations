@@ -167,7 +167,8 @@ export async function GET(request: NextRequest) {
         reverse_shibboleth_response,
         recaptcha_token,
         screen_timings,
-        raw_session_data
+        raw_session_data,
+        is_attention_fail
       FROM experiment_sessions
       WHERE id = ${sessionId}
     ` as Array<{
@@ -197,6 +198,7 @@ export async function GET(request: NextRequest) {
       recaptcha_token: string | null;
       screen_timings: unknown;
       raw_session_data: unknown;
+      is_attention_fail: boolean | null;
     }>;
     
     if (result.length === 0) {
@@ -249,6 +251,7 @@ export async function GET(request: NextRequest) {
         recaptchaToken: session.recaptcha_token,
         screenTimings: session.screen_timings,
         rawSessionData: session.raw_session_data,
+        isAttentionFail: session.is_attention_fail || false,
       },
     });
   } catch (error) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { NavigationButtons } from '../NavigationButtons';
 import InteractiveGroupRecommender from '@/components/InteractiveGroupRecommender';
 import { scenarios as allScenarios } from '@/lib/data/scenarios';
@@ -32,6 +32,15 @@ export function DebriefingScreen({
 }: DebriefingScreenProps) {
   const [explanation, setExplanation] = useState(session.textualDebriefing || '');
   
+  // Interaction tracking state
+  const [debriefingStartTime] = useState<string>(new Date().toISOString());
+  const [debriefingInteractions, setDebriefingInteractions] = useState<InteractionEvent[]>([]);
+  const [tableRatingEdits, setTableRatingEdits] = useState(0);
+  const [graphRatingEdits, setGraphRatingEdits] = useState(0);
+  const [suggestionsClicked, setSuggestionsClicked] = useState<string[]>([]);
+  const [typedQueries, setTypedQueries] = useState<string[]>([]);
+  const isSavingRef = useRef(false);
+  
   // Get the first training scenario for debriefing display
   const firstTrainingScenarioId = session.trainingScenarioIds[0];
   
@@ -51,7 +60,21 @@ export function DebriefingScreen({
     app: 'APP',
   };
 
-  // Debounce save
+  // Record interaction locally and to parent
+  const recordDebriefingInteraction = (
+    type: InteractionEvent['type'],
+    data: Record<string, unknown>
+  ) => {
+    const interaction: InteractionEvent = {
+      type,
+      timestamp: new Date().toISOString(),
+      data,
+    };
+    setDebriefingInteractions(prev => [...prev, interaction]);
+    recordInteraction(type, data);
+  };
+
+  // Debounce save for textual explanation
   useEffect(() => {
     const timer = setTimeout(() => {
       if (explanation.trim()) {
@@ -65,7 +88,57 @@ export function DebriefingScreen({
 
   const handleExplanationChange = (value: string) => {
     setExplanation(value);
-    recordInteraction('click', { action: 'type_explanation', length: value.length });
+    recordDebriefingInteraction('click', { action: 'type_explanation', length: value.length });
+  };
+
+  // Save debriefing interaction data
+  const saveDebriefingData = async () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+
+    const displayStrategy = session.explanationModality as ExplanationStrategy;
+    
+    // Build interaction data based on explanation strategy
+    const debriefingTaskData: Record<string, unknown> = {
+      scenarioId: firstTrainingScenarioId,
+      textualExplanation: explanation,
+      interactions: debriefingInteractions,
+      startTime: debriefingStartTime,
+      endTime: new Date().toISOString(),
+    };
+
+    // Add strategy-specific interaction metrics
+    if (displayStrategy === 'interactive_list') {
+      debriefingTaskData.interaction_table_rating_edits = tableRatingEdits;
+    } else if (displayStrategy === 'interactive_graph') {
+      debriefingTaskData.interactive_graph_rating_edits = graphRatingEdits;
+    } else if (displayStrategy === 'conversational') {
+      debriefingTaskData.interaction_query_submissions = {
+        click_suggestion: {
+          count: suggestionsClicked.length,
+          suggestions_clicked: suggestionsClicked,
+        },
+        typed_query: {
+          count: typedQueries.length,
+          queries_submitted: typedQueries,
+        },
+      };
+    }
+
+    try {
+      await saveAnswer('raw_session_data', {
+        ...session,
+        debriefing_task_data: debriefingTaskData,
+      });
+    } finally {
+      isSavingRef.current = false;
+    }
+  };
+
+  // Handle next with saving
+  const handleNext = async () => {
+    await saveDebriefingData();
+    onNext();
   };
 
   const canProceed = explanation.trim().length > 0;
@@ -97,8 +170,24 @@ export function DebriefingScreen({
           strategy={aggregationStrategy}
           explanationStrategy={displayStrategy}
           sortBestToWorst={true}
-          fadeNonContributing={false}
+          fadeNonContributing={displayStrategy === "interactive_graph"}
           scenario={scenario}
+          onTableRatingChange={(event) => {
+            setTableRatingEdits(prev => prev + 1);
+            recordDebriefingInteraction('rating_change', { source: 'table', ...event });
+          }}
+          onGraphRatingChange={(event) => {
+            setGraphRatingEdits(prev => prev + 1);
+            recordDebriefingInteraction('rating_change', { source: 'graph', ...event });
+          }}
+          onSuggestionClick={(suggestion) => {
+            setSuggestionsClicked(prev => [...prev, suggestion]);
+            recordDebriefingInteraction('chat_message', { source: 'suggestion', query: suggestion });
+          }}
+          onTypedQuerySubmit={(query) => {
+            setTypedQueries(prev => [...prev, query]);
+            recordDebriefingInteraction('chat_message', { source: 'typed_query', query });
+          }}
         />
       </div>
 
@@ -127,7 +216,7 @@ export function DebriefingScreen({
       {/* Navigation */}
       <NavigationButtons
         onBack={onBack}
-        onNext={onNext}
+        onNext={handleNext}
         canGoBack={true}
         canGoNext={canProceed}
         isLoading={isLoading}

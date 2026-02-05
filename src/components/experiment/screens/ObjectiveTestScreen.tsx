@@ -8,6 +8,7 @@ import { questions } from '@/lib/data/questions';
 import { createScenarioFromData } from '@/lib/scenario_helpers';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import type { InteractionEvent, ObjectiveTaskData } from '@/lib/db';
 import type { SessionData } from '../ExperimentFlow';
 import type { ExplanationStrategy, ScenarioQuestion, MultipleChoiceQuestion } from '@/lib/types';
@@ -35,6 +36,7 @@ export function ObjectiveTestScreen({
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [taskStartTime, setTaskStartTime] = useState<string>(new Date().toISOString());
   const [taskInteractions, setTaskInteractions] = useState<InteractionEvent[]>([]);
+  const [showBreather, setShowBreather] = useState(false);
   
   // Attention check state (shown on 4th question, index 3)
   const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
@@ -72,11 +74,12 @@ export function ObjectiveTestScreen({
   
   // Reset state when task changes
   useEffect(() => {
-    setSelectedAnswer(null);
+    const taskData = session.objectiveTasksData[currentTaskIndex];
+    setSelectedAnswer(taskData?.userAnswer ?? null);
     setTaskStartTime(new Date().toISOString());
     setTaskInteractions([]);
-    setAttentionCheckAnswer(null);
-  }, [currentTaskIndex]);
+    setAttentionCheckAnswer(taskData?.attentionCheckAnswer ?? null);
+  }, [currentTaskIndex, session.objectiveTasksData]);
   
   // Record task interaction
   const recordTaskInteraction = (type: InteractionEvent['type'], data: Record<string, unknown>) => {
@@ -107,6 +110,7 @@ export function ObjectiveTestScreen({
       userAnswer: selectedAnswer,
       isCorrect: selectedAnswer ? checkAnswer(selectedAnswer) : null,
       isAttentionCheck: currentQuestion.isAttentionCheck || false,
+      attentionCheckAnswer,
       interactions: taskInteractions,
       startTime: taskStartTime,
       endTime: new Date().toISOString(),
@@ -134,11 +138,21 @@ export function ObjectiveTestScreen({
     recordTaskInteraction('click', { action: 'submit_answer', answer: selectedAnswer });
     await saveTaskData();
     
+    if (currentTaskIndex === 2 && !showBreather) {
+      setShowBreather(true);
+      return;
+    }
+
     if (currentTaskIndex < testScenarioIds.length - 1) {
       setCurrentTaskIndex(prev => prev + 1);
     } else {
       onNext();
     }
+  };
+
+  const handleBreatherContinue = () => {
+    setShowBreather(false);
+    setCurrentTaskIndex(prev => prev + 1);
   };
   
   // Handle back navigation
@@ -153,6 +167,21 @@ export function ObjectiveTestScreen({
   // Check if can proceed (answer selected, and attention check if needed)
   const canProceed = selectedAnswer !== null && (!showAttentionCheck || attentionCheckAnswer !== null);
   
+  if (showBreather) {
+    return (
+      <div className="space-y-6 text-center">
+        <h1 className="text-2xl font-bold text-gray-900">Breather</h1>
+        <p className="text-gray-600">
+          Feel free to take a short break. Grab a glass of water or a cup of coffee
+          if you like.
+        </p>
+        <div>
+          <Button onClick={handleBreatherContinue}>Continue</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentScenario || !currentScenarioData || !currentQuestion) {
     return <div>Loading scenario...</div>;
   }
@@ -170,7 +199,7 @@ export function ObjectiveTestScreen({
             Test - Question {currentTaskIndex + 1} of {testScenarioIds.length}
           </h1>
           <p className="text-gray-600 text-sm">
-            You will now be tested on your understanding of the system. Please answer the following questions based on your understanding.
+            You will now be tested on your understanding of the system. Please answer the following questions based on your understanding. Each time you will be presented with a different scenario.
           </p>
         </div>
       </div>
@@ -200,8 +229,8 @@ export function ObjectiveTestScreen({
         >
           <div className="space-y-3">
             {currentQuestion.choices?.map((choice) => (
-              <div key={choice.id} className="flex items-start space-x-3">
-                <RadioGroupItem value={choice.value} id={choice.id} className="mt-1" />
+              <div key={choice.id} className="flex items-center space-x-3">
+                <RadioGroupItem value={choice.value} id={choice.id} />
                 <Label htmlFor={choice.id} className="cursor-pointer text-gray-700">
                   {choice.text}
                 </Label>
@@ -226,8 +255,8 @@ export function ObjectiveTestScreen({
           >
             <div className="space-y-3">
               {attentionCheckQuestion.choices?.map((choice) => (
-                <div key={choice.id} className="flex items-start space-x-3">
-                  <RadioGroupItem value={choice.value} id={`attn-${choice.id}`} className="mt-1" />
+                <div key={choice.id} className="flex items-center space-x-3">
+                  <RadioGroupItem value={choice.value} id={`attn-${choice.id}`} />
                   <Label htmlFor={`attn-${choice.id}`} className="cursor-pointer text-gray-700">
                     {choice.text}
                   </Label>

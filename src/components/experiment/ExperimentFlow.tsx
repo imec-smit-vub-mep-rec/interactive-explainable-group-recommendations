@@ -15,6 +15,7 @@ import { DebriefingScreen } from './screens/DebriefingScreen';
 import { NasaTlxScreen } from './screens/NasaTlxScreen';
 import { FeedbackScreen } from './screens/FeedbackScreen';
 import { ThankYouScreen } from './screens/ThankYouScreen';
+import { AttentionFailScreen } from './screens/AttentionFailScreen';
 import { DebugPanel } from './DebugPanel';
 
 import type { ExplanationModality, AggregationStrategy, ScreenTiming, InteractionEvent, TrainingTaskData, ObjectiveTaskData, NasaTlxData } from '@/lib/db';
@@ -29,6 +30,7 @@ export interface SessionData {
   prolificPid?: string;
   prolificStudyId?: string;
   isCompleted?: boolean;
+  isAttentionFail?: boolean;
   
   // Collected data
   demographics?: {
@@ -119,6 +121,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
         prolificPid: prolificPid || undefined,
         prolificStudyId: prolificStudyId || undefined,
         isCompleted: false,
+        isAttentionFail: false,
         trainingTasksData: [],
         objectiveTasksData: [],
         nasaTlxData: {},
@@ -165,6 +168,13 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
       
       if (!response.ok) {
         console.error('Failed to save answer');
+        return;
+      }
+
+      const data = await response.json();
+      if (data?.isAttentionFail) {
+        setSession(prev => prev ? { ...prev, isAttentionFail: true } : prev);
+        setCurrentScreen(SCREENS.ATTENTION_FAIL);
       }
     } catch (error) {
       console.error('Error saving answer:', error);
@@ -246,8 +256,22 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
             value: currentScreen - 1,
           }),
         });
-        
-        setSession(prev => prev ? { ...prev, currentScreen: currentScreen - 1 } : null);
+
+        const sessionResponse = await fetch(
+          `/api/experiment/session?sessionId=${session.id}`
+        );
+        if (sessionResponse.ok) {
+          const data = await sessionResponse.json();
+          if (data.success) {
+            setSession({
+              ...data.session,
+              trainingTasksData: data.session.trainingTasksData || [],
+              objectiveTasksData: data.session.objectiveTasksData || [],
+              nasaTlxData: data.session.nasaTlxData || {},
+              screenTimings: data.session.screenTimings || [],
+            });
+          }
+        }
       }
       setCurrentScreen(prev => prev - 1);
     } catch (error) {
@@ -261,6 +285,12 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
   const updateSessionData = useCallback((updates: Partial<SessionData>) => {
     setSession(prev => prev ? { ...prev, ...updates } : null);
   }, []);
+
+  useEffect(() => {
+    if (session?.isAttentionFail) {
+      setCurrentScreen(SCREENS.ATTENTION_FAIL);
+    }
+  }, [session?.isAttentionFail]);
 
   // Complete the experiment
   const completeExperiment = useCallback(async () => {
@@ -316,6 +346,9 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
             session={session || undefined}
             {...baseProps}
             onCreateSession={createSession}
+            onCancelParticipation={() => {
+              setCurrentScreen(SCREENS.THANK_YOU);
+            }}
             hasSession={!!session}
           />
         );
@@ -369,10 +402,16 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
         return <FeedbackScreen session={session} {...baseProps} />;
       
       case SCREENS.THANK_YOU:
-        if (!session) {
-          return <div>Session not initialized. Please start from the beginning.</div>;
-        }
-        return <ThankYouScreen session={session} {...baseProps} onComplete={completeExperiment} />;
+        return (
+          <ThankYouScreen
+            session={session || undefined}
+            {...baseProps}
+            onComplete={completeExperiment}
+          />
+        );
+      
+      case SCREENS.ATTENTION_FAIL:
+        return <AttentionFailScreen />;
       
       default:
         return <div>Unknown screen</div>;

@@ -41,7 +41,7 @@ export default function GraphExplanation({
   groupScores,
   updateRating,
   resetRatings,
-  fadeNonContributing = false,
+  fadeNonContributing = true,
   onRatingChange,
 }: GraphExplanationProps) {
   return (

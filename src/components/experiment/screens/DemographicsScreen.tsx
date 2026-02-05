@@ -26,8 +26,8 @@ export function DemographicsScreen({
   onNext,
   onBack,
 }: DemographicsScreenProps) {
-  const [birthYear, setBirthYear] = useState<number | null>(
-    session.demographics?.birthYear || null
+  const [birthYear, setBirthYear] = useState<string | null>(
+    session.demographics?.birthYear?.toString() || null
   );
   const [gender, setGender] = useState<string | null>(
     session.demographics?.gender || null
@@ -42,7 +42,7 @@ export function DemographicsScreen({
       updateSessionData({
         demographics: {
           ...session.demographics,
-          birthYear,
+          birthYear: birthYear === 'prefer_not_to_say' ? null : parseInt(birthYear, 10),
           gender: session.demographics?.gender || null,
         },
       });
@@ -63,7 +63,7 @@ export function DemographicsScreen({
   }, [gender]);
 
   const handleBirthYearChange = (value: AnswerValue) => {
-    setBirthYear(value as number);
+    setBirthYear(value as string);
   };
 
   const handleGenderChange = (value: AnswerValue) => {

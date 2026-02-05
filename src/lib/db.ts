@@ -96,12 +96,17 @@ export interface ExperimentSession {
   
   screen_timings: ScreenTiming[];
   raw_session_data: Record<string, unknown>;
+
+  attn_check_1?: Record<string, unknown> | null;
+  attn_check_2?: Record<string, unknown> | null;
+  is_attention_fail?: boolean;
 }
 
 export interface TrainingTaskData {
   scenarioId: string;
   step1Answer: string | null; // User's initial guess
   step3Answer: string | null; // User's final decision after seeing explanation
+  attentionCheckAnswer?: string | null;
   interactions: InteractionEvent[];
   interaction_table_rating_edits: number;
   interactive_graph_rating_edits: number;
@@ -126,6 +131,7 @@ export interface ObjectiveTaskData {
   userAnswer: string | null;
   isCorrect: boolean | null;
   isAttentionCheck: boolean;
+  attentionCheckAnswer?: string | null;
   interactions: InteractionEvent[];
   startTime: string;
   endTime: string | null;
@@ -233,7 +239,11 @@ export async function runMigrations() {
       recaptcha_token TEXT,
       
       screen_timings JSONB DEFAULT '[]',
-      raw_session_data JSONB DEFAULT '{}'
+      raw_session_data JSONB DEFAULT '{}',
+
+      attn_check_1 JSONB DEFAULT NULL,
+      attn_check_2 JSONB DEFAULT NULL,
+      is_attention_fail BOOLEAN DEFAULT FALSE
     )
   `;
 
@@ -245,6 +255,15 @@ export async function runMigrations() {
       END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'recaptcha_token') THEN
         ALTER TABLE experiment_sessions ADD COLUMN recaptcha_token TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'attn_check_1') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN attn_check_1 JSONB DEFAULT NULL;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'attn_check_2') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN attn_check_2 JSONB DEFAULT NULL;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'is_attention_fail') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN is_attention_fail BOOLEAN DEFAULT FALSE;
       END IF;
     END $$;
   `;

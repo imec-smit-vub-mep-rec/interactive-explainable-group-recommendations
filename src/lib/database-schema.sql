@@ -89,7 +89,8 @@ CREATE TABLE IF NOT EXISTS experiment_sessions (
   -- Attention checks
   -- Structure: { answer, isCorrect, timestamp }
   attn_check_1 JSONB DEFAULT NULL,
-  attn_check_2 JSONB DEFAULT NULL
+  attn_check_2 JSONB DEFAULT NULL,
+  is_attention_fail BOOLEAN DEFAULT FALSE
 );
 
 -- Add attention check columns to existing tables (run if table already exists)
@@ -100,6 +101,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'attn_check_2') THEN
     ALTER TABLE experiment_sessions ADD COLUMN attn_check_2 JSONB DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'is_attention_fail') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN is_attention_fail BOOLEAN DEFAULT FALSE;
   END IF;
 END $$;
 

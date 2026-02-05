@@ -21,7 +21,7 @@ export interface Scenario {
 }
 
 export const people: Person[] = [
-  { name: "Darcy", pattern: "solid", color: "#6B7280" },
+  { name: "Darcy", pattern: "solid", color: "#9333EA" },
   { name: "Alex", pattern: "dotted", color: "#3B82F6" },
   { name: "Jess", pattern: "horizontal", color: "#10B981" },
   { name: "Jackie", pattern: "vertical", color: "#F59E0B" },

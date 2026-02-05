@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { sessionId, field, value, screenIndex } = body;
+    let isAttentionFail = false;
+    let didUpdateAttentionCheck = false;
     
     console.log('[POST /api/experiment/answer] Received request:', { sessionId, field, value: typeof value === 'object' ? JSON.stringify(value) : value, screenIndex });
     
@@ -186,6 +188,7 @@ export async function POST(request: NextRequest) {
           SET attn_check_1 = ${JSON.stringify(value)}::jsonb
           WHERE id = ${sessionId}
         `;
+        didUpdateAttentionCheck = true;
         break;
         
       case 'attn_check_2':
@@ -194,6 +197,7 @@ export async function POST(request: NextRequest) {
           SET attn_check_2 = ${JSON.stringify(value)}::jsonb
           WHERE id = ${sessionId}
         `;
+        didUpdateAttentionCheck = true;
         break;
     }
     
@@ -206,9 +210,37 @@ export async function POST(request: NextRequest) {
       `;
     }
     
+    if (didUpdateAttentionCheck) {
+      const [row] = await sql`
+        SELECT attn_check_1, attn_check_2, is_attention_fail
+        FROM experiment_sessions
+        WHERE id = ${sessionId}
+      ` as Array<{
+        attn_check_1: { isCorrect?: boolean } | null;
+        attn_check_2: { isCorrect?: boolean } | null;
+        is_attention_fail: boolean | null;
+      }>;
+
+      const failures = [row?.attn_check_1, row?.attn_check_2].filter(
+        (check) => check?.isCorrect === false
+      ).length;
+
+      if (failures >= 2) {
+        await sql`
+          UPDATE experiment_sessions
+          SET is_attention_fail = TRUE
+          WHERE id = ${sessionId}
+        `;
+        isAttentionFail = true;
+      } else {
+        isAttentionFail = Boolean(row?.is_attention_fail);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: `Field ${field} updated successfully`,
+      isAttentionFail,
     });
   } catch (error) {
     console.error('Error saving answer:', error);

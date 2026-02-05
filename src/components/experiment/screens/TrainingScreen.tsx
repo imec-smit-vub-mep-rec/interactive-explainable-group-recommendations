@@ -55,6 +55,7 @@ export function TrainingScreen({
   const [graphRatingEdits, setGraphRatingEdits] = useState(0);
   const [suggestionsClicked, setSuggestionsClicked] = useState<string[]>([]);
   const [typedQueries, setTypedQueries] = useState<string[]>([]);
+  const [showProceedConfirm, setShowProceedConfirm] = useState(false);
   
   // Attention check state (shown ONLY in second task's step 2 - explore_explanation)
   const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export function TrainingScreen({
   const attentionCheckQuestion = questions.training?.questions[1] as MultipleChoiceQuestion | undefined;
   
   // Only show attention check in second training task's step 2
-  const showAttentionCheck = currentTaskIndex === 1 && currentStep === "explore_explanation" && !attentionCheckCompleted;
+  const showAttentionCheck = currentTaskIndex === 1 && currentStep === "explore_explanation";
 
   // Ref to access resetRatings function from InteractiveGroupRecommender
   const resetRatingsRef = useRef<(() => void) | null>(null);
@@ -117,10 +118,10 @@ export function TrainingScreen({
     return createScenarioFromData(currentScenarioData);
   }, [currentScenarioData]);
 
-  // Get non-visited restaurants for radio options
+  // Get all restaurants for radio options, sorted by ID (1-10)
   const availableRestaurants = useMemo(() => {
     if (!currentScenario) return [];
-    return currentScenario.restaurants.filter((r) => !r.visited);
+    return [...currentScenario.restaurants].sort((a, b) => a.id - b.id);
   }, [currentScenario]);
 
   // Strategy mapping
@@ -132,17 +133,31 @@ export function TrainingScreen({
 
   // Reset state when task changes
   useEffect(() => {
-    setCurrentStep("initial_guess");
-    setInitialGuess(null);
-    setFinalDecision(null);
+    const taskData = session.trainingTasksData[currentTaskIndex];
+
+    if (taskData?.step3Answer) {
+      setCurrentStep("final_decision");
+    } else if (taskData?.step1Answer) {
+      setCurrentStep("explore_explanation");
+    } else {
+      setCurrentStep("initial_guess");
+    }
+
+    setInitialGuess(taskData?.step1Answer ?? null);
+    setFinalDecision(taskData?.step3Answer ?? null);
     setTaskStartTime(new Date().toISOString());
     setTaskInteractions([]);
-    setTableRatingEdits(0);
-    setGraphRatingEdits(0);
-    setSuggestionsClicked([]);
-    setTypedQueries([]);
-    setAttentionCheckAnswer(null);
-  }, [currentTaskIndex]);
+    setTableRatingEdits(taskData?.interaction_table_rating_edits ?? 0);
+    setGraphRatingEdits(taskData?.interactive_graph_rating_edits ?? 0);
+    setSuggestionsClicked(
+      taskData?.interaction_query_submissions?.click_suggestion?.suggestions_clicked ?? []
+    );
+    setTypedQueries(
+      taskData?.interaction_query_submissions?.typed_query?.queries_submitted ?? []
+    );
+    setAttentionCheckAnswer(taskData?.attentionCheckAnswer ?? null);
+    setAttentionCheckCompleted(Boolean(taskData?.attentionCheckAnswer));
+  }, [currentTaskIndex, session.trainingTasksData]);
 
   // Record task interaction
   const recordTaskInteraction = (
@@ -164,6 +179,7 @@ export function TrainingScreen({
       scenarioId: trainingScenarioIds[currentTaskIndex],
       step1Answer: initialGuess,
       step3Answer: finalDecision,
+      attentionCheckAnswer,
       interactions: taskInteractions,
       interaction_table_rating_edits: tableRatingEdits,
       interactive_graph_rating_edits: graphRatingEdits,
@@ -199,6 +215,15 @@ export function TrainingScreen({
   };
 
   // Handle step transitions
+  const handleProceedFromExplore = () => {
+    recordTaskInteraction("click", { action: "complete_exploration" });
+    // Mark attention check as completed after second task's step 2
+    if (currentTaskIndex === 1 && attentionCheckAnswer !== null) {
+      setAttentionCheckCompleted(true);
+    }
+    setCurrentStep("final_decision");
+  };
+
   const handleNextStep = async () => {
     if (currentStep === "initial_guess") {
       recordTaskInteraction("click", {
@@ -207,12 +232,18 @@ export function TrainingScreen({
       });
       setCurrentStep("explore_explanation");
     } else if (currentStep === "explore_explanation") {
-      recordTaskInteraction("click", { action: "complete_exploration" });
-      // Mark attention check as completed after second task's step 2
-      if (currentTaskIndex === 1 && attentionCheckAnswer !== null) {
-        setAttentionCheckCompleted(true);
+      const isInteractiveCondition =
+        displayStrategy !== "no_expl" && displayStrategy !== "static_list";
+      const hasInteracted =
+        tableRatingEdits > 0 ||
+        graphRatingEdits > 0 ||
+        suggestionsClicked.length > 0 ||
+        typedQueries.length > 0;
+      if (isInteractiveCondition && !hasInteracted) {
+        setShowProceedConfirm(true);
+        return;
       }
-      setCurrentStep("final_decision");
+      handleProceedFromExplore();
     } else if (currentStep === "final_decision") {
       recordTaskInteraction("click", {
         action: "complete_final_decision",
@@ -312,7 +343,7 @@ export function TrainingScreen({
               strategy={aggregationStrategy}
               explanationStrategy="no_expl"
               sortBestToWorst={true}
-              fadeNonContributing={false}
+              fadeNonContributing={displayStrategy === "interactive_graph"}
               scenario={currentScenario}
               hideExplanation={true}
             />
@@ -361,7 +392,7 @@ export function TrainingScreen({
               strategy={aggregationStrategy}
               explanationStrategy={displayStrategy}
               sortBestToWorst={true}
-              fadeNonContributing={false}
+              fadeNonContributing={displayStrategy === "interactive_graph"}
               scenario={currentScenario}
               onResetRatingsRef={resetRatingsRef}
               onTableRatingChange={(event) => {
@@ -431,7 +462,7 @@ export function TrainingScreen({
               strategy={aggregationStrategy}
               explanationStrategy={displayStrategy}
               sortBestToWorst={true}
-              fadeNonContributing={false}
+              fadeNonContributing={displayStrategy === "interactive_graph"}
               scenario={currentScenario}
               onResetRatingsRef={resetRatingsRef}
               onTableRatingChange={(event) => {
@@ -523,6 +554,40 @@ export function TrainingScreen({
                 : "Continue"
           }
         />
+        {showProceedConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setShowProceedConfirm(false)}
+            />
+            <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Proceed without interaction?
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Do you really want to proceed without having interacted with the
+                system?
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowProceedConfirm(false)}
+                >
+                  Stay
+                </Button>
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    setShowProceedConfirm(false);
+                    handleProceedFromExplore();
+                  }}
+                >
+                  Proceed
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </NextStep>
   );

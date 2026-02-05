@@ -39,16 +39,6 @@ export const onboardingTours: Tour[] = [
       },
       {
         icon: null,
-        title: "Visit History",
-        content:
-          "Here is the chronological order of restaurants your group has visited in previous months.",
-        selector: "[data-onboarding='history-section']",
-        side: "top",
-        showControls: true,
-        showSkip: true,
-      },
-      {
-        icon: null,
         title: "Recommendation",
         content:
           "Finally, here is the system's recommendation based on a specific strategy taking everyone's scores into account.",
