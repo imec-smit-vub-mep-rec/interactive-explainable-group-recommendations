@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
+import type { ChatLogEntry } from "@/components/TextChat";
 import type { InteractionEvent, TrainingTaskData } from "@/lib/db";
 import type { SessionData } from "../ExperimentFlow";
 import type { ExplanationStrategy, MultipleChoiceQuestion } from "@/lib/types";
@@ -124,6 +125,14 @@ export function TrainingScreen({
     return [...currentScenario.restaurants].sort((a, b) => a.id - b.id);
   }, [currentScenario]);
 
+  // Get visited restaurant names from previous_visits (zero-indexed → "Rest N")
+  const visitedRestaurantNames = useMemo(() => {
+    if (!currentScenarioData) return "";
+    return currentScenarioData.previous_visits
+      .map((idx) => `Rest ${idx + 1}`)
+      .join(", ");
+  }, [currentScenarioData]);
+
   // Strategy mapping
   const strategyMap: Record<string, "LMS" | "ADD" | "APP"> = {
     lms: "LMS",
@@ -171,6 +180,34 @@ export function TrainingScreen({
     };
     setTaskInteractions((prev) => [...prev, interaction]);
     recordInteraction(type, data);
+  };
+
+  // Handle chat log entries: record locally and async-save to DB
+  const handleChatLogEntry = (entry: ChatLogEntry) => {
+    // Record as a standard interaction event
+    recordTaskInteraction("chat_message", {
+      chatLogRole: entry.role,
+      chatLogContent: entry.content,
+      chatLogTimestamp: entry.timestamp,
+      ...entry.metadata,
+    });
+
+    // Async fire-and-forget save to dedicated chat_logs column
+    if (session.id) {
+      const logEntry = {
+        ...entry,
+        scenarioId: trainingScenarioIds[currentTaskIndex],
+        taskIndex: currentTaskIndex,
+        step: currentStep,
+      };
+      fetch("/api/experiment/chat-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: session.id, entry: logEntry }),
+      }).catch((err) => {
+        console.error("Failed to save chat log entry:", err);
+      });
+    }
   };
 
   // Save current task data
@@ -304,18 +341,25 @@ export function TrainingScreen({
               Training Task {currentTaskIndex + 1} of{" "}
               {trainingScenarioIds.length}
             </h1>
-            <p className="text-gray-600 text-sm">
-              {currentStep === "initial_guess" &&
-                "The following tasks are to make you familiar with the system and the task."}
-              {currentStep === "explore_explanation" &&
-                "Using the provided ratings, the software system made a recommendation to the group." +
+            {currentStep === "initial_guess" && (
+              <p className="text-gray-600 text-sm">
+                Assume that there is a group of friends, different from the ones you have seen before.
+              </p>
+            )}
+            {currentStep === "explore_explanation" && (
+              <p className="text-gray-600 text-sm">
+                {"Using the provided ratings, the software system made a recommendation to the group." +
                 (displayStrategy !== "no_expl" &&
                   displayStrategy !== "static_list"
                   ? " Edit a few ratings to see how the recommendation changes."
                   : "")}
-              {currentStep === "final_decision" &&
-                "Given the advice of the recommender system, what is your final decision for the best restaurant to go to."}
-            </p>
+              </p>
+            )}
+            {currentStep === "final_decision" && (
+              <p className="text-gray-600 text-sm">
+                Given the advice of the recommender system, what is your final decision for the best restaurant to go to.
+              </p>
+            )}
           </div>
           <div className="text-sm text-gray-500 min-w-24">
             Step{" "}
@@ -331,9 +375,17 @@ export function TrainingScreen({
         {/* Step 1: Initial Guess - Show only table */}
         {currentStep === "initial_guess" && (
           <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 space-y-2">
+              <p>
+                Every month, a group decision is made by these friends to decide on a restaurant to have dinner together. To select a restaurant for the dinner next month, the group again has to take the same decision. In this decision, each group member explicitly rated three possible restaurants using a 5-star rating scale (1: the worst, 5: the best). The ratings given by group members are shown in the table below.
+              </p>
+              <p>
+              <strong>{visitedRestaurantNames}</strong> have been visited in the previous months, in this specific order. These restaurants are not an option anymore, as the group has already eaten there previously.
+              </p>
+            </div>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <h3 className="font-medium text-yellow-800 mb-1 text-sm">
-                Which restaurant would you think is best for the group&apos;s
+                Which restaurant will the system recommend for the group&apos;s
                 next dinner, given the preferences in the table?
               </h3>
             </div>
@@ -423,6 +475,7 @@ export function TrainingScreen({
                   query,
                 });
               }}
+              onChatLogEntry={handleChatLogEntry}
             />
             
             {/* Attention Check - only shown in first training task */}
@@ -493,6 +546,7 @@ export function TrainingScreen({
                   query,
                 });
               }}
+              onChatLogEntry={handleChatLogEntry}
             />
 
             {/* Radio selection for final decision */}

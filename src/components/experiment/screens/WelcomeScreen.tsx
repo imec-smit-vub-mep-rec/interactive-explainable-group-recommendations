@@ -5,7 +5,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { NavigationButtons } from '../NavigationButtons';
 import { Button } from '@/components/ui/button';
-import { FileText, ExternalLink } from 'lucide-react';
 import type { InteractionEvent } from '@/lib/db';
 import type { SessionData } from '../ExperimentFlow';
 
@@ -33,7 +32,9 @@ export function WelcomeScreen({
   onCreateSession,
   hasSession,
 }: WelcomeScreenProps) {
-  const [hasConsented, setHasConsented] = useState(false);
+  const [hasReadInfo, setHasReadInfo] = useState(false);
+  const [agreesToParticipate, setAgreesToParticipate] = useState(false);
+  const [isAtLeast18, setIsAtLeast18] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
@@ -104,17 +105,17 @@ export function WelcomeScreen({
     }
   };
 
-  const handleConsentChange = (checked: boolean) => {
-    setHasConsented(checked);
-    recordInteraction('click', { action: 'consent_checkbox', checked });
-  };
+  const allConsented = hasReadInfo && agreesToParticipate && isAtLeast18;
 
-  const handlePdfClick = () => {
-    recordInteraction('click', { action: 'view_consent_pdf' });
+  const handleCheckboxChange = (field: string, checked: boolean) => {
+    if (field === 'hasReadInfo') setHasReadInfo(checked);
+    if (field === 'agreesToParticipate') setAgreesToParticipate(checked);
+    if (field === 'isAtLeast18') setIsAtLeast18(checked);
+    recordInteraction('click', { action: `consent_checkbox_${field}`, checked });
   };
 
   const handleStartExperiment = async () => {
-    if (!hasConsented) return;
+    if (!allConsented) return;
     const token = await executeRecaptcha();
     if (!token) return;
     
@@ -161,72 +162,77 @@ export function WelcomeScreen({
       </div>
 
       {/* Informed Consent Section */}
-      <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-        <div className="flex items-start gap-4">
-          <div className="bg-blue-100 rounded-full p-3">
-            <FileText className="w-6 h-6 text-blue-600" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Informed Consent
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Please read the informed consent document carefully. This document explains
-              the purpose of the study, what you will be asked to do, and your rights as
-              a participant.
-            </p>
-            <a
-              href="/informed_consent.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handlePdfClick}
-              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <FileText className="w-4 h-4" />
-              View Informed Consent Document (PDF)
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* Study Overview */}
-      <div className="space-y-4">
+      <div className="bg-blue-50 rounded-lg p-6 border border-blue-200 space-y-4">
         <h2 className="text-xl font-semibold text-gray-900">
-          What to Expect
+          Informed Consent
         </h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-2">Duration</h3>
-            <p className="text-gray-600 text-sm">
-              This study takes approximately 20-30 minutes to complete.
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-2">Tasks</h3>
-            <p className="text-gray-600 text-sm">
-              You will interact with a restaurant recommendation system and answer questions about it.
-            </p>
-          </div>
-        </div>
+        <p className="text-gray-700 leading-relaxed">
+          The purpose of this study is to analyse different ways to present group recommendations to users. The study is conducted by Ulysse Maes (Doctoral Researcher at IMEC-SMIT, Vrije Universiteit Brussel), Cedric Waterschoot (Postdoctoral Researcher at Maastricht University, DACS) and Francesco Barile (Assistant Professor at Maastricht University, DACS).
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Your participation in this research study is voluntary. You may choose not to participate. If you decide to participate in this research survey, you may withdraw at any time. If you do not complete the survey, we will treat it as a withdrawal and your answers thus far will not be used.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          The procedure involves evaluating several depicted scenarios and answering to a survey. You will be asked to optionally provide demographic info (age group and gender). These are only collected for representativeness check, and not used for further analyses. No further personal data will be stored.
+          You will be asked to interact with a group recommendation system and answer questions about it.
+          You will be asked to answer approximately 10 questions about the system, and 5 questions about your experience with the system.
+          The whole experiment should have a duration of about 15-20 minutes.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          If you have any question about the research study, please contact Ulysse Maes (<a href="mailto:ulysse.jan.l.maes@vub.be" className="text-blue-600 hover:underline">ulysse.jan.l.maes@vub.be</a>), Cedric Waterschoot (<a href="mailto:cedric.waterschoot@maastrichtuniversity.nl" className="text-blue-600 hover:underline">cedric.waterschoot@maastrichtuniversity.nl</a>) or Francesco Barile (<a href="mailto:f.barile@maastrichtuniversity.nl" className="text-blue-600 hover:underline">f.barile@maastrichtuniversity.nl</a>).
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          This research has been reviewed by Ethics Review Committee Inner City faculties (ERCIC) of Maastricht University.
+        </p>
       </div>
 
-      {/* Consent Checkbox */}
+      {/* Consent Checkboxes */}
       <div className="border-t pt-6">
-        <div className="flex items-start gap-3">
-          <Checkbox
-            id="consent"
-            checked={hasConsented}
-            onCheckedChange={handleConsentChange}
-            className="mt-1"
-          />
-          <Label
-            htmlFor="consent"
-            className="text-gray-700 cursor-pointer leading-relaxed"
-          >
-            I have read and understood the informed consent document. I agree to participate
-            in this study and understand that I can withdraw at any time without penalty.
-          </Label>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Electronic Consent</h3>
+        <p className="text-gray-600 mb-4">Please select your choices below. All three are required to participate.</p>
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="consent-read"
+              checked={hasReadInfo}
+              onCheckedChange={(checked: boolean) => handleCheckboxChange('hasReadInfo', checked)}
+              className="mt-1"
+            />
+            <Label
+              htmlFor="consent-read"
+              className="text-gray-700 cursor-pointer leading-relaxed"
+            >
+              I have read the information above
+            </Label>
+          </div>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="consent-agree"
+              checked={agreesToParticipate}
+              onCheckedChange={(checked: boolean) => handleCheckboxChange('agreesToParticipate', checked)}
+              className="mt-1"
+            />
+            <Label
+              htmlFor="consent-agree"
+              className="text-gray-700 cursor-pointer leading-relaxed"
+            >
+              I voluntarily agree to participate
+            </Label>
+          </div>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="consent-age"
+              checked={isAtLeast18}
+              onCheckedChange={(checked: boolean) => handleCheckboxChange('isAtLeast18', checked)}
+              className="mt-1"
+            />
+            <Label
+              htmlFor="consent-age"
+              className="text-gray-700 cursor-pointer leading-relaxed"
+            >
+              I am at least 18 years old
+            </Label>
+          </div>
         </div>
       </div>
 
@@ -246,7 +252,7 @@ export function WelcomeScreen({
       <div className="space-y-3">
         <NavigationButtons
           onNext={handleStartExperiment}
-          canGoNext={hasConsented && !isCreatingSession && !!recaptchaSiteKey}
+          canGoNext={allConsented && !isCreatingSession && !!recaptchaSiteKey}
           isLoading={isLoading || isCreatingSession}
           nextLabel={isCreatingSession ? 'Starting...' : 'Start Experiment'}
           showBack={false}

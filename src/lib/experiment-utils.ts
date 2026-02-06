@@ -2,6 +2,34 @@ import { sql, ExplanationModality, AggregationStrategy } from './db';
 import { scenarios } from './data/scenarios';
 import { Scenario } from './types';
 
+// Group code mapping: coded identifiers → (aggregationStrategy, explanationModality)
+export const GROUP_CODES: Record<string, { aggregationStrategy: AggregationStrategy; explanationModality: ExplanationModality }> = {
+  ADNO: { aggregationStrategy: 'add', explanationModality: 'no_expl' },
+  ADST: { aggregationStrategy: 'add', explanationModality: 'static_list' },
+  ADIN: { aggregationStrategy: 'add', explanationModality: 'interactive_list' },
+  ADCO: { aggregationStrategy: 'add', explanationModality: 'conversational' },
+  ADGR: { aggregationStrategy: 'add', explanationModality: 'interactive_graph' },
+  APNO: { aggregationStrategy: 'app', explanationModality: 'no_expl' },
+  APST: { aggregationStrategy: 'app', explanationModality: 'static_list' },
+  APIN: { aggregationStrategy: 'app', explanationModality: 'interactive_list' },
+  APCO: { aggregationStrategy: 'app', explanationModality: 'conversational' },
+  APGR: { aggregationStrategy: 'app', explanationModality: 'interactive_graph' },
+  LMNO: { aggregationStrategy: 'lms', explanationModality: 'no_expl' },
+  LMST: { aggregationStrategy: 'lms', explanationModality: 'static_list' },
+  LMIN: { aggregationStrategy: 'lms', explanationModality: 'interactive_list' },
+  LMCO: { aggregationStrategy: 'lms', explanationModality: 'conversational' },
+  LMGR: { aggregationStrategy: 'lms', explanationModality: 'interactive_graph' },
+};
+
+/**
+ * Resolve a group code to its aggregation strategy and explanation modality.
+ * Returns null if the code is not recognized.
+ */
+export function resolveGroupCode(code: string | null | undefined): { aggregationStrategy: AggregationStrategy; explanationModality: ExplanationModality } | null {
+  if (!code) return null;
+  return GROUP_CODES[code.toUpperCase()] ?? null;
+}
+
 // Generate a random UUID
 export function generateSessionId(): string {
   return crypto.randomUUID();
@@ -148,32 +176,34 @@ export function shuffleArray<T>(array: T[]): T[] {
 export const SCREENS = {
   WELCOME: 0,
   DEMOGRAPHICS: 1,
-  TRAINING: 2,
-  PRELIMINARY_UNDERSTANDING: 3,
-  OBJECTIVE_TEST: 4,
-  REPEAT_UNDERSTANDING: 5,
-  DEBRIEFING: 6,
-  NASA_TLX: 7,
-  FEEDBACK: 8,
-  THANK_YOU: 9,
-  ATTENTION_FAIL: 10,
+  INSTRUCTIONS: 2,
+  TRAINING: 3,
+  PRELIMINARY_UNDERSTANDING: 4,
+  OBJECTIVE_TEST: 5,
+  REPEAT_UNDERSTANDING: 6,
+  DEBRIEFING: 7,
+  NASA_TLX: 8,
+  FEEDBACK: 9,
+  THANK_YOU: 10,
+  ATTENTION_FAIL: 11,
 } as const;
 
 export const SCREEN_NAMES: Record<number, string> = {
   0: 'welcome',
   1: 'demographics',
-  2: 'training',
-  3: 'preliminary_understanding',
-  4: 'objective_test',
-  5: 'repeat_understanding',
-  6: 'debriefing',
-  7: 'nasa_tlx',
-  8: 'feedback',
-  9: 'thank_you',
-  10: 'attention_fail',
+  2: 'instructions',
+  3: 'training',
+  4: 'preliminary_understanding',
+  5: 'objective_test',
+  6: 'repeat_understanding',
+  7: 'debriefing',
+  8: 'nasa_tlx',
+  9: 'feedback',
+  10: 'thank_you',
+  11: 'attention_fail',
 };
 
-export const TOTAL_SCREENS = 11;
+export const TOTAL_SCREENS = 12;
 
 // LocalStorage keys
 export const STORAGE_KEYS = {

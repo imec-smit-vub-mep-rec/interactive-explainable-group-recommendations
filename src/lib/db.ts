@@ -93,8 +93,10 @@ export interface ExperimentSession {
 
   reverse_shibboleth_response: string | null;
   recaptcha_token: string | null;
+  is_bot: boolean;
   
   screen_timings: ScreenTiming[];
+  chat_logs: ChatLogRecord[];
   raw_session_data: Record<string, unknown>;
 
   attn_check_1?: Record<string, unknown> | null;
@@ -158,6 +160,16 @@ export interface InteractionEvent {
   type: 'rating_change' | 'chat_message' | 'click' | 'view';
   timestamp: string;
   data: Record<string, unknown>;
+}
+
+export interface ChatLogRecord {
+  role: 'user' | 'assistant' | 'error';
+  content: string;
+  timestamp: string;
+  scenarioId?: string;
+  taskIndex?: number;
+  step?: string;
+  metadata?: Record<string, unknown>;
 }
 
 // Helper function to run migrations
@@ -237,8 +249,10 @@ export async function runMigrations() {
 
       reverse_shibboleth_response TEXT,
       recaptcha_token TEXT,
+      is_bot BOOLEAN DEFAULT FALSE,
       
       screen_timings JSONB DEFAULT '[]',
+      chat_logs JSONB DEFAULT '[]',
       raw_session_data JSONB DEFAULT '{}',
 
       attn_check_1 JSONB DEFAULT NULL,
@@ -264,6 +278,9 @@ export async function runMigrations() {
       END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'is_attention_fail') THEN
         ALTER TABLE experiment_sessions ADD COLUMN is_attention_fail BOOLEAN DEFAULT FALSE;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'is_bot') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN is_bot BOOLEAN DEFAULT FALSE;
       END IF;
     END $$;
   `;

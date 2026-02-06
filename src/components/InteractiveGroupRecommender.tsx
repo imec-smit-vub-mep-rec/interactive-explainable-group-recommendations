@@ -7,7 +7,7 @@ import GraphExplanation from "./GraphExplanation";
 import PieExplanation from "./PieExplanation";
 import Heatmap from "./Heatmap";
 import OrderedListExplanation from "./OrderedListExplanation";
-import TextChat from "./TextChat";
+import TextChat, { type ChatLogEntry } from "./TextChat";
 import TextChatWithTools from "./TextChatWithTools";
 import TextChatWithToolsGraph from "./TextChatWithToolsGraph";
 import { Scenario, people, getVisitedOrder } from "@/lib/scenario_helpers";
@@ -40,6 +40,7 @@ interface InteractiveGroupRecommenderProps {
   }) => void;
   onSuggestionClick?: (suggestion: string) => void;
   onTypedQuerySubmit?: (query: string) => void;
+  onChatLogEntry?: (entry: ChatLogEntry) => void;
 }
 
 export default function InteractiveGroupRecommender({
@@ -54,6 +55,7 @@ export default function InteractiveGroupRecommender({
   onGraphRatingChange,
   onSuggestionClick,
   onTypedQuerySubmit,
+  onChatLogEntry,
 }: InteractiveGroupRecommenderProps) {
   const [ratings, setRatings] = useState<number[][]>(scenario.ratings);
 
@@ -285,6 +287,7 @@ export default function InteractiveGroupRecommender({
             originalRestaurants={scenario.restaurants}
             onSuggestionClick={onSuggestionClick}
             onQuerySubmit={onTypedQuerySubmit}
+            onChatLogEntry={onChatLogEntry}
             // Don't pass onDataUpdate for basic chat - tools won't be able to update data
           />
         );
@@ -472,16 +475,6 @@ export default function InteractiveGroupRecommender({
 
   return (
     <div className="max-w-7xl mx-auto  bg-white rounded-lg ">
-      <div className="mb-4" data-onboarding="page-header">
-        <p className="text-gray-600 mb-1 text-sm">{scenario.description}</p>
-        <p
-          className="text-gray-600 mb-2 text-sm"
-          data-onboarding="history-section"
-        >
-          Previous visits: The group has previously visited the following
-          restaurants in this order: {getVisitedOrder(scenario).join(", ")}.
-        </p>
-      </div>
 
       {/* Ratings Table */}
       <div className="mb-4">

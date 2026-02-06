@@ -1,14 +1,32 @@
 # Interactive Group Recommender with Explanations
 
-A research application for studying interactive group recommendation systems with various explanation strategies. This project allows users to explore different aggregation strategies for group decision-making and compare multiple explanation approaches to understand how recommendations are generated.
+A research application for studying interactive group recommendation systems with various explanation strategies. This project allows users to explore different ADDregation strategies for group decision-making and compare multiple explanation approaches to understand how recommendations are generated.
 
 ## 🎯 Overview
 
-This application simulates a group restaurant recommendation scenario where 5 people (Darcy, Alex, Jess, Jackie, and Freddy) rate restaurants on a 1-5 scale. The system then uses different aggregation strategies to recommend the best restaurant for the group, with various explanation methods to help users understand the decision-making process.
+This application simulates a group restaurant recommendation scenario where 5 people (Darcy, Alex, Jess, Jackie, and Freddy) rate restaurants on a 1-5 scale. The system then uses different ADDregation strategies to recommend the best restaurant for the group, with various explanation methods to help users understand the decision-making process.
+
+# Force bucket:
+Strategy,Modality,ID
+ADD,no_explanation,ADNO
+ADD,static_list,ADST
+ADD,interactive_list,ADIN
+ADD,conversational,ADCO
+ADD,interactive_graph,ADGR
+APP,no_explanation,ADNO
+APP,static_list,APST
+APP,interactive_list,APIN
+APP,conversational,APCO
+APP,interactive_graph,APGR
+LMS,no_explanation,LMNO
+LMS,static_list,LMST
+LMS,interactive_list,LMIN
+LMS,conversational,LMCO
+LMS,interactive_graph,LMGR
 
 ## 🚀 Features
 
-### Aggregation Strategies
+### ADDregation Strategies
 - **LMS (Least Misery Strategy)**: Minimizes the lowest rating among group members
 - **ADD (Additive Strategy)**: Maximizes the total rating sum across all group members
 - **APP (Approval Voting Strategy)**: Maximizes the number of ratings above 3
@@ -70,7 +88,7 @@ This application simulates a group restaurant recommendation scenario where 5 pe
 ## 🎮 Usage
 
 ### Basic Workflow
-1. **Select Strategy**: Choose an aggregation strategy (LMS, ADD, or APP) from the settings panel
+1. **Select Strategy**: Choose an ADDregation strategy (LMS, ADD, or APP) from the settings panel
 2. **Choose Explanation**: Select your preferred explanation method
 3. **Interact with Ratings**: Modify individual ratings in the table to see real-time updates
 4. **Explore Explanations**: Use the explanation panel to understand how recommendations are generated
@@ -78,7 +96,7 @@ This application simulates a group restaurant recommendation scenario where 5 pe
 
 ### Settings Panel
 Access the settings panel by clicking the gear icon in the top-left corner:
-- **Aggregation Strategy**: Switch between LMS, ADD, and APP
+- **ADDregation Strategy**: Switch between LMS, ADD, and APP
 - **Explanation Strategy**: Choose from 7 different explanation methods
 - **Sort Best to Worst**: Enable/disable restaurant sorting
 - **Fade Non-Contributing**: Highlight only relevant elements
@@ -112,7 +130,7 @@ Each scenario includes:
 ## 🔬 Research Applications
 
 This application is designed for research in:
-- **Group Decision Making**: Understanding how different aggregation strategies affect outcomes
+- **Group Decision Making**: Understanding how different ADDregation strategies affect outcomes
 - **Explanation Interfaces**: Comparing effectiveness of various explanation methods
 - **User Experience**: Studying how different visualizations impact user understanding
 - **Interactive Systems**: Exploring real-time feedback and user interaction patterns
@@ -168,7 +186,7 @@ This application supports research in:
 - Interactive Group Recommender Systems
 - Explanation Interfaces for AI Systems
 - User Experience in Decision Support Tools
-- Comparative Studies of Aggregation Strategies
+- Comparative Studies of ADDregation Strategies
 
 ---
 

@@ -7,6 +7,7 @@ import { ProgressTracker } from '@/components/survey/ProgressTracker';
 // Screen components
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { DemographicsScreen } from './screens/DemographicsScreen';
+import { InstructionsScreen } from './screens/InstructionsScreen';
 import { TrainingScreen } from './screens/TrainingScreen';
 import { PreliminaryUnderstandingScreen } from './screens/PreliminaryUnderstandingScreen';
 import { ObjectiveTestScreen } from './screens/ObjectiveTestScreen';
@@ -31,6 +32,7 @@ export interface SessionData {
   prolificStudyId?: string;
   isCompleted?: boolean;
   isAttentionFail?: boolean;
+  isBot?: boolean;
   
   // Collected data
   demographics?: {
@@ -88,6 +90,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
       const prolificStudyId = searchParams?.get('STUDY_ID') || null;
       const prolificSessionId = searchParams?.get('SESSION_ID') || null;
       const reference = searchParams?.get('ref') || null;
+      const groupCode = searchParams?.get('group') || null;
       
       const response = await fetch('/api/experiment/session', {
         method: 'POST',
@@ -98,6 +101,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           prolificSessionId,
           reference,
           recaptchaToken: recaptchaToken || null,
+          groupCode,
         }),
       });
       
@@ -122,6 +126,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
         prolificStudyId: prolificStudyId || undefined,
         isCompleted: false,
         isAttentionFail: false,
+        isBot: data.session.isBot || false,
         trainingTasksData: [],
         objectiveTasksData: [],
         nasaTlxData: {},
@@ -358,6 +363,12 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           return <div>Please complete the consent form first.</div>;
         }
         return <DemographicsScreen session={session} {...baseProps} />;
+      
+      case SCREENS.INSTRUCTIONS:
+        if (!session) {
+          return <div>Please complete the consent form first.</div>;
+        }
+        return <InstructionsScreen session={session} {...baseProps} />;
       
       case SCREENS.TRAINING:
         if (!session) {

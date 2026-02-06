@@ -56,6 +56,14 @@ export function ObjectiveTestScreen({
     return createScenarioFromData(currentScenarioData);
   }, [currentScenarioData]);
   
+  // Get visited restaurant names from previous_visits (zero-indexed → "Rest N")
+  const visitedRestaurantNames = useMemo(() => {
+    if (!currentScenarioData) return "";
+    return currentScenarioData.previous_visits
+      .map((idx) => `Rest ${idx + 1}`)
+      .join(", ");
+  }, [currentScenarioData]);
+
   // Get current question
   const currentQuestion: ScenarioQuestion | undefined = currentScenarioData?.questions[0];
   
@@ -216,6 +224,9 @@ export function ObjectiveTestScreen({
 
       {/* Question */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <p className="text-sm text-gray-600 mb-2 italic">
+          Remember, they do not want to visit <strong>{visitedRestaurantNames}</strong> again.
+        </p>
         <h3 className="font-medium text-blue-900 mb-3 text-sm">
           {currentQuestion.text}
         </h3>

@@ -19,6 +19,13 @@ interface Restaurant {
 
 type AggregationStrategy = "LMS" | "ADD" | "APP";
 
+export interface ChatLogEntry {
+  role: "user" | "assistant" | "error";
+  content: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+
 interface TextChatProps {
   people: Person[];
   restaurants: Restaurant[];
@@ -34,6 +41,7 @@ interface TextChatProps {
   originalRestaurants?: Restaurant[];
   onSuggestionClick?: (suggestion: string) => void;
   onQuerySubmit?: (query: string) => void;
+  onChatLogEntry?: (entry: ChatLogEntry) => void;
 }
 
 // Starter suggestions for users
@@ -64,6 +72,7 @@ export default function TextChatWithTools({
   originalRestaurants,
   onSuggestionClick,
   onQuerySubmit,
+  onChatLogEntry,
 }: TextChatProps) {
   const [input, setInput] = useState("");
   interface ToolResult {
@@ -93,6 +102,8 @@ export default function TextChatWithTools({
   const lastLoggedResponseRef = useRef<string | null>(null);
   const lastLoggedToolCallRef = useRef<string | null>(null);
   const lastLoggedToolResultRef = useRef<string | null>(null);
+  const lastLoggedResponseIdRef = useRef<string | null>(null);
+  const prevStatusRef = useRef<string>("ready");
 
   // Create context object
   const context = {
@@ -104,11 +115,72 @@ export default function TextChatWithTools({
     recommendedRestaurantIndices,
   };
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
   });
+
+  // Log assistant responses when streaming completes (status: streaming/submitted -> ready)
+  useEffect(() => {
+    const wasActive = prevStatusRef.current !== "ready";
+    prevStatusRef.current = status;
+
+    if (wasActive && status === "ready" && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "assistant" && lastMessage.id !== lastLoggedResponseIdRef.current) {
+        lastLoggedResponseIdRef.current = lastMessage.id;
+
+        const responseText = lastMessage.parts
+          ?.filter((part) => part.type === "text")
+          .map((part) =>
+            typeof part.text === "string" ? part.text : String(part.text || "")
+          )
+          .join("")
+          .trim() || "";
+
+        const toolCalls = lastMessage.parts
+          ?.filter((part) => part.type === "tool-call")
+          .map((part) => ("toolName" in part ? String(part.toolName) : "unknown")) || [];
+
+        const toolResults = lastMessage.parts
+          ?.filter(
+            (part) =>
+              part.type === "tool-result" ||
+              (typeof part.type === "string" &&
+                part.type.startsWith("tool-") &&
+                part.type !== "tool-call")
+          )
+          .map((part) => {
+            const result = "result" in part ? part.result : "output" in part ? part.output : null;
+            return result;
+          }) || [];
+
+        onChatLogEntry?.({
+          role: "assistant",
+          content: responseText,
+          timestamp: new Date().toISOString(),
+          metadata: {
+            messageId: lastMessage.id,
+            ...(toolCalls.length > 0 && { toolCalls }),
+            ...(toolResults.length > 0 && { toolResults }),
+          },
+        });
+      }
+    }
+  }, [status, messages, onChatLogEntry]);
+
+  // Log chat errors
+  useEffect(() => {
+    if (error) {
+      onChatLogEntry?.({
+        role: "error",
+        content: error.message || "Unknown chat error",
+        timestamp: new Date().toISOString(),
+        metadata: { errorName: error.name },
+      });
+    }
+  }, [error, onChatLogEntry]);
 
   // Handle tool results and update parent component
   useEffect(() => {
@@ -254,6 +326,12 @@ export default function TextChatWithTools({
 
     sendMessage({ text: submittedQuery, metadata: { context } });
     onQuerySubmit?.(submittedQuery);
+    onChatLogEntry?.({
+      role: "user",
+      content: submittedQuery,
+      timestamp: new Date().toISOString(),
+      metadata: { source: "typed_query" },
+    });
     setInput("");
   };
 
@@ -269,6 +347,12 @@ export default function TextChatWithTools({
     sendMessage({ text: suggestion, metadata: { context } });
     setInput("");
     onSuggestionClick?.(suggestion);
+    onChatLogEntry?.({
+      role: "user",
+      content: suggestion,
+      timestamp: new Date().toISOString(),
+      metadata: { source: "suggestion" },
+    });
   };
 
   const excludedSuggestionRestaurants = [

@@ -78,10 +78,15 @@ CREATE TABLE IF NOT EXISTS experiment_sessions (
   -- Reverse shibboleth (bot trap) and reCAPTCHA
   reverse_shibboleth_response TEXT,
   recaptcha_token TEXT,
+  is_bot BOOLEAN DEFAULT FALSE,
   
   -- Screen timings and all interaction data
   -- Structure: [{ screenIndex, screenName, startTime, endTime, interactions }]
   screen_timings JSONB DEFAULT '[]',
+  
+  -- Chat conversation logs (queries, responses, errors with timestamps)
+  -- Structure: [{ role: 'user'|'assistant'|'error', content, timestamp, scenarioId, taskIndex, step, metadata }]
+  chat_logs JSONB DEFAULT '[]',
   
   -- Raw session data with all user interactions backup
   raw_session_data JSONB DEFAULT '{}',
@@ -115,6 +120,17 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'recaptcha_token') THEN
     ALTER TABLE experiment_sessions ADD COLUMN recaptcha_token TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'is_bot') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN is_bot BOOLEAN DEFAULT FALSE;
+  END IF;
+END $$;
+
+-- Add chat_logs column to existing tables (run if table already exists)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'chat_logs') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN chat_logs JSONB DEFAULT '[]';
   END IF;
 END $$;
 

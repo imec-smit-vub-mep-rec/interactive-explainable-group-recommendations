@@ -6,6 +6,7 @@ import {
   getBalancedAggregationStrategy,
   getTrainingScenarios,
   getTestScenarios,
+  resolveGroupCode,
 } from '@/lib/experiment-utils';
 
 // POST: Create a new session
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     await runMigrations();
     
     const body = await request.json();
-    const { prolificPid, prolificStudyId, prolificSessionId, reference, recaptchaToken } = body;
+    const { prolificPid, prolificStudyId, prolificSessionId, reference, recaptchaToken, groupCode } = body;
     
     const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
     if (!recaptchaSecret) {
@@ -59,30 +60,33 @@ export async function POST(request: NextRequest) {
       errorCodes: recaptchaResult['error-codes'] ?? null,
     });
     
-    if (!recaptchaResult.success || recaptchaResult.action !== 'start_experiment') {
-      return NextResponse.json(
-        { success: false, error: 'reCAPTCHA verification failed.' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof recaptchaResult.score === 'number' && recaptchaResult.score < 0.5) {
-      return NextResponse.json(
-        { success: false, error: 'reCAPTCHA score too low.' },
-        { status: 403 }
-      );
+    // Determine if bot: verification failed, action mismatch, or score too low
+    const isBot = !recaptchaResult.success || 
+                  recaptchaResult.action !== 'start_experiment' ||
+                  (typeof recaptchaResult.score === 'number' && recaptchaResult.score < 0.5);
+    
+    if (isBot) {
+      console.warn('[reCAPTCHA] Bot detected - allowing experiment to proceed with is_bot flag', {
+        success: recaptchaResult.success,
+        action: recaptchaResult.action,
+        score: recaptchaResult.score,
+      });
     }
     
-    // Generate session ID and get balanced assignments
+    // Generate session ID and resolve assignments
     const sessionId = generateSessionId();
-    const explanationModality = await getBalancedExplanationModality();
-    const aggregationStrategy = await getBalancedAggregationStrategy();
+    
+    // If a group code is provided, use its pre-defined strategy/modality;
+    // otherwise fall back to balanced random assignment.
+    const resolvedGroup = resolveGroupCode(groupCode);
+    const explanationModality = resolvedGroup?.explanationModality ?? await getBalancedExplanationModality();
+    const aggregationStrategy = resolvedGroup?.aggregationStrategy ?? await getBalancedAggregationStrategy();
     
     // Get randomized scenarios for this session
     const trainingScenarios = getTrainingScenarios(aggregationStrategy);
     const testScenarios = getTestScenarios(aggregationStrategy);
     
-    // Create session in database
+    // Create session in database (always proceed, but flag bots)
     await sql`
       INSERT INTO experiment_sessions (
         id,
@@ -93,6 +97,7 @@ export async function POST(request: NextRequest) {
         recaptcha_token,
         explanation_modality,
         aggregation_strategy,
+        is_bot,
         start_time
       ) VALUES (
         ${sessionId},
@@ -103,6 +108,7 @@ export async function POST(request: NextRequest) {
         ${recaptchaToken},
         ${explanationModality},
         ${aggregationStrategy},
+        ${isBot},
         NOW()
       )
     `;
@@ -168,7 +174,8 @@ export async function GET(request: NextRequest) {
         recaptcha_token,
         screen_timings,
         raw_session_data,
-        is_attention_fail
+        is_attention_fail,
+        is_bot
       FROM experiment_sessions
       WHERE id = ${sessionId}
     ` as Array<{
@@ -199,6 +206,7 @@ export async function GET(request: NextRequest) {
       screen_timings: unknown;
       raw_session_data: unknown;
       is_attention_fail: boolean | null;
+      is_bot: boolean | null;
     }>;
     
     if (result.length === 0) {
@@ -252,6 +260,7 @@ export async function GET(request: NextRequest) {
         screenTimings: session.screen_timings,
         rawSessionData: session.raw_session_data,
         isAttentionFail: session.is_attention_fail || false,
+        isBot: session.is_bot || false,
       },
     });
   } catch (error) {

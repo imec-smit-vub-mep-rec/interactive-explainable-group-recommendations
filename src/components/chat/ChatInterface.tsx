@@ -398,6 +398,21 @@ export const ChatInterface = ({
               );
             })
           )}
+
+          {status !== "ready" && (
+            <Message from="assistant">
+              <MessageAvatar
+                src="/assistant-avatar.png"
+                name="A"
+              />
+              <MessageContent>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader className="text-muted-foreground" size={16} />
+                  <span>Thinking...</span>
+                </div>
+              </MessageContent>
+            </Message>
+          )}
         </ConversationContent>
       </Conversation>
 
@@ -408,7 +423,7 @@ export const ChatInterface = ({
               <PromptInputTextarea
                 value={input}
                 onChange={onInputChange}
-                placeholder="Ask about the restaurant recommendation or request changes..."
+                placeholder="Ask anything about the restaurant recommendation. For example, 'What is the recommended restaurant order?', 'Why is Rest 1 recommended?', 'How to make Rest 2 preferred?'"
                 disabled={status !== "ready"}
               />
               <div className="flex-shrink-0 h-full pr-2">
