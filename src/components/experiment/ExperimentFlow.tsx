@@ -36,7 +36,7 @@ export interface SessionData {
   
   // Collected data
   demographics?: {
-    birthYear: number | null;
+    ageRange: string | null;
     gender: string | null;
   };
   trainingTasksData: TrainingTaskData[];

@@ -23,7 +23,7 @@ function createMockSession(explanationModality: 'no_expl' | 'static_list' | 'int
     currentScreen: SCREENS.WELCOME,
     isCompleted: false,
     demographics: {
-      birthYear: 1990,
+      ageRange: '26_35',
       gender: 'prefer_not_to_say',
     },
     trainingTasksData: [

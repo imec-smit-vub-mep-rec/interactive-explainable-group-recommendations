@@ -60,7 +60,7 @@ type SessionDetail = Record<string, unknown> & {
   aggregation_strategy?: string;
   is_completed?: boolean;
   current_screen?: number;
-  onboarding_demographics_1_birth_year?: number | null;
+  onboarding_demographics_1_age_range?: string | null;
   onboarding_demographics_2_gender?: string | null;
   training_tasks_data?: unknown;
   objective_understanding_tasks_data?: unknown;
@@ -434,8 +434,8 @@ export default function SessionsDashboard() {
                       <div>{selectedSession.current_screen ?? "—"}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-muted-foreground">Birth Year</div>
-                      <div>{selectedSession.onboarding_demographics_1_birth_year ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">Age Range</div>
+                      <div>{selectedSession.onboarding_demographics_1_age_range ?? "—"}</div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Gender</div>

@@ -72,7 +72,7 @@ export interface ExperimentSession {
   explanation_modality: ExplanationModality;
   aggregation_strategy: AggregationStrategy;
   
-  onboarding_demographics_1_birth_year: number | null;
+  onboarding_demographics_1_age_range: string | null;
   onboarding_demographics_2_gender: Gender | null;
   
   training_tasks_data: TrainingTaskData[];
@@ -228,7 +228,7 @@ export async function runMigrations() {
       explanation_modality explanation_modality_enum NOT NULL,
       aggregation_strategy aggregation_strategy_enum NOT NULL,
       
-      onboarding_demographics_1_birth_year INTEGER,
+      onboarding_demographics_1_age_range VARCHAR(20),
       onboarding_demographics_2_gender gender_enum,
       
       training_tasks_data JSONB DEFAULT '[]',
@@ -281,6 +281,17 @@ export async function runMigrations() {
       END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'is_bot') THEN
         ALTER TABLE experiment_sessions ADD COLUMN is_bot BOOLEAN DEFAULT FALSE;
+      END IF;
+    END $$;
+  `;
+
+  // Migrate birth_year column to age_range (for existing databases)
+  await sql`
+    DO $$ 
+    BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'onboarding_demographics_1_birth_year') THEN
+        ALTER TABLE experiment_sessions RENAME COLUMN onboarding_demographics_1_birth_year TO onboarding_demographics_1_age_range;
+        ALTER TABLE experiment_sessions ALTER COLUMN onboarding_demographics_1_age_range TYPE VARCHAR(20) USING onboarding_demographics_1_age_range::VARCHAR;
       END IF;
     END $$;
   `;

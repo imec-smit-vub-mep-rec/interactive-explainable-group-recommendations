@@ -4,7 +4,7 @@ import { sql } from '@/lib/db';
 // Valid field names that can be updated
 const VALID_FIELDS = [
   'current_screen',
-  'onboarding_demographics_1_birth_year',
+  'onboarding_demographics_1_age_range',
   'onboarding_demographics_2_gender',
   'training_tasks_data',
   'preliminary_subjective_understanding_1_understand',
@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
         `;
         break;
         
-      case 'onboarding_demographics_1_birth_year':
+      case 'onboarding_demographics_1_age_range':
         await sql`
           UPDATE experiment_sessions 
-          SET onboarding_demographics_1_birth_year = ${value}
+          SET onboarding_demographics_1_age_range = ${value}
           WHERE id = ${sessionId}
         `;
         break;
@@ -308,8 +308,8 @@ async function processFieldUpdate(sessionId: string, field: ValidField, value: u
     case 'current_screen':
       await sql`UPDATE experiment_sessions SET current_screen = ${value as number} WHERE id = ${sessionId}`;
       break;
-    case 'onboarding_demographics_1_birth_year':
-      await sql`UPDATE experiment_sessions SET onboarding_demographics_1_birth_year = ${value as number} WHERE id = ${sessionId}`;
+    case 'onboarding_demographics_1_age_range':
+      await sql`UPDATE experiment_sessions SET onboarding_demographics_1_age_range = ${value as string} WHERE id = ${sessionId}`;
       break;
     case 'onboarding_demographics_2_gender':
       await sql`UPDATE experiment_sessions SET onboarding_demographics_2_gender = ${value as string} WHERE id = ${sessionId}`;

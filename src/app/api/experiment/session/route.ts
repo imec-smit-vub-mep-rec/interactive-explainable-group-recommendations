@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
         current_screen,
         explanation_modality,
         aggregation_strategy,
-        onboarding_demographics_1_birth_year,
+        onboarding_demographics_1_age_range,
         onboarding_demographics_2_gender,
         training_tasks_data,
         preliminary_subjective_understanding_1_understand,
@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
       current_screen: number;
       explanation_modality: string;
       aggregation_strategy: AggregationStrategy;
-      onboarding_demographics_1_birth_year: number | null;
+      onboarding_demographics_1_age_range: string | null;
       onboarding_demographics_2_gender: string | null;
       training_tasks_data: unknown;
       preliminary_subjective_understanding_1_understand: number | null;
@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
         explanationModality: session.explanation_modality,
         aggregationStrategy: session.aggregation_strategy,
         demographics: {
-          birthYear: session.onboarding_demographics_1_birth_year,
+          ageRange: session.onboarding_demographics_1_age_range,
           gender: session.onboarding_demographics_2_gender,
         },
         trainingTasksData: session.training_tasks_data,

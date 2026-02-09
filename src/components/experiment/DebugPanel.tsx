@@ -126,7 +126,7 @@ export function DebugPanel({ session, currentScreen, onRestart }: DebugPanelProp
               <div className="bg-gray-800 rounded p-2">
                 <div className="text-gray-400 text-xs mb-1">Demographics</div>
                 <div className="text-xs">
-                  Birth Year: {session?.demographics?.birthYear || 'N/A'} | 
+                  Age Range: {session?.demographics?.ageRange || 'N/A'} | 
                   Gender: {session?.demographics?.gender || 'N/A'}
                 </div>
               </div>

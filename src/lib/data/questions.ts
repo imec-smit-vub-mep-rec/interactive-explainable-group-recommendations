@@ -20,17 +20,19 @@ export const questions: Record<string, QuestionSection> = {
     intro: "Please provide some basic information about yourself. This information is only used to report on the representativeness of the sample.",
     questions: [
       {
-        id: "onboarding_demographics_1_birth_year",
-        type: "searchableSelect",
-        text: "What is your birth year?",
+        id: "onboarding_demographics_1_age_range",
+        type: "multipleChoice",
+        text: "What is your age?",
         required: true,
         isAttentionCheck: false,
-        placeholder: "Type or select your birth year...",
         choices: [
-          ...Array.from({ length: 2008 - 1900 + 1 }, (_, i) => {
-            const year = (2008 - i).toString();
-            return { id: `year_${year}`, text: year, value: year };
-          }),
+          { id: "under_18", text: "Under 18", value: "under_18" },
+          { id: "18_25", text: "18–25", value: "18_25" },
+          { id: "26_35", text: "26–35", value: "26_35" },
+          { id: "36_45", text: "36–45", value: "36_45" },
+          { id: "46_55", text: "46–55", value: "46_55" },
+          { id: "over_55", text: "Over 55", value: "over_55" },
+          { id: "prefer_not_to_say", text: "Prefer not to say", value: "prefer_not_to_say" },
         ],
       } as MultipleChoiceQuestion,
       {

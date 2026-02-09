@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS experiment_sessions (
   aggregation_strategy aggregation_strategy_enum NOT NULL,
   
   -- Demographics (saved immediately when answered)
-  onboarding_demographics_1_birth_year INTEGER,
+  onboarding_demographics_1_age_range VARCHAR(20),
   onboarding_demographics_2_gender gender_enum,
   
   -- Training tasks (JSONB for flexible storage)
@@ -131,6 +131,15 @@ DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'chat_logs') THEN
     ALTER TABLE experiment_sessions ADD COLUMN chat_logs JSONB DEFAULT '[]';
+  END IF;
+END $$;
+
+-- Migrate birth_year INTEGER column to age_range VARCHAR (run if table already exists)
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'onboarding_demographics_1_birth_year') THEN
+    ALTER TABLE experiment_sessions RENAME COLUMN onboarding_demographics_1_birth_year TO onboarding_demographics_1_age_range;
+    ALTER TABLE experiment_sessions ALTER COLUMN onboarding_demographics_1_age_range TYPE VARCHAR(20) USING onboarding_demographics_1_age_range::VARCHAR;
   END IF;
 END $$;
 

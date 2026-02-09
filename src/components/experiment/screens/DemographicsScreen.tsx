@@ -26,8 +26,8 @@ export function DemographicsScreen({
   onNext,
   onBack,
 }: DemographicsScreenProps) {
-  const [birthYear, setBirthYear] = useState<string | null>(
-    session.demographics?.birthYear?.toString() || null
+  const [ageRange, setAgeRange] = useState<string | null>(
+    session.demographics?.ageRange || null
   );
   const [gender, setGender] = useState<string | null>(
     session.demographics?.gender || null
@@ -37,24 +37,24 @@ export function DemographicsScreen({
 
   // Save answers when they change
   useEffect(() => {
-    if (birthYear !== null) {
-      saveAnswer('onboarding_demographics_1_birth_year', birthYear);
+    if (ageRange !== null) {
+      saveAnswer('onboarding_demographics_1_age_range', ageRange);
       updateSessionData({
         demographics: {
           ...session.demographics,
-          birthYear: birthYear === 'prefer_not_to_say' ? null : parseInt(birthYear, 10),
+          ageRange,
           gender: session.demographics?.gender || null,
         },
       });
     }
-  }, [birthYear]);
+  }, [ageRange]);
 
   useEffect(() => {
     if (gender !== null) {
       saveAnswer('onboarding_demographics_2_gender', gender);
       updateSessionData({
         demographics: {
-          birthYear: session.demographics?.birthYear || null,
+          ageRange: session.demographics?.ageRange || null,
           ...session.demographics,
           gender,
         },
@@ -62,15 +62,15 @@ export function DemographicsScreen({
     }
   }, [gender]);
 
-  const handleBirthYearChange = (value: AnswerValue) => {
-    setBirthYear(value as string);
+  const handleAgeRangeChange = (value: AnswerValue) => {
+    setAgeRange(value as string);
   };
 
   const handleGenderChange = (value: AnswerValue) => {
     setGender(value as string);
   };
 
-  const canProceed = birthYear !== null && gender !== null;
+  const canProceed = ageRange !== null && gender !== null;
 
   return (
     <div className="space-y-8">
@@ -86,12 +86,12 @@ export function DemographicsScreen({
 
       {/* Questions */}
       <div className="space-y-8">
-        {/* Birth Year */}
+        {/* Age Range */}
         <div className="space-y-2">
           <QuestionRenderer
             question={demographicsQuestions[0]}
-            value={birthYear ?? undefined}
-            onChange={handleBirthYearChange}
+            value={ageRange ?? undefined}
+            onChange={handleAgeRangeChange}
           />
         </div>
 
