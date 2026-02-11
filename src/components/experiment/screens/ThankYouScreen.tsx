@@ -42,7 +42,8 @@ export function ThankYouScreen({
   }, [session, isCompleted, isCompleting, onComplete]);
 
   const handleProlificRedirect = () => {
-    window.location.href = PROLIFIC_CONFIG.COMPLETION_URL;
+    const redirectUrl = session ? PROLIFIC_CONFIG.COMPLETION_URL : PROLIFIC_CONFIG.CANCEL_URL;
+    window.location.href = redirectUrl;
   };
 
   return (

@@ -214,5 +214,6 @@ export const STORAGE_KEYS = {
 
 // Prolific configuration
 export const PROLIFIC_CONFIG = {
-  COMPLETION_URL: 'https://app.prolific.com/submissions/complete?cc=XXXXXXXX', // Replace XXXXXXXX with actual code
+  COMPLETION_URL: process.env.NEXT_PUBLIC_PROLIFIC_REDIRECT_URL || 'https://app.prolific.com/submissions',
+  CANCEL_URL: process.env.NEXT_PUBLIC_PROLIFIC_CANCEL_URL || 'https://app.prolific.com/submissions',
 };

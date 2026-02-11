@@ -72,10 +72,15 @@ LMS,interactive_graph,LMGR
    ```
 
 3. **Set up environment variables**
-   Create a `.env.local` file in the root directory:
+   Create a `.env.local` file in the root directory. Required variables include:
    ```env
-   NEXT_PUBLIC_CEREBRAS_MODEL=your_cerebras_model_id
+   DATABASE_URL='postgresql://...'
+   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=...
+   RECAPTCHA_SECRET_KEY=...
+   NEXT_PUBLIC_PROLIFIC_REDIRECT_URL="https://app.prolific.com/submissions/complete?cc=YOUR_COMPLETION_CODE"
+   NEXT_PUBLIC_PROLIFIC_CANCEL_URL="https://app.prolific.com/submissions/complete?cc=YOUR_RETURN_CODE"
    ```
+   See the project for additional keys (API keys, admin password, etc.).
 
 4. **Run the development server**
    ```bash
@@ -84,6 +89,53 @@ LMS,interactive_graph,LMGR
 
 5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
+
+## Running the experiment
+
+The app runs a multi-step experiment (~15–20 minutes) where participants interact with group recommendation scenarios and answer questions. Participants are assigned to one of 15 conditions (3 aggregation strategies × 5 explanation modalities) either randomly or via a `group` URL parameter.
+
+### Experiment flow
+
+1. **Welcome** — Informed consent, checkboxes, reCAPTCHA, "Start experiment" / "Cancel participation"
+2. **Demographics** — Optional age range and gender
+3. **Instructions** — Overview of the task
+4. **Training** — 3 scenarios to familiarize with the system
+5. **Preliminary understanding** — 7-point Likert scales
+6. **Objective test** — 6 scenarios with questions (model simulation, counterfactual, error detection)
+7. **Repeat understanding** — Same Likert scales as step 5
+8. **Debriefing** — Free-text explanation for the group
+9. **NASA-TLX** — Cognitive load assessment
+10. **Feedback** — Optional free-text feedback
+11. **Thank you** — Summary and "Return to Prolific" (or equivalent) button
+
+Participants who fail attention checks are routed to an **Attention fail** screen instead of continuing.
+
+### Prolific
+
+For participants recruited via [Prolific](https://www.prolific.com):
+
+1. **Study URL** — Set your study URL to your app’s base URL (e.g. `https://your-domain.com/`).
+2. **URL parameters** — Enable "I'll use URL parameters" so Prolific appends `PROLIFIC_PID`, `STUDY_ID`, and `SESSION_ID`.
+3. **Completion codes** — In Prolific’s Completion codes section, create:
+   - A **completion code** for successful finishes
+   - A **return/incomplete code** for withdrawals and failed attention checks
+4. **Environment variables** — Set in `.env.local`:
+   ```env
+   NEXT_PUBLIC_PROLIFIC_REDIRECT_URL="https://app.prolific.com/submissions/complete?cc=YOUR_COMPLETION_CODE"
+   NEXT_PUBLIC_PROLIFIC_CANCEL_URL="https://app.prolific.com/submissions/complete?cc=YOUR_RETURN_CODE"
+   ```
+
+On the Thank you screen, participants who completed the study are redirected to the completion URL; those who withdrew or failed attention checks are redirected to the cancel URL.
+
+**Optional:** Use a `group` query parameter (e.g. `?group=ADST`) to assign specific conditions. Valid codes are listed in `GROUP_CODES` in `src/lib/experiment-utils.ts`.
+
+### Non-Prolific
+
+For self-recruited or non-Prolific participants:
+
+1. Share the app URL without query parameters: `https://your-domain.com/`
+2. Sessions are created with no Prolific IDs; condition assignment is random and balanced.
+3. On the Thank you screen, the "Return to Prolific" button redirects to the configured URLs: completion URL for those who finished the study, cancel URL for those who withdrew before creating a session (e.g. on the Welcome screen). You can point these URLs to a custom landing page instead of Prolific if needed.
 
 ## 🎮 Usage
 
