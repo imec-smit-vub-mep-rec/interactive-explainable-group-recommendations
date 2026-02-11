@@ -82,6 +82,45 @@ const parseSuggestions = (
 
   cleanText = cleanText.replace(/<\/?suggestions\s*>/gi, "").trim();
 
+  // Backward/forward compatible fallback:
+  // if no explicit <suggestions> block exists, extract a trailing plain bullet block.
+  if (suggestions.length === 0) {
+    const lines = cleanText.split("\n");
+    let end = lines.length - 1;
+    while (end >= 0 && lines[end].trim().length === 0) {
+      end -= 1;
+    }
+
+    const collected: string[] = [];
+    let cursor = end;
+    while (cursor >= 0) {
+      const raw = lines[cursor].trim();
+      if (raw.length === 0) {
+        if (collected.length === 0) {
+          cursor -= 1;
+          continue;
+        }
+        break;
+      }
+      if (/^[-•*]\s+/.test(raw)) {
+        collected.push(raw.replace(/^[-•*]\s+/, "").trim());
+        cursor -= 1;
+        continue;
+      }
+      break;
+    }
+
+    // Treat exactly two trailing bullets as follow-up suggestions.
+    // This matches current assistant prompt rules and avoids false positives.
+    if (collected.length === 2) {
+      suggestions.push(...collected.reverse().filter((line) => line.length > 0));
+      cleanText = lines
+        .slice(0, cursor + 1)
+        .join("\n")
+        .trim();
+    }
+  }
+
   const excluded = excludedRestaurants.filter((name) => name.trim().length > 0);
   const filteredSuggestions =
     excluded.length === 0
