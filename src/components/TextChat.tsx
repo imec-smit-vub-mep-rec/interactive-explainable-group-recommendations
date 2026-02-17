@@ -44,6 +44,30 @@ interface TextChatProps {
   onChatLogEntry?: (entry: ChatLogEntry) => void;
 }
 
+// Max content length to avoid DB OOM (Neon has limited memory per request)
+const MAX_CONTENT_LENGTH = 32 * 1024; // 32KB - enough for explanations, prevents huge payloads
+
+// Build minimal metadata for logging - never include full tool results (ratings matrices, etc.)
+function sanitizeMetadata(
+  messageId: string | undefined,
+  toolCalls: string[],
+  toolResults: unknown[]
+): Record<string, unknown> {
+  const meta: Record<string, unknown> = {
+    ...(messageId && { messageId }),
+    ...(toolCalls.length > 0 && { toolCalls }),
+  };
+  if (toolResults.length > 0) {
+    meta.toolResultsSummary = toolResults.map((r) => {
+      if (r && typeof r === "object" && "success" in r) {
+        return { success: (r as { success?: boolean }).success, message: (r as { message?: string }).message };
+      }
+      return { success: false };
+    });
+  }
+  return meta;
+}
+
 // Starter suggestions for users
 const suggestions = [
   "Why was this restaurant recommended?",
@@ -156,15 +180,16 @@ export default function TextChatWithTools({
             return result;
           }) || [];
 
+        const truncatedContent =
+          responseText.length > MAX_CONTENT_LENGTH
+            ? responseText.slice(0, MAX_CONTENT_LENGTH) + "\n[...truncated]"
+            : responseText;
+
         onChatLogEntry?.({
           role: "assistant",
-          content: responseText,
+          content: truncatedContent,
           timestamp: new Date().toISOString(),
-          metadata: {
-            messageId: lastMessage.id,
-            ...(toolCalls.length > 0 && { toolCalls }),
-            ...(toolResults.length > 0 && { toolResults }),
-          },
+          metadata: sanitizeMetadata(lastMessage.id, toolCalls, toolResults),
         });
       }
     }
