@@ -1,6 +1,7 @@
 // import { google } from "@ai-sdk/google";
 import { cerebras } from "@ai-sdk/cerebras";
-import { generateObject, streamText, convertToModelMessages } from "ai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateObject, streamText, convertToModelMessages, tool, zodSchema } from "ai";
 import { z } from "zod";
 import {
   applyRatingUpdates,
@@ -12,6 +13,48 @@ import {
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+
+const LLM_PROVIDER = process.env.LLM_PROVIDER ?? "cerebras";
+const isCerebras = LLM_PROVIDER === "cerebras";
+const isRequesty = LLM_PROVIDER === "requesty";
+
+const scalewayProvider = createOpenAICompatible({
+  baseURL: "https://api.scaleway.ai/v1",
+  name: "scaleway",
+  apiKey: process.env.SCALEWAY_API_KEY,
+});
+
+const requestyProvider = createOpenAICompatible({
+  baseURL: process.env.REQUESTY_BASE_URL ?? "https://router.requesty.ai/v1",
+  name: "requesty",
+  apiKey: process.env.REQUESTY_API_KEY,
+});
+
+/** Models that use Harmony/reasoning-only format; they don't return text content for generateObject. */
+const REASONING_ONLY_MODELS = new Set(["gpt-oss-120b", "gpt-oss-20b"]);
+
+const getModel = (
+  modelId: string,
+  defaultOpenAICompatibleModel = "llama-3.1-8b-instruct",
+  options?: { forStructuredOutput?: boolean }
+) => {
+  if (isCerebras) {
+    return cerebras(modelId);
+  }
+  const provider = isRequesty ? requestyProvider : scalewayProvider;
+  const defaultModel =
+    isRequesty ? process.env.REQUESTY_MODEL ?? "openai/gpt-4o-mini" : defaultOpenAICompatibleModel;
+  let effectiveModel = modelId || defaultModel;
+  // gpt-oss-120b returns reasoning-only (Harmony format); generateObject needs text. Use a fallback.
+  if (
+    !isRequesty &&
+    options?.forStructuredOutput &&
+    REASONING_ONLY_MODELS.has(effectiveModel)
+  ) {
+    effectiveModel = defaultOpenAICompatibleModel;
+  }
+  return provider.chatModel(effectiveModel);
+};
 
 // Define the data structures
 const PersonSchema = z.object({
@@ -74,26 +117,6 @@ type CounterfactualIntentResult = {
   targetRestaurantName?: string;
   proposedUpdates?: ProposedUpdate[];
   claimed?: ProposedClaimed;
-};
-
-const quickIntentFromText = (text: string): CounterfactualIntentResult | null => {
-  const normalized = text.trim().toLowerCase();
-  if (!normalized) return null;
-
-  const isCounterfactual =
-    /\bhow to make\b|\bmake\b.*\bpreferred\b|\bmake\b.*\btop\b|\bchange\b.*\brecommendation\b|\bwhat if\b|\b(change|increase|decrease|raise|lower)\b.*\brating\b/.test(
-      normalized
-    );
-  if (!isCounterfactual) {
-    return { intent: "other" };
-  }
-
-  const wantsMinimality = /\bminimal\b|\bminimum\b|\bsmallest\b/.test(normalized);
-
-  return {
-    intent: "counterfactual",
-    wantsMinimality,
-  };
 };
 
 const buildFallbackUpdates = (input: {
@@ -239,6 +262,162 @@ const getRestaurantIndexByName = (
   restaurants.findIndex(
     (restaurant) => normalizeName(restaurant.name) === normalizeName(restaurantName)
   );
+
+const proposedUpdateSchema = z.object({
+  personName: z.string(),
+  restaurantName: z.string(),
+  newRating: z.number().int().min(1).max(5),
+});
+
+/**
+ * Builds tools for the chat.
+ * - get_restaurant_details: per-person ratings for a restaurant
+ * - verify_change: verifies if proposed rating changes would make a restaurant preferred and if claimed scores match
+ */
+const buildRestaurantTools = (ctx: RecommendationContext | null) => {
+  if (!ctx) return undefined;
+  return {
+    get_restaurant_details: tool({
+      description:
+        "Returns the exact per-person ratings and group score for a specific restaurant. Use this when the user asks for exact ratings, rating breakdown, individual ratings, or per-person scores for a restaurant.",
+      inputSchema: zodSchema(
+        z.object({
+          restaurantName: z
+            .string()
+            .describe("The name of the restaurant (e.g. Rest 1, Rest 2)"),
+        })
+      ),
+      execute: async (input: { restaurantName: string }) => {
+        try {
+          const { restaurantName } = input;
+          console.log("🧰 Tool called: get_restaurant_details", {
+            restaurantName,
+            timestamp: new Date().toISOString(),
+          });
+          const idx = getRestaurantIndexByName(ctx.restaurants, restaurantName);
+          console.log("🧰 Tool result: get_restaurant_details", {
+            idx,
+          });
+          if (idx === -1) {
+            return {
+              found: false,
+              message: `Restaurant "${restaurantName}" not found.`,
+            };
+          }
+          const ratingsPerPerson = ctx.people.map((p, i) => ({
+            personName: p.name,
+            rating: ctx.ratings[i]?.[idx],
+          }));
+          const groupScore = ctx.groupScores[idx];
+          console.log("🧰 Tool result: get_restaurant_details", {
+            restaurantName,
+            ratingsPerPerson,
+            groupScore,
+          });
+          return {
+            found: true,
+            restaurantName: ctx.restaurants[idx].name,
+            visited: ctx.restaurants[idx].visited,
+            ratingsPerPerson,
+            groupScore,
+          };
+        } catch (err) {
+          console.error("🧰 Tool error: get_restaurant_details", err);
+          return {
+            found: false,
+            message: `Error: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+      },
+    }),
+    verify_change: tool({
+      description:
+        "Verifies whether proposed rating changes would make a restaurant preferred. Use this when you or the user propose specific rating changes (e.g. 'Change Alex's rating for Rest 1 to 5') and you need to verify: (1) if applying those changes would make the target restaurant preferred, (2) whether it becomes solely preferred or tied with others (computedWinners: one = sole, multiple = tie), and (3) if any claimed resulting score or winners would match the actual computed result. Always call this before stating that a proposed change would achieve a certain outcome.",
+      inputSchema: zodSchema(
+        z.object({
+          targetRestaurantName: z
+            .string()
+            .describe(
+              "The restaurant that should become preferred after the changes"
+            ),
+          proposedUpdates: z
+            .array(proposedUpdateSchema)
+            .describe(
+              "The rating changes to apply: personName, restaurantName, newRating (1-5)"
+            ),
+          claimedWinners: z
+            .array(z.string())
+            .optional()
+            .describe(
+              "If you claimed specific winner restaurant(s) after the change, list them here for verification"
+            ),
+          claimedTargetScore: z
+            .number()
+            .optional()
+            .describe(
+              "If you claimed the target restaurant would have a specific group score, provide it here for verification"
+            ),
+        })
+      ),
+      execute: async (input: {
+        targetRestaurantName: string;
+        proposedUpdates: Array<{
+          personName: string;
+          restaurantName: string;
+          newRating: number;
+        }>;
+        claimedWinners?: string[];
+        claimedTargetScore?: number;
+      }) => {
+        try {
+          const {
+            targetRestaurantName,
+            proposedUpdates,
+            claimedWinners,
+            claimedTargetScore,
+          } = input;
+          console.log("🧰 Tool called: verify_change", {
+            targetRestaurantName,
+            proposedUpdatesCount: proposedUpdates.length,
+            claimedWinners,
+            claimedTargetScore,
+            timestamp: new Date().toISOString(),
+          });
+          const result = verifyMinimalChangeInternal({
+            context: ctx,
+            targetRestaurantName,
+            proposedUpdates,
+            claimed:
+              claimedWinners !== undefined || claimedTargetScore !== undefined
+                ? { winners: claimedWinners, targetScore: claimedTargetScore }
+                : undefined,
+            search: DEFAULT_SEARCH_LIMITS,
+            mode: "verify_only",
+          });
+          const v = result.verification;
+          const c = v.computed;
+          return {
+            success: result.success,
+            message: result.message,
+            preferred: v.checks.preferred,
+            computedWinners: c?.winners,
+            computedTargetScore: c?.targetScore,
+            comparisonToTop: c?.comparisonToTop,
+            matchesClaimedScore: v.checks.matchesClaimedScore,
+            matchesClaimedWinners: v.checks.matchesClaimedWinners,
+            proposedChanges: c?.appliedUpdates,
+          };
+        } catch (err) {
+          console.error("🧰 Tool error: verify_change", err);
+          return {
+            success: false,
+            message: `Verification error: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+      },
+    }),
+  };
+};
 
 const compareCost = (a: VerificationCost, b: VerificationCost) => {
   if (a.l1 !== b.l1) return a.l1 - b.l1;
@@ -783,10 +962,17 @@ const verifyMinimalChangeInternal = (input: {
       ? preferred && minimality.proven && minimality.isMinimal && claimedOk
       : preferred && claimedOk;
 
+  const otherWinners = winnerNames.filter(
+    (n) => normalizeName(n) !== normalizeName(targetRestaurantName)
+  );
+  const soleOrTie =
+    otherWinners.length === 0
+      ? "solely preferred"
+      : `preferred, tied with ${otherWinners.join(", ")}`;
   const message = ok
     ? mode === "prove_minimal"
-      ? `Verified: proposed change makes ${targetRestaurantName} preferred and is minimal.`
-      : `Verified: proposed change makes ${targetRestaurantName} preferred. (Minimality not checked.)`
+      ? `The proposed change makes ${targetRestaurantName} ${soleOrTie} and is minimal.`
+      : `The proposed change makes ${targetRestaurantName} ${soleOrTie}.`
     : !preferred
     ? `Verification failed: proposed change does not make ${targetRestaurantName} preferred.`
     : mode === "prove_minimal" && minimality.proven && !minimality.isMinimal
@@ -806,6 +992,12 @@ const verifyMinimalChangeInternal = (input: {
         baselineTopScore,
         baselineWinners,
         comparisonToTop,
+        appliedUpdates: appliedUpdates.map((u) => ({
+          personName: u.personName,
+          restaurantName: u.restaurantName,
+          oldRating: u.oldRating,
+          newRating: u.newRating,
+        })),
         groupScoresByRestaurant: computeGroupScoresByRestaurant(
           context.restaurants,
           updatedGroupScores
@@ -864,14 +1056,16 @@ Output style:
 Recommendation explanations:
 - Include rank and score when relevant.
 - Give a short strategy-specific explanation:
-  * LMS: "The lowest rating is X"
-  * ADD: "The total rating is X"
-  * APP: "X users gave a score of 4 or more"
+  * Least Misery Strategy (LMS): "The score is X, because the lowest rating (given by {person(s) name(s)}) is X. All the other restaurants have at least one rating lower than X."
+  * Additive Strategy (ADD): "The total rating is X"
+  * Approval Voting Strategy (APP): "X users gave a score of 4 or more"
+- Mention the strategy name in full (e.g. "Least Misery Strategy" instead of "LMS")
+- Do not mention the abbreviated strategy name (e.g. "LMS" instead of "Least Misery")
 
 Counterfactual guidance:
 - Treat all suggested rating changes as hypothetical simulations only.
 - Do not imply any persistent write/update was performed in the real dataset.
-- For "how to make X preferred", suggest concrete changes and describe their verified effect.
+- For "how to make X preferred" or "what would need to happen to make X preferred", always propose concrete changes yourself. Never ask the user to specify which ratings to change—you must propose valid changes and verify them.
 - Only discuss minimality when explicitly requested (minimal/minimum/smallest).
 
 Verification rules:
@@ -879,6 +1073,11 @@ Verification rules:
 - Do not state numeric scores unless they appear in verification output.
 - If verification fails, state that it could not be verified.
 - Only claim minimality when verification explicitly proves it.
+- Never say "Verified" or "the answer is verified" in your response. Present only the factual answer (the proposed changes and their effect). Do not add verification labels or meta-statements.
+
+Tools:
+- get_restaurant_details: Use when the user asks for exact ratings, per-person ratings, rating breakdown, or individual scores for a specific restaurant.
+- verify_change: Use when you or the user propose specific rating changes (e.g. "Change Alex's rating for Rest 1 to 5") and you need to verify whether those changes would make the target restaurant preferred. Always call verify_change before stating that a proposed change would achieve a certain outcome. If you claim a resulting score or set of winners, pass claimedTargetScore and/or claimedWinners so the tool can verify they match the computed result. When reporting the result, always state whether the restaurant becomes solely preferred or tied with others (use computedWinners: one winner = sole, multiple = tie).
 
 Response ending:
 - End with one short follow-up question.
@@ -969,13 +1168,13 @@ Return ONLY valid JSON that matches this schema:
 }
 
 Classification rules:
-- intent = "counterfactual" if the user asks about hypothetical rating changes, \"what if\" scenarios, or how to make a restaurant preferred/top.
+- intent = "counterfactual" if the user asks about hypothetical rating changes, \"what if\" scenarios, \"what would need to happen\", or how to make a restaurant preferred/top.
 - intent = "other" otherwise.
 - wantsMinimality = true ONLY if the user explicitly asks for minimal/minimum/smallest change.
 - Return JSON only, with no markdown and no reasoning text.
 
 If intent = "counterfactual":
-- Provide targetRestaurantName and proposedUpdates that would make the target preferred.
+- Provide targetRestaurantName (extract from the query, e.g. \"Rest 1\" from \"make rest 1 preferred\") and proposedUpdates that would make the target preferred.
 - Keep changes small when possible (few edits, small deltas) but correctness is required.
 - Use exact person and restaurant names from the context.
 - Only update restaurants that have NOT been visited.
@@ -1002,7 +1201,6 @@ Group scores: ${currentContext?.groupScores
 
   const lastMessage = messages[messages.length - 1] ?? {};
   const lastUserText = extractMessageText(lastMessage);
-  const quickIntent = quickIntentFromText(lastUserText);
   const intentSchema: z.ZodType<CounterfactualIntentResult> = z.object({
     intent: z.enum(["counterfactual", "other"]),
     wantsMinimality: z.boolean().optional(),
@@ -1024,46 +1222,70 @@ Group scores: ${currentContext?.groupScores
       .optional(),
   });
 
-  let intentData: CounterfactualIntentResult;
-  if (quickIntent) {
-    intentData = quickIntent;
-    console.log("⏱ intent_debug:", {
-      source: "quick",
-      intent: intentData.intent,
-      wantsMinimality: intentData.wantsMinimality,
-    });
-  } else {
-    const intentStart = Date.now();
-    const intentModel = process.env.INTENT_LLM || "";
-    const intentSystem = `${intentPrompt}\n\nUser message:\n${lastUserText}`;
-    const intentMessages = convertToModelMessages(messages);
-    console.log("⏱ intent_debug:", {
-      source: "llm",
-      model: intentModel,
-      messagesCount: intentMessages.length,
-      systemChars: intentSystem.length,
-      userChars: lastUserText.length,
-      hasContext: !!currentContext,
-    });
-    const intentResult = await generateObject({
-      model: cerebras(intentModel),
-      messages: intentMessages,
-      system: intentSystem,
-      schema: intentSchema,
-    });
-    console.log("⏱ intent_classification_ms:", Date.now() - intentStart);
-    intentData = intentResult.object;
-  }
+  const intentStart = Date.now();
+  const intentModel = process.env.INTENT_LLM || "";
+  const intentSystem = `${intentPrompt}\n\nUser message:\n${lastUserText}`;
+  const intentMessages = convertToModelMessages(messages);
+  console.log("⏱ intent_debug:", {
+    source: "llm",
+    model: intentModel,
+    messagesCount: intentMessages.length,
+    systemChars: intentSystem.length,
+    userChars: lastUserText.length,
+    hasContext: !!currentContext,
+  });
+  const intentResult = await generateObject({
+    model: getModel(intentModel, "llama-3.1-8b-instruct", { forStructuredOutput: true }),
+    messages: intentMessages,
+    system: intentSystem,
+    schema: intentSchema,
+  });
+  console.log("⏱ intent_classification_ms:", Date.now() - intentStart);
+  console.log("📊 intent_tokens:", {
+    inputTokens: intentResult.usage?.inputTokens,
+    outputTokens: intentResult.usage?.outputTokens,
+    totalTokens: intentResult.usage?.totalTokens,
+  });
+  const intentData = intentResult.object;
   const isCounterfactual = intentData.intent === "counterfactual";
   const wantMinimalityProof = intentData.wantsMinimality === true;
+
+  const restaurantTools = buildRestaurantTools(currentContext);
+  const logTokenUsage = (
+    source: string,
+    usage:
+      | {
+          promptTokens?: number;
+          completionTokens?: number;
+          inputTokens?: number;
+          outputTokens?: number;
+          totalTokens?: number;
+        }
+      | undefined
+  ) => {
+    if (usage) {
+      const input = usage.inputTokens ?? usage.promptTokens;
+      const output = usage.outputTokens ?? usage.completionTokens;
+      console.log(`📊 tokens (${source}):`, {
+        inputTokens: input,
+        outputTokens: output,
+        totalTokens: usage.totalTokens ?? (input != null && output != null ? input + output : undefined),
+      });
+    }
+  };
 
   if (isCounterfactual && currentContext && !intentData.targetRestaurantName) {
     const clarificationBlock =
       "\n\nIMPORTANT: The user asked a counterfactual question, but the target restaurant or change is unclear. Ask them to specify which restaurant should be preferred and which ratings to adjust.";
     const result = streamText({
-      model: cerebras(process.env.THINKING_LLM || ""),
+      model: getModel(process.env.THINKING_LLM || ""),
       messages: convertToModelMessages(messages),
       system: `${systemPrompt}${clarificationBlock}`,
+      ...(restaurantTools && { tools: restaurantTools, maxSteps: 5 }),
+      onFinish: ({ totalUsage }) => {
+        console.log("⏱ response_stream_end_iso:", new Date().toISOString());
+        logTokenUsage("clarification", totalUsage);
+      },
     });
     return result.toUIMessageStreamResponse();
   }
@@ -1139,14 +1361,19 @@ Group scores: ${currentContext?.groupScores
       effectiveVerification.verification,
       null,
       2
-    )}\n\nFINAL ANSWER RULES:\n- Base definitive counterfactual claims only on verification.ok = true.\n- Treat changes as hypothetical simulations; do not claim persistent data updates.\n- Do not output chain-of-thought/reasoning tags or XML-like wrappers.\n- Do not state numeric scores unless they appear in VERIFICATION_RESULT_JSON.\n- If verification.mode is \"verify_only\", do NOT discuss minimality.\n- Explicitly state whether the verified change is BETTER or EQUALLY AS GOOD (tie) using verification.computed.comparisonToTop.\n- Keep follow-up suggestions within the currently fixed strategy only; do not suggest switching/comparing strategies.\n- Follow-up suggestions must only use: \"How to make rest X preferred?\", \"Why is rest X not recommended?\", or \"What is the recommended restaurant order?\" (replace X with a concrete restaurant in context).\n- If verification.ok is false, say it could not be verified and avoid definitive claims.`;
+    )}\n\nFINAL ANSWER RULES:\n- Base definitive counterfactual claims only on verification.ok = true.\n- Treat changes as hypothetical simulations; do not claim persistent data updates.\n- Present the proposed changes from verification.computed.appliedUpdates. Never ask the user to specify which ratings to change—you must propose and state the changes.\n- Do not output chain-of-thought/reasoning tags or XML-like wrappers.\n- Do not state numeric scores unless they appear in VERIFICATION_RESULT_JSON.\n- If verification.mode is \"verify_only\", do NOT discuss minimality.\n- Explicitly state whether the change makes the restaurant solely preferred or tied with others, using verification.computed.winners (one winner = sole, multiple = tie).\n- Never say \"Verified\" or \"the answer is verified\". Present only the factual answer (the proposed changes and their effect).\n- Keep follow-up suggestions within the currently fixed strategy only; do not suggest switching/comparing strategies.\n- Follow-up suggestions must only use: \"How to make rest X preferred?\", \"Why is rest X not recommended?\", or \"What is the recommended restaurant order?\" (replace X with a concrete restaurant in context).\n- If verification.ok is false, say it could not be verified and avoid definitive claims.`;
 
     const result = streamText({
-      model: cerebras(process.env.THINKING_LLM || ""),
+      model: getModel(process.env.THINKING_LLM || ""),
       messages: convertToModelMessages(messages),
       system: `${systemPrompt}${verificationBlock}`,
-      onFinish: () => {
+      ...(restaurantTools && { tools: restaurantTools, maxSteps: 5 }),
+      onFinish: ({ totalUsage, toolCalls }) => {
         console.log("⏱ response_stream_end_iso:", new Date().toISOString());
+        logTokenUsage("counterfactual", totalUsage);
+        if (toolCalls && toolCalls.length > 0) {
+          console.log("🧰 Tool calls in response:", toolCalls.map((tc) => tc.toolName));
+        }
       },
     });
     console.log("⏱ counterfactual_total_ms:", Date.now() - requestStart);
@@ -1155,11 +1382,16 @@ Group scores: ${currentContext?.groupScores
   }
 
   const result = streamText({
-    model: cerebras(process.env.THINKING_LLM || ""), //google("gemini-2.5-flash"),
+    model: getModel(process.env.THINKING_LLM || ""), //google("gemini-2.5-flash"),
     messages: convertToModelMessages(messages),
     system: systemPrompt,
-    onFinish: () => {
+    ...(restaurantTools && { tools: restaurantTools, maxSteps: 5 }),
+    onFinish: ({ totalUsage, toolCalls }) => {
       console.log("⏱ response_stream_end_iso:", new Date().toISOString());
+      logTokenUsage("default", totalUsage);
+      if (toolCalls && toolCalls.length > 0) {
+        console.log("🧰 Tool calls in response:", toolCalls.map((tc) => tc.toolName));
+      }
     },
   });
   console.log("⏱ request_total_ms:", Date.now() - requestStart);

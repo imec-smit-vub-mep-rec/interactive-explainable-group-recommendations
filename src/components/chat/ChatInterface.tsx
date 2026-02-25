@@ -84,6 +84,8 @@ const parseSuggestions = (
 
   // Backward/forward compatible fallback:
   // if no explicit <suggestions> block exists, extract a trailing plain bullet block.
+  // When the first suggestion lacks a bullet ("Why is Rest X not recommended?"), include it too.
+  const firstSuggestionOnlyPattern = /^Why is Rest \d+ not recommended\?$/i;
   if (suggestions.length === 0) {
     const lines = cleanText.split("\n");
     let end = lines.length - 1;
@@ -93,6 +95,7 @@ const parseSuggestions = (
 
     const collected: string[] = [];
     let cursor = end;
+    let stoppedAtLine: string | null = null;
     while (cursor >= 0) {
       const raw = lines[cursor].trim();
       if (raw.length === 0) {
@@ -107,17 +110,25 @@ const parseSuggestions = (
         cursor -= 1;
         continue;
       }
+      stoppedAtLine = raw;
       break;
     }
 
-    // Treat exactly two trailing bullets as follow-up suggestions.
-    // This matches current assistant prompt rules and avoids false positives.
+    // Only add stoppedAtLine when it's "Why is Rest X not recommended?" (first suggestion without bullet).
+    // Do NOT add "How to make Rest X preferred?" - that's the follow-up question, not a suggestion.
+    if (
+      stoppedAtLine &&
+      firstSuggestionOnlyPattern.test(stoppedAtLine) &&
+      collected.length === 1
+    ) {
+      collected.push(stoppedAtLine);
+      cursor -= 1;
+    }
+
+    // Treat exactly two trailing bullets as follow-up suggestions (or one bullet + the pattern-matched line).
     if (collected.length === 2) {
       suggestions.push(...collected.reverse().filter((line) => line.length > 0));
-      cleanText = lines
-        .slice(0, cursor + 1)
-        .join("\n")
-        .trim();
+      cleanText = lines.slice(0, cursor + 1).join("\n").trim();
     }
   }
 
@@ -126,10 +137,10 @@ const parseSuggestions = (
     excluded.length === 0
       ? suggestions
       : suggestions.filter((suggestion) => {
-          return !excluded.some((name) =>
-            containsRestaurantName(suggestion, name)
-          );
-        });
+        return !excluded.some((name) =>
+          containsRestaurantName(suggestion, name)
+        );
+      });
 
   return { cleanText, suggestions: filteredSuggestions };
 };
@@ -157,10 +168,10 @@ export const ChatInterface = ({
     excludedPresets.length === 0
       ? suggestions
       : suggestions.filter((suggestion) => {
-          return !excludedPresets.some((name) =>
-            containsRestaurantName(suggestion, name)
-          );
-        });
+        return !excludedPresets.some((name) =>
+          containsRestaurantName(suggestion, name)
+        );
+      });
 
   return (
     <>
@@ -193,93 +204,106 @@ export const ChatInterface = ({
               const isAssistant = message.role === "assistant";
               return (
                 <Message key={message.id} from={message.role}>
-                <MessageAvatar
-                  src={
-                    message.role === "user"
-                      ? "/user-avatar.png"
-                      : "/assistant-avatar.png"
-                  }
-                  name={message.role === "user" ? "U" : "A"}
-                />
-                <MessageContent>
-                  {message.parts?.map((part, i: number) => {
-                    if (part.type === "text") {
-                      const textContent =
-                        typeof part.text === "string"
-                          ? part.text
-                          : String(part.text || "");
-                      if (!isAssistant) {
+                  <MessageAvatar
+                    src={
+                      message.role === "user"
+                        ? "/user-avatar.png"
+                        : "/assistant-avatar.png"
+                    }
+                    name={message.role === "user" ? "U" : "A"}
+                  />
+                  <MessageContent>
+                    {message.parts?.map((part, i: number) => {
+                      if (part.type === "text") {
+                        const textContent =
+                          typeof part.text === "string"
+                            ? part.text
+                            : String(part.text || "");
+                        if (!isAssistant) {
+                          return (
+                            <div key={i}>
+                              <Response>{textContent}</Response>
+                            </div>
+                          );
+                        }
+                        const { cleanText, suggestions } = parseSuggestions(
+                          textContent,
+                          excludedSuggestionRestaurants
+                        );
                         return (
                           <div key={i}>
-                            <Response>{textContent}</Response>
+                            <Response>{cleanText}</Response>
+                            {suggestions.length > 0 && (
+                              <div className="mt-3">
+                                <Suggestions>
+                                  {suggestions.map((suggestion, idx) => (
+                                    <Suggestion
+                                      key={idx}
+                                      suggestion={suggestion}
+                                      onClick={onSuggestionClick}
+                                    />
+                                  ))}
+                                </Suggestions>
+                              </div>
+                            )}
                           </div>
                         );
                       }
-                      const { cleanText, suggestions } = parseSuggestions(
-                        textContent,
-                        excludedSuggestionRestaurants
-                      );
-                      return (
-                        <div key={i}>
-                          <Response>{cleanText}</Response>
-                          {suggestions.length > 0 && (
-                            <div className="mt-3">
-                              <Suggestions>
-                                {suggestions.map((suggestion, idx) => (
-                                  <Suggestion
-                                    key={idx}
-                                    suggestion={suggestion}
-                                    onClick={onSuggestionClick}
-                                  />
-                                ))}
-                              </Suggestions>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-                    if (part.type === "tool-call" && isAssistant) {
-                      return (
-                        <div
-                          key={i}
-                          className="text-sm text-blue-700 bg-blue-50 p-2 rounded border border-blue-200 inline-flex items-center gap-2"
-                        >
-                          <Wrench
-                            className="w-4 h-4 text-blue-700"
-                            aria-hidden="true"
-                          />
-                          <span>
-                            Calling tool:{" "}
-                            {"toolName" in part
-                              ? String(part.toolName)
-                              : "unknown"}
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-blue-600">
-                            <Loader className="text-blue-600" size={14} />
-                            Verifying...
-                          </span>
-                        </div>
-                      );
-                    }
-                    if (
-                      (part.type === "tool-result" && isAssistant) ||
-                      (typeof part.type === "string" &&
-                        part.type.startsWith("tool-") &&
-                        part.type !== "tool-call" &&
-                        isAssistant)
-                    ) {
-                      const result = (
-                        "result" in part
-                          ? part.result
-                          : "output" in part
-                          ? part.output
-                          : "data" in part
-                          ? part.data
-                          : part
-                      ) as
-                        | {
+                      if (part.type === "tool-call" && isAssistant) {
+                        return (
+                          <div
+                            key={i}
+                            className="text-sm text-blue-700 bg-blue-50 p-2 rounded border border-blue-200 inline-flex items-center gap-2"
+                          >
+                            <Wrench
+                              className="w-4 h-4 text-blue-700"
+                              aria-hidden="true"
+                            />
+                            <span>
+                              Calling tool:{" "}
+                              {"toolName" in part
+                                ? String(part.toolName)
+                                : "unknown"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-blue-600">
+                              <Loader className="text-blue-600" size={14} />
+                              Verifying...
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (
+                        (part.type === "tool-result" && isAssistant) ||
+                        (typeof part.type === "string" &&
+                          part.type.startsWith("tool-") &&
+                          part.type !== "tool-call" &&
+                          isAssistant)
+                      ) {
+                        const result = (
+                          "result" in part
+                            ? part.result
+                            : "output" in part
+                              ? part.output
+                              : "data" in part
+                                ? part.data
+                                : part
+                        ) as
+                          | {
                             success?: boolean;
                             message?: string;
+                            found?: boolean;
+                            restaurantName?: string;
+                            ratingsPerPerson?: Array<{
+                              personName: string;
+                              rating: number;
+                            }>;
+                            groupScore?: number;
+                            proposedChanges?: Array<{
+                              personName: string;
+                              restaurantName: string;
+                              oldRating: number;
+                              newRating: number;
+                            }>;
                             updatedData?: {
                               newRecommendedRestaurantIndices?: string[];
                               updates?: Array<{
@@ -308,131 +332,172 @@ export const ChatInterface = ({
                               };
                             };
                           }
-                        | null;
+                          | null;
 
-                      if (!result) {
-                        return null;
-                      }
+                        if (!result) {
+                          return null;
+                        }
 
-                      return (
-                        <div key={i} className="text-sm text-gray-600">
-                          {result.success ? (
-                            <div className="text-green-600 bg-green-50 p-3 rounded border border-green-200">
-                              <div className="flex items-center mb-2">
-                                <CheckCircle2
-                                  className="w-4 h-4 text-green-700 mr-2"
+                        return (
+                          <div key={i} className="text-sm text-gray-600">
+                            {result.success ? (
+                              <div className="text-green-600 bg-green-50 p-3 rounded border border-green-200">
+                                <div className="flex items-center mb-2">
+                                  <strong>{result.message || "Success"}</strong>
+                                </div>
+                                {result.proposedChanges &&
+                                  result.proposedChanges.length > 0 && (
+                                    <div className="text-sm mb-3">
+                                      <p className="font-medium mb-1">
+                                        Proposed change:
+                                      </p>
+                                      <ul className="list-disc list-inside ml-2 space-y-1">
+                                        {result.proposedChanges.map(
+                                          (update, index) => (
+                                            <li key={index}>
+                                              {update.personName}&apos;s rating
+                                              for {update.restaurantName}:{" "}
+                                              {update.oldRating} →{" "}
+                                              {update.newRating}
+                                            </li>
+                                          )
+                                        )}
+                                      </ul>
+                                    </div>
+                                  )}
+                                {result.updatedData && (
+                                  <div className="text-sm">
+                                    <p className="mb-2">
+                                      New recommended restaurants:{" "}
+                                      {(
+                                        result.updatedData
+                                          .newRecommendedRestaurantIndices || []
+                                      ).join(", ")}
+                                    </p>
+                                    {result.updatedData.updates &&
+                                      result.updatedData.updates.length > 1 && (
+                                        <div>
+                                          <p className="font-medium mb-1">
+                                            Updated ratings:
+                                          </p>
+                                          <ul className="list-disc list-inside ml-2 space-y-1">
+                                            {result.updatedData.updates.map(
+                                              (update, index) => (
+                                                <li key={index}>
+                                                  {update.personName}&apos;s
+                                                  rating for{" "}
+                                                  {update.restaurantName}:{" "}
+                                                  {update.oldRating} →{" "}
+                                                  {update.newRating}
+                                                </li>
+                                              )
+                                            )}
+                                          </ul>
+                                        </div>
+                                      )}
+                                  </div>
+                                )}
+                                {result.verification && (
+                                  <div className="text-sm mt-3">
+                                    {!result.verification.ok && (
+                                      <p className="mb-1 text-amber-700">
+                                        Could not be verified
+                                      </p>
+                                    )}
+                                    {result.verification.computed?.winners && (
+                                      <p className="mb-1">
+                                        Winners:{" "}
+                                        {result.verification.computed.winners.join(
+                                          ", "
+                                        )}
+                                      </p>
+                                    )}
+                                    {typeof result.verification.computed
+                                      ?.targetScore === "number" && (
+                                        <p className="mb-1">
+                                          Target score:{" "}
+                                          {result.verification.computed.targetScore}
+                                        </p>
+                                      )}
+                                    {result.verification.minimality && (
+                                      <p className="mb-1">
+                                        Minimality:{" "}
+                                        {result.verification.minimality.proven
+                                          ? result.verification.minimality
+                                            .isMinimal
+                                            ? "proven"
+                                            : "not minimal"
+                                          : "not proven"}
+                                      </p>
+                                    )}
+                                    {result.verification.minimality?.counterexample
+                                      ?.updates &&
+                                      result.verification.minimality
+                                        .counterexample.updates.length > 0 && (
+                                        <div>
+                                          <p className="font-medium mb-1">
+                                            Smaller change found:
+                                          </p>
+                                          <ul className="list-disc list-inside ml-2 space-y-1">
+                                            {result.verification.minimality.counterexample.updates.map(
+                                              (update, index) => (
+                                                <li key={index}>
+                                                  {update.personName}&apos;s
+                                                  rating for{" "}
+                                                  {update.restaurantName} →{" "}
+                                                  {update.newRating}
+                                                </li>
+                                              )
+                                            )}
+                                          </ul>
+                                        </div>
+                                      )}
+                                  </div>
+                                )}
+                              </div>
+                            ) : result.found === true &&
+                              Array.isArray(result.ratingsPerPerson) ? (
+                              <div className="text-gray-700 bg-gray-50 p-3 rounded border border-gray-200">
+                                <div className="flex items-center mb-2">
+
+                                  <strong>
+                                    {result.restaurantName || "Restaurant"} scores
+                                  </strong>
+                                </div>
+                                <div className="text-sm space-y-1">
+                                  {result.ratingsPerPerson.map((p, idx) => (
+                                    <p key={idx}>
+                                      {p.personName}: {p.rating}
+                                    </p>
+                                  ))}
+                                  {typeof result.groupScore === "number" && (
+                                    <p className="font-medium mt-2 pt-2 border-t border-gray-200">
+                                      Group score: {result.groupScore}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ) : result.found === false && result.message ? (
+                              <div className="text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                                <span>{result.message}</span>
+                              </div>
+                            ) : (
+                              <div className="text-red-700 bg-red-50 p-2 rounded border border-red-200 inline-flex items-start gap-2">
+                                <XCircle
+                                  className="w-4 h-4 text-red-700 mt-0.5"
                                   aria-hidden="true"
                                 />
-                                <strong>{result.message || "Success"}</strong>
+                                <span>
+                                  Tool error: {result.message || "Unknown error"}
+                                </span>
                               </div>
-                              {result.updatedData && (
-                                <div className="text-sm">
-                                  <p className="mb-2">
-                                    New recommended restaurants:{" "}
-                                    {(
-                                      result.updatedData
-                                        .newRecommendedRestaurantIndices || []
-                                    ).join(", ")}
-                                  </p>
-                                  {result.updatedData.updates &&
-                                    result.updatedData.updates.length > 1 && (
-                                      <div>
-                                        <p className="font-medium mb-1">
-                                          Updated ratings:
-                                        </p>
-                                        <ul className="list-disc list-inside ml-2 space-y-1">
-                                          {result.updatedData.updates.map(
-                                            (update, index) => (
-                                              <li key={index}>
-                                                {update.personName}&apos;s
-                                                rating for{" "}
-                                                {update.restaurantName}:{" "}
-                                                {update.oldRating} →{" "}
-                                                {update.newRating}
-                                              </li>
-                                            )
-                                          )}
-                                        </ul>
-                                      </div>
-                                    )}
-                                </div>
-                              )}
-                              {result.verification && (
-                                <div className="text-sm mt-3">
-                                  <p className="mb-1">
-                                    Verification:{" "}
-                                    {result.verification.ok
-                                      ? "verified"
-                                      : "not verified"}
-                                  </p>
-                                  {result.verification.computed?.winners && (
-                                    <p className="mb-1">
-                                      Winners:{" "}
-                                      {result.verification.computed.winners.join(
-                                        ", "
-                                      )}
-                                    </p>
-                                  )}
-                                  {typeof result.verification.computed
-                                    ?.targetScore === "number" && (
-                                    <p className="mb-1">
-                                      Target score:{" "}
-                                      {result.verification.computed.targetScore}
-                                    </p>
-                                  )}
-                                  {result.verification.minimality && (
-                                    <p className="mb-1">
-                                      Minimality:{" "}
-                                      {result.verification.minimality.proven
-                                        ? result.verification.minimality
-                                            .isMinimal
-                                          ? "proven"
-                                          : "not minimal"
-                                        : "not proven"}
-                                    </p>
-                                  )}
-                                  {result.verification.minimality?.counterexample
-                                    ?.updates &&
-                                    result.verification.minimality
-                                      .counterexample.updates.length > 0 && (
-                                      <div>
-                                        <p className="font-medium mb-1">
-                                          Smaller change found:
-                                        </p>
-                                        <ul className="list-disc list-inside ml-2 space-y-1">
-                                          {result.verification.minimality.counterexample.updates.map(
-                                            (update, index) => (
-                                              <li key={index}>
-                                                {update.personName}&apos;s
-                                                rating for{" "}
-                                                {update.restaurantName} →{" "}
-                                                {update.newRating}
-                                              </li>
-                                            )
-                                          )}
-                                        </ul>
-                                      </div>
-                                    )}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="text-red-700 bg-red-50 p-2 rounded border border-red-200 inline-flex items-start gap-2">
-                              <XCircle
-                                className="w-4 h-4 text-red-700 mt-0.5"
-                                aria-hidden="true"
-                              />
-                              <span>
-                                Tool error: {result.message || "Unknown error"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </MessageContent>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </MessageContent>
                 </Message>
               );
             })

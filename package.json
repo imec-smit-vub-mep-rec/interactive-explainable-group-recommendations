@@ -12,6 +12,7 @@
   "dependencies": {
     "@ai-sdk/cerebras": "^1.0.21",
     "@ai-sdk/google": "^2.0.16",
+    "@ai-sdk/openai-compatible": "^1.0.19",
     "@ai-sdk/react": "^2.0.52",
     "@neondatabase/serverless": "^1.0.2",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -40,6 +41,7 @@
     "nanoid": "^5.1.6",
     "next": "15.5.9",
     "nextstepjs": "^2.2.0",
+    "openai": "^6.22.0",
     "radix-ui": "^1.4.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",

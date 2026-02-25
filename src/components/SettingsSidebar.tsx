@@ -391,7 +391,7 @@ export default function SettingsSidebar({
                   />
                   <div>
                     <span className="font-medium text-gray-900">
-                      Fade non-contributing users
+                      Fade non-contributing ratings
                     </span>
                     <p className="text-sm text-gray-600">
                       Reduce opacity of bars that don&apos;t contribute to the group

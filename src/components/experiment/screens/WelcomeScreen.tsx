@@ -15,7 +15,7 @@ interface WelcomeScreenProps {
   recordInteraction: (type: InteractionEvent['type'], data: Record<string, unknown>) => void;
   isLoading: boolean;
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
   onCancelParticipation?: () => void;
   onCreateSession?: (recaptchaToken?: string) => Promise<SessionData | null>;
   hasSession?: boolean;

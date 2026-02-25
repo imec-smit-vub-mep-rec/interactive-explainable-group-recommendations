@@ -14,7 +14,7 @@ interface NasaTlxScreenProps {
   recordInteraction: (type: InteractionEvent['type'], data: Record<string, unknown>) => void;
   isLoading: boolean;
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 interface NasaTlxQuestion {

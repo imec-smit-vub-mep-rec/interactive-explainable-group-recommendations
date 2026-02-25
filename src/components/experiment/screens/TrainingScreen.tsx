@@ -27,7 +27,7 @@ interface TrainingScreenProps {
   ) => void;
   isLoading: boolean;
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 type TrainingStep = "initial_guess" | "explore_explanation" | "final_decision";
@@ -39,7 +39,6 @@ export function TrainingScreen({
   recordInteraction,
   isLoading,
   onNext,
-  onBack,
 }: TrainingScreenProps) {
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState<TrainingStep>("initial_guess");
@@ -184,12 +183,10 @@ export function TrainingScreen({
 
   // Handle chat log entries: record locally and async-save to DB
   const handleChatLogEntry = (entry: ChatLogEntry) => {
-    // Record as a standard interaction event
+    // Record as a standard interaction event (minimal data - full content in chat_logs)
     recordTaskInteraction("chat_message", {
       chatLogRole: entry.role,
-      chatLogContent: entry.content,
-      chatLogTimestamp: entry.timestamp,
-      ...entry.metadata,
+      ...(entry.metadata?.source ? { source: entry.metadata.source } : {}),
     });
 
     // Async fire-and-forget save to dedicated chat_logs column
@@ -297,7 +294,7 @@ export function TrainingScreen({
     }
   };
 
-  // Handle back navigation within training
+  // Handle back navigation within training (no cross-screen back)
   const handleBack = () => {
     if (currentStep === "explore_explanation") {
       setCurrentStep("initial_guess");
@@ -306,9 +303,8 @@ export function TrainingScreen({
     } else if (currentTaskIndex > 0) {
       setCurrentTaskIndex((prev) => prev - 1);
       setCurrentStep("final_decision");
-    } else {
-      onBack();
     }
+    // At first task and first step: no within-screen back, do nothing
   };
 
   // Determine if can proceed
@@ -595,7 +591,7 @@ export function TrainingScreen({
           currentStep={currentStep}
           onBack={handleBack}
           onNext={handleNextStep}
-          canGoBack={true}
+          canGoBack={currentTaskIndex > 0 || currentStep !== "initial_guess"}
           canGoNext={canProceed()}
           isLoading={isLoading}
           onResetRatings={() => resetRatingsRef.current?.()}

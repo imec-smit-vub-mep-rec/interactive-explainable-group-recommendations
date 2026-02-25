@@ -18,7 +18,7 @@ interface DebriefingScreenProps {
   recordInteraction: (type: InteractionEvent['type'], data: Record<string, unknown>) => void;
   isLoading: boolean;
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export function DebriefingScreen({
@@ -127,7 +127,6 @@ export function DebriefingScreen({
 
     try {
       await saveAnswer('raw_session_data', {
-        ...session,
         debriefing_task_data: debriefingTaskData,
       });
     } finally {

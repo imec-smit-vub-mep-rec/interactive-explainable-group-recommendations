@@ -53,7 +53,7 @@ LMS,interactive_graph,LMGR
 - **Styling**: Tailwind CSS 4
 - **UI Components**: Radix UI primitives
 - **Data Visualization**: D3.js 7.9.0
-- **AI Integration**: AI SDK with Cerebras and Google models
+- **AI Integration**: AI SDK with Cerebras (default), Scaleway (EU), or Requesty models
 - **Type Safety**: TypeScript 5
 - **Package Manager**: pnpm
 - **Onboarding flow**: https://nextstepjs.com/
@@ -80,6 +80,13 @@ LMS,interactive_graph,LMGR
    NEXT_PUBLIC_PROLIFIC_REDIRECT_URL="https://app.prolific.com/submissions/complete?cc=YOUR_COMPLETION_CODE"
    NEXT_PUBLIC_PROLIFIC_CANCEL_URL="https://app.prolific.com/submissions/complete?cc=YOUR_RETURN_CODE"
    ```
+
+   **LLM provider (chat explanations):**
+   - `LLM_PROVIDER`: `'cerebras'` (default), `'scaleway'`, or `'requesty'`. Use `scaleway` for EU-hosted models (privacy).
+   - `INTENT_LLM`, `THINKING_LLM`: Model IDs for intent classification and chat (e.g. `llama3.1-8b` for Cerebras, `llama-3.1-8b-instruct` for Scaleway, `openai/gpt-4o-mini` for Requesty).
+   - For Scaleway: `SCALEWAY_API_KEY` (required when `LLM_PROVIDER=scaleway`).
+   - For Requesty: `REQUESTY_API_KEY`, `REQUESTY_BASE_URL` (optional, defaults to `https://router.requesty.ai/v1`), `REQUESTY_MODEL` (optional default model).
+
    See the project for additional keys (API keys, admin password, etc.).
 
 4. **Run the development server**

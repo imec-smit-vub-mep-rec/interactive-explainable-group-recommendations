@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
+// Size limits for JSONB columns (protect against Neon memory limits)
+const MAX_TRAINING_TASKS_BYTES = 512 * 1024;   // 512KB
+const MAX_SCREEN_TIMINGS_BYTES = 512 * 1024;   // 512KB
+const MAX_RAW_SESSION_BYTES = 256 * 1024;      // 256KB
+
 // Valid field names that can be updated
 const VALID_FIELDS = [
   'current_screen',
@@ -78,13 +83,22 @@ export async function POST(request: NextRequest) {
         `;
         break;
         
-      case 'training_tasks_data':
+      case 'training_tasks_data': {
+        const payload = JSON.stringify(value);
+        if (payload.length > MAX_TRAINING_TASKS_BYTES) {
+          console.log('[POST /api/experiment/answer] Payload too large:', field, payload.length);
+          return NextResponse.json(
+            { success: false, error: 'Payload too large', field },
+            { status: 413 }
+          );
+        }
         await sql`
           UPDATE experiment_sessions 
-          SET training_tasks_data = ${JSON.stringify(value)}::jsonb
+          SET training_tasks_data = ${payload}::jsonb
           WHERE id = ${sessionId}
         `;
         break;
+      }
         
       case 'preliminary_subjective_understanding_1_understand':
         await sql`
@@ -166,21 +180,39 @@ export async function POST(request: NextRequest) {
         `;
         break;
         
-      case 'screen_timings':
+      case 'screen_timings': {
+        const payload = JSON.stringify(value);
+        if (payload.length > MAX_SCREEN_TIMINGS_BYTES) {
+          console.log('[POST /api/experiment/answer] Payload too large:', field, payload.length);
+          return NextResponse.json(
+            { success: false, error: 'Payload too large', field },
+            { status: 413 }
+          );
+        }
         await sql`
           UPDATE experiment_sessions 
-          SET screen_timings = ${JSON.stringify(value)}::jsonb
+          SET screen_timings = ${payload}::jsonb
           WHERE id = ${sessionId}
         `;
         break;
+      }
         
-      case 'raw_session_data':
+      case 'raw_session_data': {
+        const payload = JSON.stringify(value);
+        if (payload.length > MAX_RAW_SESSION_BYTES) {
+          console.log('[POST /api/experiment/answer] Payload too large:', field, payload.length);
+          return NextResponse.json(
+            { success: false, error: 'Payload too large', field },
+            { status: 413 }
+          );
+        }
         await sql`
           UPDATE experiment_sessions 
-          SET raw_session_data = ${JSON.stringify(value)}::jsonb
+          SET raw_session_data = ${payload}::jsonb
           WHERE id = ${sessionId}
         `;
         break;
+      }
         
       case 'attn_check_1':
         await sql`
@@ -282,9 +314,18 @@ export async function PATCH(request: NextRequest) {
       const timings = (existingTimings[0]?.screen_timings as unknown[]) || [];
       timings.push(screenTiming);
       
+      const payload = JSON.stringify(timings);
+      if (payload.length > MAX_SCREEN_TIMINGS_BYTES) {
+        console.log('[PATCH /api/experiment/answer] screen_timings payload too large:', payload.length);
+        return NextResponse.json(
+          { success: false, error: 'Payload too large', field: 'screen_timings' },
+          { status: 413 }
+        );
+      }
+      
       await sql`
         UPDATE experiment_sessions 
-        SET screen_timings = ${JSON.stringify(timings)}::jsonb
+        SET screen_timings = ${payload}::jsonb
         WHERE id = ${sessionId}
       `;
     }
@@ -295,6 +336,12 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error saving updates:', error);
+    if (error instanceof Error && error.message.startsWith('Payload too large')) {
+      return NextResponse.json(
+        { success: false, error: error.message, field: 'updates' },
+        { status: 413 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: 'Failed to save updates' },
       { status: 500 }
@@ -314,9 +361,14 @@ async function processFieldUpdate(sessionId: string, field: ValidField, value: u
     case 'onboarding_demographics_2_gender':
       await sql`UPDATE experiment_sessions SET onboarding_demographics_2_gender = ${value as string} WHERE id = ${sessionId}`;
       break;
-    case 'training_tasks_data':
-      await sql`UPDATE experiment_sessions SET training_tasks_data = ${JSON.stringify(value)}::jsonb WHERE id = ${sessionId}`;
+    case 'training_tasks_data': {
+      const payload = JSON.stringify(value);
+      if (payload.length > MAX_TRAINING_TASKS_BYTES) {
+        throw new Error(`Payload too large for training_tasks_data: ${payload.length}`);
+      }
+      await sql`UPDATE experiment_sessions SET training_tasks_data = ${payload}::jsonb WHERE id = ${sessionId}`;
       break;
+    }
     case 'preliminary_subjective_understanding_1_understand':
       await sql`UPDATE experiment_sessions SET preliminary_subjective_understanding_1_understand = ${value as number} WHERE id = ${sessionId}`;
       break;
@@ -347,12 +399,22 @@ async function processFieldUpdate(sessionId: string, field: ValidField, value: u
     case 'recaptcha_token':
       await sql`UPDATE experiment_sessions SET recaptcha_token = ${value as string} WHERE id = ${sessionId}`;
       break;
-    case 'screen_timings':
-      await sql`UPDATE experiment_sessions SET screen_timings = ${JSON.stringify(value)}::jsonb WHERE id = ${sessionId}`;
+    case 'screen_timings': {
+      const payload = JSON.stringify(value);
+      if (payload.length > MAX_SCREEN_TIMINGS_BYTES) {
+        throw new Error(`Payload too large for screen_timings: ${payload.length}`);
+      }
+      await sql`UPDATE experiment_sessions SET screen_timings = ${payload}::jsonb WHERE id = ${sessionId}`;
       break;
-    case 'raw_session_data':
-      await sql`UPDATE experiment_sessions SET raw_session_data = ${JSON.stringify(value)}::jsonb WHERE id = ${sessionId}`;
+    }
+    case 'raw_session_data': {
+      const payload = JSON.stringify(value);
+      if (payload.length > MAX_RAW_SESSION_BYTES) {
+        throw new Error(`Payload too large for raw_session_data: ${payload.length}`);
+      }
+      await sql`UPDATE experiment_sessions SET raw_session_data = ${payload}::jsonb WHERE id = ${sessionId}`;
       break;
+    }
     case 'attn_check_1':
       await sql`UPDATE experiment_sessions SET attn_check_1 = ${JSON.stringify(value)}::jsonb WHERE id = ${sessionId}`;
       break;

@@ -14,6 +14,9 @@ importers:
       '@ai-sdk/google':
         specifier: ^2.0.16
         version: 2.0.16(zod@4.1.11)
+      '@ai-sdk/openai-compatible':
+        specifier: ^1.0.19
+        version: 1.0.19(zod@4.1.11)
       '@ai-sdk/react':
         specifier: ^2.0.52
         version: 2.0.52(react@19.1.0)(zod@4.1.11)
@@ -98,6 +101,9 @@ importers:
       nextstepjs:
         specifier: ^2.2.0
         version: 2.2.0(motion@12.25.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(next@15.5.9(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      openai:
+        specifier: ^6.22.0
+        version: 6.22.0(zod@4.1.11)
       radix-ui:
         specifier: ^1.4.3
         version: 1.4.3(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -3243,6 +3249,18 @@ packages:
 
   oniguruma-to-es@4.3.3:
     resolution: {integrity: sha512-rPiZhzC3wXwE59YQMRDodUwwT9FZ9nNBwQQfsd1wfdtlKEyCdRV0avrTcSZ5xlIvGRVPd/cx6ZN45ECmS39xvg==}
+
+  openai@6.22.0:
+    resolution: {integrity: sha512-7Yvy17F33Bi9RutWbsaYt5hJEEJ/krRPOrwan+f9aCPuMat1WVsb2VNSII5W1EksKT6fF69TG/xj4XzodK3JZw==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -7508,6 +7526,10 @@ snapshots:
       oniguruma-parser: 0.12.1
       regex: 6.0.1
       regex-recursion: 6.0.2
+
+  openai@6.22.0(zod@4.1.11):
+    optionalDependencies:
+      zod: 4.1.11
 
   optionator@0.9.4:
     dependencies:

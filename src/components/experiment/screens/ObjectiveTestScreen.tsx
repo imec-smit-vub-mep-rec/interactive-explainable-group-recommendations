@@ -20,7 +20,7 @@ interface ObjectiveTestScreenProps {
   recordInteraction: (type: InteractionEvent['type'], data: Record<string, unknown>) => void;
   isLoading: boolean;
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export function ObjectiveTestScreen({
@@ -30,7 +30,6 @@ export function ObjectiveTestScreen({
   recordInteraction,
   isLoading,
   onNext,
-  onBack,
 }: ObjectiveTestScreenProps) {
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -163,13 +162,12 @@ export function ObjectiveTestScreen({
     setCurrentTaskIndex(prev => prev + 1);
   };
   
-  // Handle back navigation
+  // Handle back navigation within test (no cross-screen back)
   const handleBack = () => {
     if (currentTaskIndex > 0) {
       setCurrentTaskIndex(prev => prev - 1);
-    } else {
-      onBack();
     }
+    // At first question: no within-screen back, do nothing
   };
   
   // Check if can proceed (answer selected, and attention check if needed)
@@ -283,7 +281,7 @@ export function ObjectiveTestScreen({
       <NavigationButtons
         onBack={handleBack}
         onNext={handleNext}
-        canGoBack={true}
+        canGoBack={currentTaskIndex > 0}
         canGoNext={canProceed}
         isLoading={isLoading}
         nextLabel={currentTaskIndex === testScenarioIds.length - 1 ? 'Complete Test' : 'Next Question'}

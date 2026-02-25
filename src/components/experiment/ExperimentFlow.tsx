@@ -243,49 +243,6 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     }
   }, [currentScreen, screenStartTime, currentInteractions, session]);
 
-  // Navigate to previous screen
-  const goToPreviousScreen = useCallback(async () => {
-    if (currentScreen <= 0) return;
-    
-    setIsLoading(true);
-    
-    try {
-      if (session) {
-        // Save current screen position
-        await fetch('/api/experiment/answer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: session.id,
-            field: 'current_screen',
-            value: currentScreen - 1,
-          }),
-        });
-
-        const sessionResponse = await fetch(
-          `/api/experiment/session?sessionId=${session.id}`
-        );
-        if (sessionResponse.ok) {
-          const data = await sessionResponse.json();
-          if (data.success) {
-            setSession({
-              ...data.session,
-              trainingTasksData: data.session.trainingTasksData || [],
-              objectiveTasksData: data.session.objectiveTasksData || [],
-              nasaTlxData: data.session.nasaTlxData || {},
-              screenTimings: data.session.screenTimings || [],
-            });
-          }
-        }
-      }
-      setCurrentScreen(prev => prev - 1);
-    } catch (error) {
-      console.error('Error navigating back:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentScreen, session]);
-
   // Update session data locally
   const updateSessionData = useCallback((updates: Partial<SessionData>) => {
     setSession(prev => prev ? { ...prev, ...updates } : null);
@@ -341,7 +298,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
       recordInteraction,
       isLoading,
       onNext: goToNextScreen,
-      onBack: goToPreviousScreen,
+      onBack: undefined,
     };
 
     switch (currentScreen) {

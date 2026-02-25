@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
+const MAX_SCREEN_TIMINGS_BYTES = 512 * 1024; // 512KB - must match answer route
+
 // POST: Mark a session as complete
 export async function POST(request: NextRequest) {
   try {
@@ -23,9 +25,18 @@ export async function POST(request: NextRequest) {
       const timings = (existingTimings[0]?.screen_timings as unknown[]) || [];
       timings.push(finalScreenTiming);
       
+      const payload = JSON.stringify(timings);
+      if (payload.length > MAX_SCREEN_TIMINGS_BYTES) {
+        console.log('[POST /api/experiment/complete] screen_timings payload too large:', payload.length);
+        return NextResponse.json(
+          { success: false, error: 'Payload too large', field: 'screen_timings' },
+          { status: 413 }
+        );
+      }
+      
       await sql`
         UPDATE experiment_sessions 
-        SET screen_timings = ${JSON.stringify(timings)}::jsonb
+        SET screen_timings = ${payload}::jsonb
         WHERE id = ${sessionId}
       `;
     }
