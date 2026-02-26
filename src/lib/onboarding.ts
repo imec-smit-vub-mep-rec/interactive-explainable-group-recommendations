@@ -1,7 +1,7 @@
 import { Tour } from "nextstepjs";
 import { ExplanationStrategy } from "./types";
 
-const welcomeContent = "Every month, a group of friends must decide on a restaurant for dinner. The goal of this system is to help them choose the best restaurant to visit next.";
+const welcomeContent = "The group of friends must decide on a restaurant for dinner. On this page, you see the output of a software system that helps them choose the best restaurant to visit next.";
 
 export const onboardingTours: Tour[] = [
   {
@@ -129,7 +129,7 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Interactive Table",
         content:
-          "You can increase or decrease these scores using the arrows. Below the table, you can see how the recommendations change.",
+          "You can increase or decrease these scores using the arrows. Edit a few ratings to see how the recommendations change.",
         selector: "[data-onboarding='interactive-table']",
         side: "top",
         showControls: true,
@@ -159,16 +159,16 @@ export const onboardingTours: Tour[] = [
         icon: null,
         title: "Strategy Explanation",
         content:
-          'The "best" and "worst" logic is based on a specific strategy taking all scores into account.',
+          'The definition of \'best\' and \'worst\' is based on a specific strategy that weighs everyone\'s scores in a specific way.',
         selector: "[data-onboarding='strategy-label']",
         side: "top",
         showControls: true,
-        showSkip: true,
+        showSkip: false,
       },
       {
         icon: null,
         title: "Get Started",
-        content: "Use this system to answer the questions in the next step correctly.",
+        content: "Use this system to understand how the recommendations are made.",
         selector: "[data-onboarding='page-header']",
         side: "top",
         showControls: true,

@@ -56,14 +56,14 @@ export function TrainingScreen({
   const [suggestionsClicked, setSuggestionsClicked] = useState<string[]>([]);
   const [typedQueries, setTypedQueries] = useState<string[]>([]);
   const [showProceedConfirm, setShowProceedConfirm] = useState(false);
-  
+
   // Attention check state (shown ONLY in second task's step 2 - explore_explanation)
   const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
   const [attentionCheckCompleted, setAttentionCheckCompleted] = useState(false);
-  
+
   // Get attention check question from questions.ts
   const attentionCheckQuestion = questions.training?.questions[1] as MultipleChoiceQuestion | undefined;
-  
+
   // Only show attention check in second training task's step 2
   const showAttentionCheck = currentTaskIndex === 1 && currentStep === "explore_explanation";
 
@@ -236,7 +236,7 @@ export function TrainingScreen({
 
     await saveAnswer("training_tasks_data", updatedTasks);
     updateSessionData({ trainingTasksData: updatedTasks });
-    
+
     // Save attention check answer if provided
     if (attentionCheckAnswer !== null) {
       const isCorrect = attentionCheckAnswer === '4'; // Restaurant 4 is the correct answer
@@ -333,31 +333,12 @@ export function TrainingScreen({
         {/* Header */}
         <div className="flex justify-between items-start">
           <div data-onboarding="page-header">
+            <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-gray-900 mb-1">
-              Training Task {currentTaskIndex + 1} of{" "}
-              {trainingScenarioIds.length}
+              Training task {currentTaskIndex + 1} of{" "}
+              {trainingScenarioIds.length}:
             </h1>
-            {currentStep === "initial_guess" && (
-              <p className="text-gray-600 text-sm">
-                Assume that there is a group of friends, different from the ones you have seen before.
-              </p>
-            )}
-            {currentStep === "explore_explanation" && (
-              <p className="text-gray-600 text-sm">
-                {"Using the provided ratings, the software system made a recommendation to the group." +
-                (displayStrategy !== "no_expl" &&
-                  displayStrategy !== "static_list"
-                  ? " Edit a few ratings to see how the recommendation changes."
-                  : "")}
-              </p>
-            )}
-            {currentStep === "final_decision" && (
-              <p className="text-gray-600 text-sm">
-                Given the advice of the recommender system, what is your final decision for the best restaurant to go to.
-              </p>
-            )}
-          </div>
-          <div className="text-sm text-gray-500 min-w-24">
+            <div className="text-sm text-gray-500 min-w-24">
             Step{" "}
             {currentStep === "initial_guess"
               ? 1
@@ -366,6 +347,29 @@ export function TrainingScreen({
                 : 3}{" "}
             of 3
           </div>
+            </div>
+            
+            {currentStep === "initial_guess" && currentTaskIndex > 0 && (
+              <p className="text-gray-600 text-sm">
+                Assume that there is a {currentTaskIndex > 0 ? 'new' : ''} group of friends, different from the ones you have seen before.
+              </p>
+            )}
+            {currentStep === "explore_explanation" && (
+              <p className="text-gray-600 text-sm">
+                {"Using the provided ratings, a software system made a recommendation to the group." +
+                  (displayStrategy !== "no_expl" &&
+                    displayStrategy !== "static_list"
+                    ? " Edit a few ratings to see how the recommendation changes."
+                    : "")}
+              </p>
+            )}
+            {currentStep === "final_decision" && (
+              <p className="text-gray-600 text-sm">
+                Given the advice of the recommender system, what is your final decision for the best restaurant to go to?
+              </p>
+            )}
+          </div>
+
         </div>
 
         {/* Step 1: Initial Guess - Show only table */}
@@ -373,19 +377,12 @@ export function TrainingScreen({
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 space-y-2">
               <p>
-                Every month, a group decision is made by these friends to decide on a restaurant to have dinner together. To select a restaurant for the dinner next month, the group again has to take the same decision. In this decision, each group member explicitly rated three possible restaurants using a 5-star rating scale (1: the worst, 5: the best). The ratings given by group members are shown in the table below.
+                Every month, a group decision is made by these friends to decide on a restaurant to have dinner together. To select a restaurant for the dinner next month, the group has to take a decision together. Earlier, each group member has explicitly rated ten possible restaurants using a 5-star rating scale (1: the worst, 5: the best). The ratings given by group members are shown in the table below.
               </p>
               <p>
-              <strong>{visitedRestaurantNames}</strong> have been visited in the previous months, in this specific order. These restaurants are not an option anymore, as the group has already eaten there previously.
+                <strong>{visitedRestaurantNames}</strong> have been visited in the previous months, in this specific order. These restaurants are not an option anymore, as the group has already eaten there previously.
               </p>
             </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <h3 className="font-medium text-yellow-800 mb-1 text-sm">
-                Which restaurant will the system recommend for the group&apos;s
-                next dinner, given the preferences in the table?
-              </h3>
-            </div>
-
             {/* Show only the table without explanation */}
             <InteractiveGroupRecommender
               strategy={aggregationStrategy}
@@ -398,7 +395,10 @@ export function TrainingScreen({
 
             {/* Radio selection */}
             <div className="bg-white border rounded-lg p-3">
-              <h4 className="font-medium mb-3 text-sm">Select your answer:</h4>
+
+              <h4 className="font-medium mb-3 text-sm">
+{currentStep === "initial_guess" ? (currentTaskIndex === 0 ? "Which restaurant would you recommend for the group's next dinner, given the preferences in the table?" : "Which restaurant will the software system recommend for the group's next dinner, given the preferences in the table?") : "Given the recommendation of the recommender system, what is your final decision for the best restaurant to go to?"}
+              </h4>
               <RadioGroup
                 value={initialGuess || ""}
                 onValueChange={(value) => {
@@ -473,7 +473,7 @@ export function TrainingScreen({
               }}
               onChatLogEntry={handleChatLogEntry}
             />
-            
+
             {/* Attention Check - only shown in first training task */}
             {showAttentionCheck && attentionCheckQuestion && (
               <div className="bg-white border rounded-lg p-3">
@@ -548,8 +548,8 @@ export function TrainingScreen({
             {/* Radio selection for final decision */}
             <div className="bg-white border rounded-lg p-4">
               <h4 className="font-medium mb-4">
-                Given the advice of the recommender system, what is your final
-                decision?
+                Given the recommendation of the recommender system, what is your final
+                decision for the best restaurant to go to?
               </h4>
               <RadioGroup
                 value={finalDecision || ""}

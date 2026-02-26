@@ -205,7 +205,7 @@ export function ObjectiveTestScreen({
             Test - Question {currentTaskIndex + 1} of {testScenarioIds.length}
           </h1>
           <p className="text-gray-600 text-sm">
-            You will now be tested on your understanding of the system. Please answer the following questions based on your understanding. Each time you will be presented with a different scenario.
+            You will now be tested on your understanding of the software system. Please answer the following questions based on your understanding. Each time you will be presented with a different scenario.
           </p>
         </div>
       </div>

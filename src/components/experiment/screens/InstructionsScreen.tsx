@@ -39,7 +39,7 @@ export function InstructionsScreen({
 
         <div className="space-y-3">
           <p className="text-gray-700 leading-relaxed font-medium">
-            For each scenario and based on the user preferences, you will complete the following activities:
+            You will complete the following activities:
           </p>
           <ol className="list-decimal list-inside space-y-2 text-gray-700 leading-relaxed pl-2">
             <li>
@@ -49,18 +49,19 @@ export function InstructionsScreen({
               You will <strong>check the recommended restaurant</strong> given by a software system which creates recommendations to groups based on the preferences of group members.
             </li>
             <li>
-              Activity Nr. 1 is presented again, giving you the <strong>opportunity to change your answer</strong> if you prefer to do so, taking into consideration the output of the software system.
+              Activity Nr. 1 is presented again, giving you the <strong>opportunity to change your suggestion</strong>, taking into consideration the output of the software system.
             </li>
           </ol>
         </div>
 
         <div className="border-t border-blue-200 pt-4 space-y-3">
           <p className="text-gray-700 leading-relaxed">
-            After you have answered the previously mentioned questions, the <strong>second part of the survey</strong> will start. This second part contains an exit survey with 6 single-choice questions, each one also containing group members&apos; preferences about restaurants and potential recommendations.
+            After you have answered the previously mentioned questions, the <strong>second part of the survey</strong> will start. This second part contains a test with 6 single-choice questions measuring your understanding of the group recommendation system.
+            Each question belongs to a new scenario, with different preferences and recommendations.<br/>
             After 3 questions, you will be presented with a breather screen. Feel free to take a short break here. Grab a glass of water or a cup of coffee if you like.
           </p>
           <p className="text-gray-700 leading-relaxed">
-            Before and after this exit survey, you are asked two questions where you <strong>rate your experience</strong> with the software system.
+            Before and after the test survey, you are asked two questions where you <strong>rate your experience</strong> with the software system.
           </p>
         </div>
 
