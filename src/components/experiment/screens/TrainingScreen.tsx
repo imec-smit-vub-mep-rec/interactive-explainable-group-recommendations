@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { NextStep, useNextStep } from "nextstepjs";
 import { NavigationButtons } from "../NavigationButtons";
 import InteractiveGroupRecommender from "@/components/InteractiveGroupRecommender";
@@ -69,6 +69,7 @@ export function TrainingScreen({
 
   // Ref to access resetRatings function from InteractiveGroupRecommender
   const resetRatingsRef = useRef<(() => void) | null>(null);
+  const recentErrorLogRef = useRef<Record<string, number>>({});
 
   // NextStep hook for onboarding tour
   const { startNextStep } = useNextStep();
@@ -168,21 +169,35 @@ export function TrainingScreen({
   }, [currentTaskIndex, session.trainingTasksData]);
 
   // Record task interaction
-  const recordTaskInteraction = (
-    type: InteractionEvent["type"],
-    data: Record<string, unknown>
-  ) => {
-    const interaction: InteractionEvent = {
-      type,
-      timestamp: new Date().toISOString(),
-      data,
-    };
-    setTaskInteractions((prev) => [...prev, interaction]);
-    recordInteraction(type, data);
-  };
+  const recordTaskInteraction = useCallback(
+    (type: InteractionEvent["type"], data: Record<string, unknown>) => {
+      const interaction: InteractionEvent = {
+        type,
+        timestamp: new Date().toISOString(),
+        data,
+      };
+      setTaskInteractions((prev) => [...prev, interaction]);
+      recordInteraction(type, data);
+    },
+    [recordInteraction]
+  );
 
   // Handle chat log entries: record locally and async-save to DB
-  const handleChatLogEntry = (entry: ChatLogEntry) => {
+  const handleChatLogEntry = useCallback((entry: ChatLogEntry) => {
+    if (entry.role === "error") {
+      const errorName =
+        typeof entry.metadata?.errorName === "string"
+          ? entry.metadata.errorName
+          : "unknown";
+      const signature = `${errorName}:${entry.content}`;
+      const now = Date.now();
+      const lastSeen = recentErrorLogRef.current[signature] ?? 0;
+      if (now - lastSeen < 5000) {
+        return;
+      }
+      recentErrorLogRef.current[signature] = now;
+    }
+
     // Record as a standard interaction event (minimal data - full content in chat_logs)
     recordTaskInteraction("chat_message", {
       chatLogRole: entry.role,
@@ -205,7 +220,7 @@ export function TrainingScreen({
         console.error("Failed to save chat log entry:", err);
       });
     }
-  };
+  }, [recordTaskInteraction, session.id, trainingScenarioIds, currentTaskIndex, currentStep]);
 
   // Save current task data
   const saveTaskData = async () => {
@@ -510,6 +525,7 @@ export function TrainingScreen({
             <InteractiveGroupRecommender
               strategy={aggregationStrategy}
               explanationStrategy={displayStrategy}
+              hideExplanation={true}
               sortBestToWorst={true}
               fadeNonContributing={displayStrategy === "interactive_graph"}
               scenario={currentScenario}

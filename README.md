@@ -99,7 +99,7 @@ LMS,interactive_graph,LMGR
 
 ## Running the experiment
 
-The app runs a multi-step experiment (~15–20 minutes) where participants interact with group recommendation scenarios and answer questions. Participants are assigned to one of 15 conditions (3 aggregation strategies × 5 explanation modalities) either randomly or via a `group` URL parameter.
+The app runs a multi-step experiment (~20–30 minutes) where participants interact with group recommendation scenarios and answer questions. Participants are assigned to one of 15 conditions (3 aggregation strategies × 5 explanation modalities) either randomly or via a `group` URL parameter.
 
 ### Experiment flow
 
@@ -116,6 +116,64 @@ The app runs a multi-step experiment (~15–20 minutes) where participants inter
 11. **Thank you** — Summary and "Return to Prolific" (or equivalent) button
 
 Participants who fail attention checks are routed to an **Attention fail** screen instead of continuing.
+
+### Application architecture overview
+
+```mermaid
+flowchart TB
+  subgraph MAIN[Main experimental flow]
+    APP[app/page.tsx ExperimentPage] --> FLOW[ExperimentFlow]
+    FLOW --> WELCOME[Welcome]
+    WELCOME -->|consent + reCAPTCHA| DEMO[Demographics]
+    WELCOME -->|cancel participation| THANK[Thank You]
+    DEMO --> INSTR[Instructions]
+    INSTR --> TRAINING[Training: 3 tasks x 3 steps]
+    TRAINING --> PRELIM[Preliminary understanding]
+    PRELIM --> OBJ[Objective test: 6 questions]
+    OBJ --> REPEAT[Repeat understanding]
+    REPEAT --> DEBRIEF[Debriefing]
+    DEBRIEF --> NASA[NASA-TLX]
+    NASA --> FEEDBACK[Feedback]
+    FEEDBACK --> THANK
+    FLOW -->|isAttentionFail = true| ATTNFAIL[Attention fail]
+  end
+
+  subgraph CONFIG[Config and persistence]
+    URL[URL params: PROLIFIC_PID STUDY_ID SESSION_ID group] --> API_SESSION[POST api experiment session]
+    API_SESSION --> ASSIGN[Assignment: group code or balanced random<br/>aggregationStrategy + explanationModality]
+    ASSIGN --> SCENARIOS[Scenario selection: training + test]
+    SCENARIOS --> SESSION[SessionData + localStorage]
+    SESSION --> FLOW
+
+    FLOW -->|save answers and screen timings| API_ANSWER[POST or PATCH api experiment answer]
+    FLOW -->|finalize study| API_COMPLETE[POST api experiment complete]
+    API_ANSWER -->|attention check failed| ATTNFAIL
+
+    PROLIFIC[Env config: prolific redirect and cancel URLs] --> THANK
+  end
+
+  subgraph EXPL[Modular explanation components]
+    TRAINING --> TRAINCOMP[TrainingScreen]
+    OBJ --> OBJCOMP[ObjectiveTestScreen]
+    TRAINCOMP --> IGR[InteractiveGroupRecommender]
+    OBJCOMP --> IGR
+
+    ASSIGN -->|strategy + modality passed in session| TRAINCOMP
+    ASSIGN -->|strategy fixed, explanation hidden| OBJCOMP
+
+    IGR --> CORE[Core recommendation engine:<br/>rating updates + LMS ADD APP scoring<br/>best non visited restaurant]
+    IGR --> SWITCH[explanationStrategy switch]
+
+    SWITCH --> NOEXPL[NoExplanation]
+    SWITCH --> OLIST[OrderedListExplanation<br/>static_list or interactive_list]
+    SWITCH --> GEXPL[GraphExplanation<br/>interactive_graph]
+    SWITCH --> CHAT[TextChat<br/>conversational]
+    SWITCH --> OTHERS[Other modalities:<br/>TextExplanation PieExplanation Heatmap<br/>TextChatWithTools TextChatWithToolsGraph]
+
+    CHAT --> CHAT_API[api chat]
+    OTHERS --> CHAT_API
+  end
+```
 
 ### Prolific
 

@@ -127,7 +127,15 @@ export default function TextChatWithTools({
   const lastLoggedToolCallRef = useRef<string | null>(null);
   const lastLoggedToolResultRef = useRef<string | null>(null);
   const lastLoggedResponseIdRef = useRef<string | null>(null);
+  const lastLoggedErrorRef = useRef<{ signature: string; at: number } | null>(
+    null
+  );
+  const onChatLogEntryRef = useRef(onChatLogEntry);
   const prevStatusRef = useRef<string>("ready");
+
+  useEffect(() => {
+    onChatLogEntryRef.current = onChatLogEntry;
+  }, [onChatLogEntry]);
 
   // Create context object
   const context = {
@@ -184,10 +192,21 @@ export default function TextChatWithTools({
           responseText.length > MAX_CONTENT_LENGTH
             ? responseText.slice(0, MAX_CONTENT_LENGTH) + "\n[...truncated]"
             : responseText;
+        const hasToolActivity = toolCalls.length > 0 || toolResults.length > 0;
+        const contentForLog =
+          truncatedContent.length > 0
+            ? truncatedContent
+            : hasToolActivity
+              ? "(tool action)"
+              : "";
+
+        if (!contentForLog) {
+          return;
+        }
 
         onChatLogEntry?.({
           role: "assistant",
-          content: truncatedContent,
+          content: contentForLog,
           timestamp: new Date().toISOString(),
           metadata: sanitizeMetadata(lastMessage.id, toolCalls, toolResults),
         });
@@ -197,15 +216,25 @@ export default function TextChatWithTools({
 
   // Log chat errors
   useEffect(() => {
-    if (error) {
-      onChatLogEntry?.({
-        role: "error",
-        content: error.message || "Unknown chat error",
-        timestamp: new Date().toISOString(),
-        metadata: { errorName: error.name },
-      });
+    if (!error) return;
+    const content = error.message || "Unknown chat error";
+    const signature = `${error.name}:${content}`;
+    const now = Date.now();
+    if (
+      lastLoggedErrorRef.current &&
+      lastLoggedErrorRef.current.signature === signature &&
+      now - lastLoggedErrorRef.current.at < 5000
+    ) {
+      return;
     }
-  }, [error, onChatLogEntry]);
+    lastLoggedErrorRef.current = { signature, at: now };
+    onChatLogEntryRef.current?.({
+      role: "error",
+      content,
+      timestamp: new Date().toISOString(),
+      metadata: { errorName: error.name },
+    });
+  }, [error]);
 
   // Handle tool results and update parent component
   useEffect(() => {

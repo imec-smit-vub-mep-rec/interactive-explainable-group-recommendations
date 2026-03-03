@@ -139,6 +139,11 @@ export function applyRatingUpdates(input: {
     }
 
     const oldRating = updatedRatings[personIndex][restaurantIndex];
+    if (oldRating === update.newRating) {
+      // No-op updates are ignored so downstream verification focuses on
+      // targeted, effective edits only.
+      continue;
+    }
     updatedRatings[personIndex][restaurantIndex] = update.newRating;
     appliedUpdates.push({
       ...update,

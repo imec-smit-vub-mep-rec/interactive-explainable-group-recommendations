@@ -56,7 +56,7 @@ export function InstructionsScreen({
 
         <div className="border-t border-blue-200 pt-4 space-y-3">
           <p className="text-gray-700 leading-relaxed">
-            After you have answered the previously mentioned questions, the <strong>second part of the survey</strong> will start. This second part contains a test with 6 single-choice questions measuring your understanding of the group recommendation system.
+            After you have answered the previously mentioned questions, the <strong>second part of the survey</strong> will start. This second part contains a test with 6 multiple -choice questions measuring your understanding of the group recommendation system.
             Each question belongs to a new scenario, with different preferences and recommendations.<br/>
             After 3 questions, you will be presented with a breather screen. Feel free to take a short break here. Grab a glass of water or a cup of coffee if you like.
           </p>

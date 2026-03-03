@@ -4,6 +4,7 @@ import { sql } from '@/lib/db';
 // Max entry size to avoid Neon DB OOM (ExprContext memory limit)
 const MAX_CONTENT_LENGTH = 32 * 1024; // 32KB
 const MAX_ENTRY_BYTES = 100 * 1024; // 100KB total entry - reject larger to avoid OOM
+const MIN_LOG_INTERVAL_MS = 400;
 
 /**
  * Sanitize entry for DB: truncate content, strip large metadata.
@@ -36,6 +37,29 @@ function sanitizeEntry(entry: Record<string, unknown>): Record<string, unknown> 
     ...(entry.step != null && { step: entry.step }),
     ...(metadata && Object.keys(metadata).length > 0 && { metadata }),
   };
+}
+
+function getEntrySignature(entry: Record<string, unknown>): string {
+  const metadata =
+    entry.metadata && typeof entry.metadata === 'object'
+      ? (entry.metadata as Record<string, unknown>)
+      : undefined;
+  const messageId =
+    typeof metadata?.messageId === 'string' ? metadata.messageId : '';
+  const errorName =
+    typeof metadata?.errorName === 'string' ? metadata.errorName : '';
+  return JSON.stringify({
+    role: entry.role,
+    content: entry.content,
+    messageId,
+    errorName,
+  });
+}
+
+function parseIsoMs(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : null;
 }
 
 /**
@@ -71,6 +95,36 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Entry too large after sanitization' },
         { status: 413 }
       );
+    }
+
+    const sessionRows = await sql<{
+      last_entry: Record<string, unknown> | null;
+      last_timestamp: string | null;
+    }>`
+      SELECT
+        chat_logs->-1 AS last_entry,
+        chat_logs->-1->>'timestamp' AS last_timestamp
+      FROM experiment_sessions
+      WHERE id = ${sessionId}
+      LIMIT 1
+    `;
+    if (sessionRows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Session not found' },
+        { status: 404 }
+      );
+    }
+
+    const lastEntry = sessionRows[0].last_entry;
+    const lastTimestampMs = parseIsoMs(sessionRows[0].last_timestamp);
+    const now = Date.now();
+
+    if (lastTimestampMs !== null && now - lastTimestampMs < MIN_LOG_INTERVAL_MS) {
+      return NextResponse.json({ success: true, skipped: true, reason: 'throttled' });
+    }
+
+    if (lastEntry && getEntrySignature(lastEntry) === getEntrySignature(sanitized)) {
+      return NextResponse.json({ success: true, skipped: true, reason: 'duplicate' });
     }
 
     // Atomically append the new entry to the chat_logs JSONB array.

@@ -47,7 +47,6 @@ export type ChatInterfaceProps = {
   dataOnboardingInput?: string;
 };
 
-const normalizeText = (value: string) => value.trim().toLowerCase();
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const containsRestaurantName = (text: string, restaurantName: string) =>
@@ -56,93 +55,29 @@ const containsRestaurantName = (text: string, restaurantName: string) =>
 const parseSuggestions = (
   text: string,
   excludedRestaurants: string[] = []
-): { cleanText: string; suggestions: string[] } => {
-  if (!text || typeof text !== "string") {
-    return { cleanText: text || "", suggestions: [] };
-  }
-
-  const suggestionRegex = /<suggestions\s*>([\s\S]*?)<\/suggestions\s*>/gi;
-  let cleanText = text;
-  const suggestions: string[] = [];
-
-  const matches = [...text.matchAll(suggestionRegex)];
-
-  if (matches.length > 0) {
-    matches.forEach((match) => {
-      const suggestionsText = match[1].trim();
-      const extracted = suggestionsText
-        .split("\n")
-        .map((line) => line.replace(/^[-•*]\s*/, "").trim())
-        .filter((line) => line.length > 0);
-      suggestions.push(...extracted);
-    });
-
-    cleanText = text.replace(suggestionRegex, "").trim();
-  }
-
-  cleanText = cleanText.replace(/<\/?suggestions\s*>/gi, "").trim();
-
-  // Backward/forward compatible fallback:
-  // if no explicit <suggestions> block exists, extract a trailing plain bullet block.
-  // When the first suggestion lacks a bullet ("Why is Rest X not recommended?"), include it too.
-  const firstSuggestionOnlyPattern = /^Why is Rest \d+ not recommended\?$/i;
-  if (suggestions.length === 0) {
-    const lines = cleanText.split("\n");
-    let end = lines.length - 1;
-    while (end >= 0 && lines[end].trim().length === 0) {
-      end -= 1;
-    }
-
-    const collected: string[] = [];
-    let cursor = end;
-    let stoppedAtLine: string | null = null;
-    while (cursor >= 0) {
-      const raw = lines[cursor].trim();
-      if (raw.length === 0) {
-        if (collected.length === 0) {
-          cursor -= 1;
-          continue;
-        }
-        break;
-      }
-      if (/^[-•*]\s+/.test(raw)) {
-        collected.push(raw.replace(/^[-•*]\s+/, "").trim());
-        cursor -= 1;
-        continue;
-      }
-      stoppedAtLine = raw;
-      break;
-    }
-
-    // Only add stoppedAtLine when it's "Why is Rest X not recommended?" (first suggestion without bullet).
-    // Do NOT add "How to make Rest X preferred?" - that's the follow-up question, not a suggestion.
-    if (
-      stoppedAtLine &&
-      firstSuggestionOnlyPattern.test(stoppedAtLine) &&
-      collected.length === 1
-    ) {
-      collected.push(stoppedAtLine);
-      cursor -= 1;
-    }
-
-    // Treat exactly two trailing bullets as follow-up suggestions (or one bullet + the pattern-matched line).
-    if (collected.length === 2) {
-      suggestions.push(...collected.reverse().filter((line) => line.length > 0));
-      cleanText = lines.slice(0, cursor + 1).join("\n").trim();
-    }
+): string[] => {
+  if (!text || typeof text !== "string") return [];
+  const match = text.match(/<suggestions\b[^>]*>([\s\S]*?)(?:<\/suggestions\s*>|$)/i);
+  if (!match) return [];
+  const suggestions = match[1]
+    .split("\n")
+    .map((line) => line.replace(/^[-•*]\s*/, "").trim())
+    .filter((line) => line.length > 0)
+    .slice(0, 2);
+  if (suggestions.length !== 2) {
+    return [];
   }
 
   const excluded = excludedRestaurants.filter((name) => name.trim().length > 0);
-  const filteredSuggestions =
+  return (
     excluded.length === 0
       ? suggestions
       : suggestions.filter((suggestion) => {
         return !excluded.some((name) =>
           containsRestaurantName(suggestion, name)
         );
-      });
-
-  return { cleanText, suggestions: filteredSuggestions };
+      })
+  );
 };
 
 export const ChatInterface = ({
@@ -226,19 +161,29 @@ export const ChatInterface = ({
                             </div>
                           );
                         }
-                        const { cleanText, suggestions } = parseSuggestions(
-                          textContent,
-                          excludedSuggestionRestaurants
-                        );
+                        const suggestions = isAssistant
+                          ? parseSuggestions(
+                              textContent,
+                              excludedSuggestionRestaurants
+                            )
+                          : [];
+                        const cleanText = isAssistant
+                          ? textContent
+                              .replace(
+                                /<suggestions\b[^>]*>[\s\S]*?(?:<\/suggestions\s*>|$)/gi,
+                                ""
+                              )
+                              .trim()
+                          : textContent;
                         return (
                           <div key={i}>
                             <Response>{cleanText}</Response>
-                            {suggestions.length > 0 && (
+                            {isAssistant && suggestions.length > 0 && (
                               <div className="mt-3">
                                 <Suggestions>
                                   {suggestions.map((suggestion, idx) => (
                                     <Suggestion
-                                      key={idx}
+                                      key={`${message.id}-follow-up-${idx}`}
                                       suggestion={suggestion}
                                       onClick={onSuggestionClick}
                                     />
@@ -419,17 +364,6 @@ export const ChatInterface = ({
                                           {result.verification.computed.targetScore}
                                         </p>
                                       )}
-                                    {result.verification.minimality && (
-                                      <p className="mb-1">
-                                        Minimality:{" "}
-                                        {result.verification.minimality.proven
-                                          ? result.verification.minimality
-                                            .isMinimal
-                                            ? "proven"
-                                            : "not minimal"
-                                          : "not proven"}
-                                      </p>
-                                    )}
                                     {result.verification.minimality?.counterexample
                                       ?.updates &&
                                       result.verification.minimality

@@ -1,7 +1,7 @@
 // import { google } from "@ai-sdk/google";
 import { cerebras } from "@ai-sdk/cerebras";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateObject, streamText, convertToModelMessages, tool, zodSchema } from "ai";
+import { streamText, convertToModelMessages, tool, zodSchema, stepCountIs } from "ai";
 import { z } from "zod";
 import {
   applyRatingUpdates,
@@ -30,13 +30,9 @@ const requestyProvider = createOpenAICompatible({
   apiKey: process.env.REQUESTY_API_KEY,
 });
 
-/** Models that use Harmony/reasoning-only format; they don't return text content for generateObject. */
-const REASONING_ONLY_MODELS = new Set(["gpt-oss-120b", "gpt-oss-20b"]);
-
 const getModel = (
   modelId: string,
-  defaultOpenAICompatibleModel = "llama-3.1-8b-instruct",
-  options?: { forStructuredOutput?: boolean }
+  defaultOpenAICompatibleModel = "llama-3.1-8b-instruct"
 ) => {
   if (isCerebras) {
     return cerebras(modelId);
@@ -44,16 +40,7 @@ const getModel = (
   const provider = isRequesty ? requestyProvider : scalewayProvider;
   const defaultModel =
     isRequesty ? process.env.REQUESTY_MODEL ?? "openai/gpt-4o-mini" : defaultOpenAICompatibleModel;
-  let effectiveModel = modelId || defaultModel;
-  // gpt-oss-120b returns reasoning-only (Harmony format); generateObject needs text. Use a fallback.
-  if (
-    !isRequesty &&
-    options?.forStructuredOutput &&
-    REASONING_ONLY_MODELS.has(effectiveModel)
-  ) {
-    effectiveModel = defaultOpenAICompatibleModel;
-  }
-  return provider.chatModel(effectiveModel);
+  return provider.chatModel(modelId || defaultModel);
 };
 
 // Define the data structures
@@ -94,32 +81,36 @@ const DEFAULT_SEARCH_LIMITS: VerificationSearchLimits = {
 
 const normalizeName = (name: string) => name.trim().toLowerCase();
 
-const extractMessageText = (message: Record<string, unknown>) => {
-  if (typeof message.content === "string") {
-    return message.content;
-  }
-  if (Array.isArray(message.parts)) {
-    return message.parts
-      .map((part) => {
-        if (part && typeof part === "object" && part.type === "text") {
-          return typeof part.text === "string" ? part.text : "";
-        }
-        return "";
-      })
-      .join(" ");
-  }
-  return "";
+const buildSuggestionInstructionBlock = (input: {
+  context: RecommendationContext | null;
+  recentUserQueries: string[];
+}) => {
+  const restaurantExamples = (input.context?.restaurants ?? [])
+    .filter((r) => !r.visited)
+    .slice(0, 4)
+    .map((r) => r.name)
+    .join(", ");
+  const recentQueries = input.recentUserQueries
+    .slice(-3)
+    .map((q) => `- ${q}`)
+    .join("\n");
+
+  return `\n\nFOLLOW-UP SUGGESTIONS RULES:
+- End with a <suggestions> block containing exactly 2 bullet suggestions.
+- Suggestions must use only these exact forms:
+  - How to make rest X preferred?
+  - Why is rest X not recommended?
+  - What is the recommended restaurant order?
+- Keep suggestions varied across turns.
+- Do not repeat any of these recent user queries verbatim:
+${recentQueries || "- (none)"}
+- Use concrete restaurants from current context when using X.
+- If possible, avoid proposing the same restaurant in both suggestions.
+- Example restaurant names available now: ${restaurantExamples || "Rest 1, Rest 2"}.
+`;
 };
 
-type CounterfactualIntentResult = {
-  intent: "counterfactual" | "other";
-  wantsMinimality?: boolean;
-  targetRestaurantName?: string;
-  proposedUpdates?: ProposedUpdate[];
-  claimed?: ProposedClaimed;
-};
-
-const buildFallbackUpdates = (input: {
+const computePreferredChangeProposal = (input: {
   context: RecommendationContext;
   targetRestaurantName: string;
 }): ProposedUpdate[] => {
@@ -273,13 +264,14 @@ const proposedUpdateSchema = z.object({
  * Builds tools for the chat.
  * - get_restaurant_details: per-person ratings for a restaurant
  * - verify_change: verifies if proposed rating changes would make a restaurant preferred and if claimed scores match
+ * - find_changes_to_make_preferred: computes and verifies concrete changes for preference goals
  */
 const buildRestaurantTools = (ctx: RecommendationContext | null) => {
   if (!ctx) return undefined;
   return {
     get_restaurant_details: tool({
       description:
-        "Returns the exact per-person ratings and group score for a specific restaurant. Use this when the user asks for exact ratings, rating breakdown, individual ratings, or per-person scores for a restaurant.",
+        "Returns per-person ratings and group score for a restaurant. Only call this when the data you need is NOT already provided in the system context (e.g. the context was missing or incomplete). Do NOT call this for normal explanation questions like 'why is X recommended' — all ratings and scores are already in context.",
       inputSchema: zodSchema(
         z.object({
           restaurantName: z
@@ -412,6 +404,61 @@ const buildRestaurantTools = (ctx: RecommendationContext | null) => {
           return {
             success: false,
             message: `Verification error: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+      },
+    }),
+    find_changes_to_make_preferred: tool({
+      description:
+        "Computes and verifies concrete rating changes that can make a target restaurant preferred. Use for 'how to make X preferred' or 'what needs to change' questions.",
+      inputSchema: zodSchema(
+        z.object({
+          targetRestaurantName: z
+            .string()
+            .describe("Restaurant that should become preferred"),
+          wantsMinimality: z
+            .boolean()
+            .optional()
+            .describe("Set true only when the user explicitly asks for minimal/smallest changes"),
+        })
+      ),
+      execute: async (input: {
+        targetRestaurantName: string;
+        wantsMinimality?: boolean;
+      }) => {
+        try {
+          const mode: VerificationMode = input.wantsMinimality
+            ? "prove_minimal"
+            : "verify_only";
+          const proposedUpdates = computePreferredChangeProposal({
+            context: ctx,
+            targetRestaurantName: input.targetRestaurantName,
+          });
+          const result = verifyMinimalChangeInternal({
+            context: ctx,
+            targetRestaurantName: input.targetRestaurantName,
+            proposedUpdates,
+            search: DEFAULT_SEARCH_LIMITS,
+            mode,
+          });
+          const v = result.verification;
+          const c = v.computed;
+          return {
+            success: result.success,
+            message: result.message,
+            targetRestaurantName: input.targetRestaurantName,
+            proposedChanges: c?.appliedUpdates ?? [],
+            preferred: v.checks.preferred,
+            computedWinners: c?.winners,
+            computedTargetScore: c?.targetScore,
+            comparisonToTop: c?.comparisonToTop,
+            verification: v,
+          };
+        } catch (err) {
+          console.error("🧰 Tool error: find_changes_to_make_preferred", err);
+          return {
+            success: false,
+            message: `Computation error: ${err instanceof Error ? err.message : String(err)}`,
           };
         }
       },
@@ -956,11 +1003,13 @@ const verifyMinimalChangeInternal = (input: {
   const claimedOk =
     (matchesClaimedScore === undefined || matchesClaimedScore) &&
     (matchesClaimedWinners === undefined || matchesClaimedWinners);
+  const hasClaimMismatch =
+    matchesClaimedScore === false || matchesClaimedWinners === false;
 
   const ok =
     mode === "prove_minimal"
-      ? preferred && minimality.proven && minimality.isMinimal && claimedOk
-      : preferred && claimedOk;
+      ? preferred && minimality.proven && minimality.isMinimal
+      : preferred;
 
   const otherWinners = winnerNames.filter(
     (n) => normalizeName(n) !== normalizeName(targetRestaurantName)
@@ -971,7 +1020,11 @@ const verifyMinimalChangeInternal = (input: {
       : `preferred, tied with ${otherWinners.join(", ")}`;
   const message = ok
     ? mode === "prove_minimal"
-      ? `The proposed change makes ${targetRestaurantName} ${soleOrTie} and is minimal.`
+      ? hasClaimMismatch
+        ? `The proposed change makes ${targetRestaurantName} ${soleOrTie} and is minimal. (Corrected from the claimed winners/score.)`
+        : `The proposed change makes ${targetRestaurantName} ${soleOrTie} and is minimal.`
+      : hasClaimMismatch
+      ? `The proposed change makes ${targetRestaurantName} ${soleOrTie}. (Corrected from the claimed winners/score.)`
       : `The proposed change makes ${targetRestaurantName} ${soleOrTie}.`
     : !preferred
     ? `Verification failed: proposed change does not make ${targetRestaurantName} preferred.`
@@ -979,7 +1032,9 @@ const verifyMinimalChangeInternal = (input: {
     ? "Verification failed: found a smaller change that also makes the target preferred."
     : mode === "prove_minimal"
     ? "Verification incomplete: minimality could not be proven within search limits."
-    : "Verification failed: claimed winners/score did not match the computed result.";
+    : claimedOk
+    ? `Verification failed: proposed change does not make ${targetRestaurantName} preferred.`
+    : `The proposed change was simulated; computed result differs from claim. ${targetRestaurantName} is ${soleOrTie}.`;
 
   return {
     success: ok,
@@ -1019,7 +1074,7 @@ export async function POST(req: Request) {
   const requestStart = Date.now();
   console.log("⏱ route_start_iso:", new Date(requestStart).toISOString());
   const { messages } = await req.json();
-  const context = messages[messages.length - 1].metadata?.context;
+  const context = messages[messages.length - 1]?.metadata?.context;
 
   // Parse and validate context for this request
   let currentContext: z.infer<typeof RestaurantRecommendationDataSchema> | null = null;
@@ -1041,55 +1096,81 @@ export async function POST(req: Request) {
     APP,
   }[currentContext?.strategy || "LMS"];
 
+  const recentUserQueries = messages
+    .filter((m: Record<string, unknown>) => m?.role === "user")
+    .slice(-3)
+    .map((m: Record<string, unknown>) => {
+      if (typeof m.content === "string") {
+        return m.content;
+      }
+      if (Array.isArray(m.parts)) {
+        return m.parts
+          .map((part) => {
+            if (part && typeof part === "object" && part.type === "text") {
+              return typeof part.text === "string" ? part.text : "";
+            }
+            return "";
+          })
+          .join(" ")
+          .trim();
+      }
+      return "";
+    })
+    .filter((query: string) => query.length > 0);
+
+  const suggestionInstruction = buildSuggestionInstructionBlock({
+    context: currentContext,
+    recentUserQueries,
+  });
+
   const systemPrompt = `You are a concise assistant for restaurant recommendation explanations.
 
 Scope:
 - Only answer questions about restaurant recommendations, ratings, and group decision-making in this context.
-- Refuse unrelated topics briefly.
+- If the user asks something outside this recommendation scenario, briefly refuse and redirect to in-scope questions.
 
 Output style:
 - Be brief and practical.
 - Never output chain-of-thought or hidden reasoning.
-- Never output XML/HTML-style wrappers or reasoning tags (for example: <reasoning>, <thinking>, <analysis>, <suggestions>).
+- Never output XML/HTML-style wrappers or reasoning tags (for example: <reasoning>, <thinking>, <analysis>).
 - Use plain text/Markdown only.
 
 Recommendation explanations:
 - Include rank and score when relevant.
 - Give a short strategy-specific explanation:
-  * Least Misery Strategy (LMS): "The score is X, because the lowest rating (given by {person(s) name(s)}) is X. All the other restaurants have at least one rating lower than X."
-  * Additive Strategy (ADD): "The total rating is X"
-  * Approval Voting Strategy (APP): "X users gave a score of 4 or more"
+  * Least Misery Strategy (LMS): Explain the score by stating the lowest rating and who gave it (e.g., "The score is X, since the lowest rating (given by Name) is X."). When explaining why a restaurant is not recommended, compare it to the recommended restaurant (e.g., "The lowest score of Rest Y is Z (given by Name), which makes it a better choice under the Least Misery Strategy.").
+  * Additive Strategy (ADD): State the total rating (e.g., "The total rating is X."). When explaining why a restaurant is not recommended, compare its total rating to the recommended restaurant's total rating.
+  * Approval Voting Strategy (APP): State the number of approvals (e.g., "X users gave a score of 4 or more."). When explaining why a restaurant is not recommended, compare its approval count to the recommended restaurant's approval count.
 - Mention the strategy name in full (e.g. "Least Misery Strategy" instead of "LMS")
 - Do not mention the abbreviated strategy name (e.g. "LMS" instead of "Least Misery")
 
 Counterfactual guidance:
 - Treat all suggested rating changes as hypothetical simulations only.
 - Do not imply any persistent write/update was performed in the real dataset.
-- For "how to make X preferred" or "what would need to happen to make X preferred", always propose concrete changes yourself. Never ask the user to specify which ratings to change—you must propose valid changes and verify them.
+- For "how to make X preferred" or "what would need to happen to make X preferred", always propose concrete changes yourself. Never ask the user to specify which ratings to change.
 - Only discuss minimality when explicitly requested (minimal/minimum/smallest).
 
 Verification rules:
-- For counterfactual claims, only make definitive statements from verification output.
-- Do not state numeric scores unless they appear in verification output.
-- If verification fails, state that it could not be verified.
-- Only claim minimality when verification explicitly proves it.
+- For counterfactual claims, call tools and base definitive statements on tool results.
+- Do not state numeric scores unless they come from context or tool outputs.
+- If tool verification fails, state that it could not be verified.
+- Only claim minimality when tool output explicitly proves it.
 - Never say "Verified" or "the answer is verified" in your response. Present only the factual answer (the proposed changes and their effect). Do not add verification labels or meta-statements.
 
-Tools:
-- get_restaurant_details: Use when the user asks for exact ratings, per-person ratings, rating breakdown, or individual scores for a specific restaurant.
-- verify_change: Use when you or the user propose specific rating changes (e.g. "Change Alex's rating for Rest 1 to 5") and you need to verify whether those changes would make the target restaurant preferred. Always call verify_change before stating that a proposed change would achieve a certain outcome. If you claim a resulting score or set of winners, pass claimedTargetScore and/or claimedWinners so the tool can verify they match the computed result. When reporting the result, always state whether the restaurant becomes solely preferred or tied with others (use computedWinners: one winner = sole, multiple = tie).
+Tool usage:
+- For explanation questions ("why is X recommended?", "what is the ranking?", "why is X not recommended?"), answer directly from the context data above. Do NOT call any tools.
+- Only call tools for counterfactual / what-if questions:
+  - find_changes_to_make_preferred: when the user asks "how to make X preferred" or "what needs to change".
+  - verify_change: when the user proposes specific rating edits and you need to verify the outcome.
+- get_restaurant_details is a fallback for when context data is missing. Do NOT call it if ratings and scores are already provided above.
 
 Response ending:
-- End with one short follow-up question.
-- Then add exactly two bullet suggestions in plain text (no wrapper tags).
-- Suggestions must stay within the currently fixed strategy only.
-- Never suggest changing strategy, comparing strategies, or using a different strategy name than the current one.
-- Follow-up suggestions must use only this strict schema (exact wording/punctuation):
+- End with a <suggestions> block containing exactly two bullet suggestions.
+- Suggestions must only use these exact forms:
   * "How to make rest X preferred?"
   * "Why is rest X not recommended?"
   * "What is the recommended restaurant order?"
-- Replace X with a concrete restaurant identifier from the current context.
-- Do not output any other suggestion phrasing.
+- Do not repeat the user's latest query verbatim.
 
 The system currently uses this aggregation strategy: ${strategy}
 Group members: ${currentContext?.people.map((p) => p.name).join(", ")}
@@ -1130,127 +1211,8 @@ ${currentContext.ratings
         .join(", ")}`
     : "No context data available."
 }
- `;
+ ${suggestionInstruction}`;
 
-  const baseScoresForPrompt = currentContext
-    ? computeGroupScores(
-        currentContext.ratings,
-        currentContext.strategy as AggregationStrategy
-      )
-    : [];
-  const baseWinnersForPrompt = currentContext
-    ? computeWinners({
-        restaurants: currentContext.restaurants,
-        groupScores: baseScoresForPrompt,
-      })
-    : { winnerIndices: [], winnerNames: [] };
-  const topScoreForPrompt =
-    baseWinnersForPrompt.winnerIndices.length > 0
-      ? baseScoresForPrompt[baseWinnersForPrompt.winnerIndices[0]]
-      : null;
-
-  const intentPrompt = `You are a request classifier and counterfactual proposal engine.
-
-Return ONLY valid JSON that matches this schema:
-{
-  "intent": "counterfactual" | "other",
-  "wantsMinimality"?: boolean,
-  "targetRestaurantName"?: string,
-  "proposedUpdates"?: Array<{
-    "personName": string,
-    "restaurantName": string,
-    "newRating": number
-  }>,
-  "claimed"?: {
-    "winners"?: string[],
-    "targetScore"?: number
-  }
-}
-
-Classification rules:
-- intent = "counterfactual" if the user asks about hypothetical rating changes, \"what if\" scenarios, \"what would need to happen\", or how to make a restaurant preferred/top.
-- intent = "other" otherwise.
-- wantsMinimality = true ONLY if the user explicitly asks for minimal/minimum/smallest change.
-- Return JSON only, with no markdown and no reasoning text.
-
-If intent = "counterfactual":
-- Provide targetRestaurantName (extract from the query, e.g. \"Rest 1\" from \"make rest 1 preferred\") and proposedUpdates that would make the target preferred.
-- Keep changes small when possible (few edits, small deltas) but correctness is required.
-- Use exact person and restaurant names from the context.
-- Only update restaurants that have NOT been visited.
-- Rating values must be integers between 1 and 5.
-- Goal: make the target's group score >= the current top score among unvisited restaurants (ties are OK).
-- proposedUpdates may be omitted if uncertain; correctness is more important than guessing.
-
-If intent = "other":
-- Leave targetRestaurantName and proposedUpdates empty/undefined.
-
-Context:
-Current winners (unvisited): ${baseWinnersForPrompt.winnerNames.join(", ")}
-Current top score (unvisited): ${topScoreForPrompt ?? "unknown"}
-Strategy: ${currentContext?.strategy ?? "unknown"}
-People: ${currentContext?.people.map((p) => p.name).join(", ")}
-Restaurants: ${currentContext?.restaurants.map((r) => r.name).join(", ")}
-Visited: ${currentContext?.restaurants
-    .filter((r) => r.visited)
-    .map((r) => r.name)
-    .join(", ")}
-Group scores: ${currentContext?.groupScores
-    .map((score, i) => `${currentContext!.restaurants[i].name}: ${score}`)
-    .join(", ")}`;
-
-  const lastMessage = messages[messages.length - 1] ?? {};
-  const lastUserText = extractMessageText(lastMessage);
-  const intentSchema: z.ZodType<CounterfactualIntentResult> = z.object({
-    intent: z.enum(["counterfactual", "other"]),
-    wantsMinimality: z.boolean().optional(),
-    targetRestaurantName: z.string().optional(),
-    proposedUpdates: z
-      .array(
-        z.object({
-          personName: z.string(),
-          restaurantName: z.string(),
-          newRating: z.number().int().min(1).max(5),
-        })
-      )
-      .optional(),
-    claimed: z
-      .object({
-        winners: z.array(z.string()).optional(),
-        targetScore: z.number().optional(),
-      })
-      .optional(),
-  });
-
-  const intentStart = Date.now();
-  const intentModel = process.env.INTENT_LLM || "";
-  const intentSystem = `${intentPrompt}\n\nUser message:\n${lastUserText}`;
-  const intentMessages = convertToModelMessages(messages);
-  console.log("⏱ intent_debug:", {
-    source: "llm",
-    model: intentModel,
-    messagesCount: intentMessages.length,
-    systemChars: intentSystem.length,
-    userChars: lastUserText.length,
-    hasContext: !!currentContext,
-  });
-  const intentResult = await generateObject({
-    model: getModel(intentModel, "llama-3.1-8b-instruct", { forStructuredOutput: true }),
-    messages: intentMessages,
-    system: intentSystem,
-    schema: intentSchema,
-  });
-  console.log("⏱ intent_classification_ms:", Date.now() - intentStart);
-  console.log("📊 intent_tokens:", {
-    inputTokens: intentResult.usage?.inputTokens,
-    outputTokens: intentResult.usage?.outputTokens,
-    totalTokens: intentResult.usage?.totalTokens,
-  });
-  const intentData = intentResult.object;
-  const isCounterfactual = intentData.intent === "counterfactual";
-  const wantMinimalityProof = intentData.wantsMinimality === true;
-
-  const restaurantTools = buildRestaurantTools(currentContext);
   const logTokenUsage = (
     source: string,
     usage:
@@ -1274,121 +1236,15 @@ Group scores: ${currentContext?.groupScores
     }
   };
 
-  if (isCounterfactual && currentContext && !intentData.targetRestaurantName) {
-    const clarificationBlock =
-      "\n\nIMPORTANT: The user asked a counterfactual question, but the target restaurant or change is unclear. Ask them to specify which restaurant should be preferred and which ratings to adjust.";
-    const result = streamText({
-      model: getModel(process.env.THINKING_LLM || ""),
-      messages: convertToModelMessages(messages),
-      system: `${systemPrompt}${clarificationBlock}`,
-      ...(restaurantTools && { tools: restaurantTools, maxSteps: 5 }),
-      onFinish: ({ totalUsage }) => {
-        console.log("⏱ response_stream_end_iso:", new Date().toISOString());
-        logTokenUsage("clarification", totalUsage);
-      },
-    });
-    return result.toUIMessageStreamResponse();
-  }
-
-  if (isCounterfactual && currentContext && intentData.targetRestaurantName) {
-    // Short feedback loop:
-    // 1) Verify model proposal when present.
-    // 2) If verify_only fails, retry once with deterministic fallback updates.
-    // This avoids verifying empty/non-actionable proposals and prevents wasted retries.
-    const proposalAttempts: Array<{
-      label: "model" | "fallback";
-      proposedUpdates: ProposedUpdate[];
-      claimed?: ProposedClaimed;
-      mode: VerificationMode;
-    }> = [];
-    if ((intentData.proposedUpdates?.length ?? 0) > 0) {
-      proposalAttempts.push({
-        label: "model",
-        proposedUpdates: intentData.proposedUpdates ?? [],
-        claimed: intentData.claimed,
-        mode: wantMinimalityProof ? "prove_minimal" : "verify_only",
-      });
-    }
-    if (!wantMinimalityProof) {
-      proposalAttempts.push({
-        label: "fallback",
-        proposedUpdates: buildFallbackUpdates({
-          context: currentContext,
-          targetRestaurantName: intentData.targetRestaurantName,
-        }),
-        claimed: undefined,
-        mode: "verify_only",
-      });
-    }
-
-    let effectiveVerification: ReturnType<typeof verifyMinimalChangeInternal> | null = null;
-    for (const attempt of proposalAttempts) {
-      const verifyStart = Date.now();
-      const verification = verifyMinimalChangeInternal({
-        context: currentContext,
-        targetRestaurantName: intentData.targetRestaurantName,
-        proposedUpdates: attempt.proposedUpdates,
-        claimed: attempt.claimed,
-        search: DEFAULT_SEARCH_LIMITS,
-        mode: attempt.mode,
-      });
-      console.log(
-        `⏱ verification_ms (${attempt.label}):`,
-        Date.now() - verifyStart
-      );
-
-      effectiveVerification = verification;
-      if (verification.verification.ok) break;
-    }
-
-    if (!effectiveVerification) {
-      effectiveVerification = verifyMinimalChangeInternal({
-        context: currentContext,
-        targetRestaurantName: intentData.targetRestaurantName,
-        proposedUpdates: [],
-        claimed: undefined,
-        search: DEFAULT_SEARCH_LIMITS,
-        mode: wantMinimalityProof ? "prove_minimal" : "verify_only",
-      });
-    }
-
-    console.log(
-      "🔎 Verification result:",
-      JSON.stringify(effectiveVerification.verification)
-    );
-
-    const verificationBlock = `\n\nVERIFICATION_RESULT_JSON:\n${JSON.stringify(
-      effectiveVerification.verification,
-      null,
-      2
-    )}\n\nFINAL ANSWER RULES:\n- Base definitive counterfactual claims only on verification.ok = true.\n- Treat changes as hypothetical simulations; do not claim persistent data updates.\n- Present the proposed changes from verification.computed.appliedUpdates. Never ask the user to specify which ratings to change—you must propose and state the changes.\n- Do not output chain-of-thought/reasoning tags or XML-like wrappers.\n- Do not state numeric scores unless they appear in VERIFICATION_RESULT_JSON.\n- If verification.mode is \"verify_only\", do NOT discuss minimality.\n- Explicitly state whether the change makes the restaurant solely preferred or tied with others, using verification.computed.winners (one winner = sole, multiple = tie).\n- Never say \"Verified\" or \"the answer is verified\". Present only the factual answer (the proposed changes and their effect).\n- Keep follow-up suggestions within the currently fixed strategy only; do not suggest switching/comparing strategies.\n- Follow-up suggestions must only use: \"How to make rest X preferred?\", \"Why is rest X not recommended?\", or \"What is the recommended restaurant order?\" (replace X with a concrete restaurant in context).\n- If verification.ok is false, say it could not be verified and avoid definitive claims.`;
-
-    const result = streamText({
-      model: getModel(process.env.THINKING_LLM || ""),
-      messages: convertToModelMessages(messages),
-      system: `${systemPrompt}${verificationBlock}`,
-      ...(restaurantTools && { tools: restaurantTools, maxSteps: 5 }),
-      onFinish: ({ totalUsage, toolCalls }) => {
-        console.log("⏱ response_stream_end_iso:", new Date().toISOString());
-        logTokenUsage("counterfactual", totalUsage);
-        if (toolCalls && toolCalls.length > 0) {
-          console.log("🧰 Tool calls in response:", toolCalls.map((tc) => tc.toolName));
-        }
-      },
-    });
-    console.log("⏱ counterfactual_total_ms:", Date.now() - requestStart);
-
-    return result.toUIMessageStreamResponse();
-  }
-
+  const tools = buildRestaurantTools(currentContext);
   const result = streamText({
-    model: getModel(process.env.THINKING_LLM || ""), //google("gemini-2.5-flash"),
+    model: getModel(process.env.THINKING_LLM || ""),
     messages: convertToModelMessages(messages),
     system: systemPrompt,
-    ...(restaurantTools && { tools: restaurantTools, maxSteps: 5 }),
+    ...(tools ? { tools, stopWhen: stepCountIs(3) } : {}),
     onFinish: ({ totalUsage, toolCalls }) => {
       console.log("⏱ response_stream_end_iso:", new Date().toISOString());
-      logTokenUsage("default", totalUsage);
+      logTokenUsage("single_path", totalUsage);
       if (toolCalls && toolCalls.length > 0) {
         console.log("🧰 Tool calls in response:", toolCalls.map((tc) => tc.toolName));
       }

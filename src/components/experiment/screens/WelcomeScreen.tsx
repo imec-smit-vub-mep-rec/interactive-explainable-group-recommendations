@@ -176,7 +176,7 @@ export function WelcomeScreen({
           The procedure involves evaluating several depicted scenarios and answering to a survey. You will be asked to optionally provide demographic info (age group and gender). These are only collected for representativeness check, and not used for further analyses. No further personal data will be stored.
           You will be asked to interact with a group recommendation system and answer questions about it.
           You will be asked to answer approximately 10 questions about the system, and 5 questions about your experience with the system.
-          The whole experiment should have a duration of about 15-20 minutes.
+          The whole experiment should have a duration of about 20-30 minutes.
         </p>
         <p className="text-gray-700 leading-relaxed">
           If you have any question about the research study, please contact Ulysse Maes (<a href="mailto:ulysse.jan.l.maes@vub.be" className="text-blue-600 hover:underline">ulysse.jan.l.maes@vub.be</a>), Cedric Waterschoot (<a href="mailto:cedric.waterschoot@maastrichtuniversity.nl" className="text-blue-600 hover:underline">cedric.waterschoot@maastrichtuniversity.nl</a>) or Francesco Barile (<a href="mailto:f.barile@maastrichtuniversity.nl" className="text-blue-600 hover:underline">f.barile@maastrichtuniversity.nl</a>).
