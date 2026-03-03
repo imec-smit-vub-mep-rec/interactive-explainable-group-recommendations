@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SCREENS, SCREEN_NAMES, STORAGE_KEYS, TOTAL_SCREENS } from '@/lib/experiment-utils';
 import { ProgressTracker } from '@/components/survey/ProgressTracker';
 
@@ -68,6 +68,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
   const [screenStartTime, setScreenStartTime] = useState<string>(new Date().toISOString());
   const [currentInteractions, setCurrentInteractions] = useState<InteractionEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const isNavigatingRef = useRef(false);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
@@ -199,9 +200,11 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
   // Navigate to next screen
   const goToNextScreen = useCallback(async () => {
     if (currentScreen >= TOTAL_SCREENS - 1) return;
-    
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
     setIsLoading(true);
-    
+
+    try {
     // Save screen timing if session exists
     if (session) {
       const screenTiming: ScreenTiming = {
@@ -240,6 +243,9 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
       // No session yet, just move to next screen
       setCurrentScreen(prev => prev + 1);
       setIsLoading(false);
+    }
+    } finally {
+      isNavigatingRef.current = false;
     }
   }, [currentScreen, screenStartTime, currentInteractions, session]);
 

@@ -1,11 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { NavigationButtons } from '../NavigationButtons';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { InteractionEvent } from '@/lib/db';
 import type { SessionData } from '../ExperimentFlow';
+import type { ExplanationModality } from '@/lib/db';
+
+import screenshotNoExpl from '@/lib/images/screenshots_with_regions/0_no_explanation.png';
+import screenshotStaticList from '@/lib/images/screenshots_with_regions/1_static_list.png';
+import screenshotInteractiveList from '@/lib/images/screenshots_with_regions/2_interactive_list.png';
+import screenshotInteractiveGraph from '@/lib/images/screenshots_with_regions/3_interactive_graph.png';
+import screenshotConversational from '@/lib/images/screenshots_with_regions/4_conversational.png';
+
+const SCREENSHOT_BY_MODALITY: Record<ExplanationModality, typeof screenshotNoExpl> = {
+  no_expl: screenshotNoExpl,
+  static_list: screenshotStaticList,
+  interactive_list: screenshotInteractiveList,
+  conversational: screenshotConversational,
+  interactive_graph: screenshotInteractiveGraph,
+};
 
 interface FeedbackScreenProps {
   session: SessionData;
@@ -74,6 +90,9 @@ export function FeedbackScreen({
         </h1>
         <p className="text-gray-600">
           Do you have any additional feedback about the experiment? This is optional but we appreciate any comments you may have.
+          <br />
+          To remind you about the experiment, you can find a screenshot below.
+          Different regions of the screenshot have been marked so that you can easily reference them (i.e., &quot;Region B was confusing for me, because...&quot;)
         </p>
       </div>
 
@@ -94,6 +113,26 @@ export function FeedbackScreen({
         </p>
       </div>
 
+      {/* Screenshot */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <Image
+          src={SCREENSHOT_BY_MODALITY[session.explanationModality]}
+          alt="Experiment Screenshot"
+          className="w-full h-auto"
+        />
+      </div>
+
+       {/* Suggestions */}
+       <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="font-medium text-gray-700 mb-2">Some things you might comment on:</h3>
+        <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+          <li>Was anything confusing or unclear?</li>
+          <li>How did you find the difficulty of the tasks?</li>
+          <li>Did the system work as you expected?</li>
+          <li>Any technical issues you encountered?</li>
+        </ul>
+      </div>
+
       {/* Reverse shibboleth (bot trap) */}
       <div className="space-y-2 bg-white">
         <Label htmlFor="reverse-shibboleth" className="text-white text-sm">
@@ -104,28 +143,12 @@ export function FeedbackScreen({
           value={reverseShibboleth}
           onChange={(e) => handleReverseShibbolethChange(e.target.value)}
           placeholder="FORTRAN function here..."
-          className="min-h-24 resize-y bg-white text-white border-white placeholder:text-white shadow-none"
+          className="min-h-2 resize-y bg-white text-white border-white placeholder:text-white shadow-none"
           style={{ resize: 'none' }}
         />
-        <button
-          type="button"
-          onClick={() => recordInteraction('click', { action: 'reverse_shibboleth_submit' })}
-          className="bg-white text-white border border-white px-3 py-1 rounded"
-        >
-          Submit
-        </button>
       </div>
 
-      {/* Suggestions */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-medium text-gray-700 mb-2">Some things you might comment on:</h3>
-        <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-          <li>Was anything confusing or unclear?</li>
-          <li>How did you find the difficulty of the tasks?</li>
-          <li>Did the system work as you expected?</li>
-          <li>Any technical issues you encountered?</li>
-        </ul>
-      </div>
+     
 
       {/* Navigation */}
       <NavigationButtons
