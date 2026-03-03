@@ -97,17 +97,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionRows = await sql<{
-      last_entry: Record<string, unknown> | null;
-      last_timestamp: string | null;
-    }>`
+    const sessionRows = (await sql`
       SELECT
         chat_logs->-1 AS last_entry,
         chat_logs->-1->>'timestamp' AS last_timestamp
       FROM experiment_sessions
       WHERE id = ${sessionId}
       LIMIT 1
-    `;
+    `) as { last_entry: Record<string, unknown> | null; last_timestamp: string | null }[];
     if (sessionRows.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Session not found' },
