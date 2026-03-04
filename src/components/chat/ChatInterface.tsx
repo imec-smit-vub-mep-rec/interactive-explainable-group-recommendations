@@ -29,6 +29,7 @@ type ChatMessage = {
   role: "system" | "user" | "assistant";
   parts?: Array<Record<string, unknown>>;
 };
+const FALLBACK_ASSISTANT_MESSAGE = "I'm sorry, I could not answer that question.";
 
 export type ChatInterfaceProps = {
   messages: ChatMessage[];
@@ -45,6 +46,8 @@ export type ChatInterfaceProps = {
   dataOnboardingConversation?: string;
   dataOnboardingPresets?: string;
   dataOnboardingInput?: string;
+  isConversationClosed?: boolean;
+  conversationClosedMessage?: string;
 };
 
 const escapeRegExp = (value: string) =>
@@ -80,6 +83,34 @@ const parseSuggestions = (
   );
 };
 
+const extractMessageText = (message: ChatMessage): string => {
+  if (!Array.isArray(message.parts)) return "";
+  return message.parts
+    .filter((part) => part.type === "text")
+    .map((part) =>
+      typeof part.text === "string" ? part.text : String(part.text || "")
+    )
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const isLikelyCounterfactualQuery = (query: string): boolean => {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return false;
+  return (
+    /(^| )what if( |$)/.test(normalized) ||
+    /(^| )how to make( |$)/.test(normalized) ||
+    /(^| )would need to change( |$)/.test(normalized) ||
+    /(^| )needs? to change( |$)/.test(normalized) ||
+    /(^| )update( |$)/.test(normalized) ||
+    /(^| )change( |$)/.test(normalized) ||
+    /(^| )set( |$)/.test(normalized) ||
+    /(^| )increase( |$)/.test(normalized) ||
+    /(^| )decrease( |$)/.test(normalized)
+  );
+};
+
 export const ChatInterface = ({
   messages,
   status,
@@ -95,6 +126,8 @@ export const ChatInterface = ({
   dataOnboardingConversation,
   dataOnboardingPresets,
   dataOnboardingInput,
+  isConversationClosed = false,
+  conversationClosedMessage = "This conversation is now closed after 15 questions.",
 }: ChatInterfaceProps) => {
   const excludedPresets = (excludedSuggestionRestaurants ?? []).filter(
     (name) => name.trim().length > 0
@@ -107,6 +140,12 @@ export const ChatInterface = ({
           containsRestaurantName(suggestion, name)
         );
       });
+  const lastMessage = messages[messages.length - 1];
+  const showCounterfactualFallback =
+    status === "ready" &&
+    !isConversationClosed &&
+    lastMessage?.role === "user" &&
+    isLikelyCounterfactualQuery(extractMessageText(lastMessage));
 
   return (
     <>
@@ -129,6 +168,7 @@ export const ChatInterface = ({
                       key={suggestion}
                       suggestion={suggestion}
                       onClick={onSuggestionClick}
+                      disabled={isConversationClosed}
                     />
                   ))}
                 </Suggestions>
@@ -177,7 +217,11 @@ export const ChatInterface = ({
                           : textContent;
                         return (
                           <div key={i}>
-                            <Response>{cleanText}</Response>
+                            <Response>
+                              {isAssistant && cleanText.length === 0
+                                ? FALLBACK_ASSISTANT_MESSAGE
+                                : cleanText}
+                            </Response>
                             {isAssistant && suggestions.length > 0 && (
                               <div className="mt-3">
                                 <Suggestions>
@@ -186,6 +230,7 @@ export const ChatInterface = ({
                                       key={`${message.id}-follow-up-${idx}`}
                                       suggestion={suggestion}
                                       onClick={onSuggestionClick}
+                                      disabled={isConversationClosed}
                                     />
                                   ))}
                                 </Suggestions>
@@ -437,7 +482,7 @@ export const ChatInterface = ({
             })
           )}
 
-          {status !== "ready" && (
+          {(status === "submitted" || status === "streaming") && (
             <Message from="assistant">
               <MessageAvatar
                 src="/assistant-avatar.png"
@@ -448,6 +493,36 @@ export const ChatInterface = ({
                   <Loader className="text-muted-foreground" size={16} />
                   <span>Thinking...</span>
                 </div>
+              </MessageContent>
+            </Message>
+          )}
+          {status === "error" && (
+            <Message from="assistant">
+              <MessageAvatar
+                src="/assistant-avatar.png"
+                name="A"
+              />
+              <MessageContent>
+                <Response>{FALLBACK_ASSISTANT_MESSAGE}</Response>
+              </MessageContent>
+            </Message>
+          )}
+          {showCounterfactualFallback && (
+            <Message from="assistant">
+              <MessageAvatar src="/assistant-avatar.png" name="A" />
+              <MessageContent>
+                <Response>{FALLBACK_ASSISTANT_MESSAGE}</Response>
+              </MessageContent>
+            </Message>
+          )}
+          {isConversationClosed && (
+            <Message from="assistant">
+              <MessageAvatar
+                src="/assistant-avatar.png"
+                name="A"
+              />
+              <MessageContent>
+                <Response>{conversationClosedMessage}</Response>
               </MessageContent>
             </Message>
           )}
@@ -462,10 +537,12 @@ export const ChatInterface = ({
                 value={input}
                 onChange={onInputChange}
                 placeholder="Ask anything about the restaurant recommendation. For example, 'What is the recommended restaurant order?', 'Why is Rest 1 recommended?', 'How to make Rest 2 preferred?'"
-                disabled={status !== "ready"}
+                disabled={status !== "ready" || isConversationClosed}
               />
               <div className="flex-shrink-0 h-full pr-2">
-                <PromptInputSubmit disabled={status !== "ready"} />
+                <PromptInputSubmit
+                  disabled={status !== "ready" || isConversationClosed}
+                />
               </div>
             </div>
           </PromptInputBody>

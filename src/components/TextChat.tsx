@@ -46,6 +46,9 @@ interface TextChatProps {
 
 // Max content length to avoid DB OOM (Neon has limited memory per request)
 const MAX_CONTENT_LENGTH = 32 * 1024; // 32KB - enough for explanations, prevents huge payloads
+const MAX_USER_MESSAGES = 15;
+const CONVERSATION_CLOSED_MESSAGE =
+  "This conversation is now closed after 15 questions.";
 
 // Build minimal metadata for logging - never include full tool results (ratings matrices, etc.)
 function sanitizeMetadata(
@@ -152,6 +155,8 @@ export default function TextChatWithTools({
       api: "/api/chat",
     }),
   });
+  const userMessageCount = messages.filter((message) => message.role === "user").length;
+  const isConversationClosed = userMessageCount >= MAX_USER_MESSAGES;
 
   // Log assistant responses when streaming completes (status: streaming/submitted -> ready)
   useEffect(() => {
@@ -366,6 +371,7 @@ export default function TextChatWithTools({
   const handleFormSubmit = (message: MessageInput, event: React.FormEvent) => {
     event.preventDefault();
     if (!input.trim()) return;
+    if (isConversationClosed) return;
 
     const submittedQuery = input.trim();
     console.log("📤 Sending message:", {
@@ -396,6 +402,7 @@ export default function TextChatWithTools({
   };
 
   const handleSuggestionClick = (suggestion: string) => {
+    if (isConversationClosed) return;
     console.log("💡 Suggestion clicked:", suggestion);
     setInput(suggestion);
     sendMessage({ text: suggestion, metadata: { context } });
@@ -439,6 +446,8 @@ export default function TextChatWithTools({
         dataOnboardingConversation="chat-interface"
         dataOnboardingPresets="presets"
         dataOnboardingInput="chat-input"
+        isConversationClosed={isConversationClosed}
+        conversationClosedMessage={CONVERSATION_CLOSED_MESSAGE}
       />
     </div>
   );

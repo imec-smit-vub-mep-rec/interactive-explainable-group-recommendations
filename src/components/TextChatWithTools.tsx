@@ -50,6 +50,9 @@ const suggestions = [
   "Set all of Alex's ratings to be at least 4",
   "What happens if I increase all ratings for Rest 2 by 1?",
 ];
+const MAX_USER_MESSAGES = 15;
+const CONVERSATION_CLOSED_MESSAGE =
+  "This conversation is now closed after 15 questions.";
 
 export default function TextChatWithTools({
   people,
@@ -99,6 +102,8 @@ export default function TextChatWithTools({
       api: "/api/chat",
     }),
   });
+  const userMessageCount = messages.filter((message) => message.role === "user").length;
+  const isConversationClosed = userMessageCount >= MAX_USER_MESSAGES;
 
   // Handle tool results and update parent component
   useEffect(() => {
@@ -323,6 +328,7 @@ export default function TextChatWithTools({
   const handleFormSubmit = (message: MessageInput, event: React.FormEvent) => {
     event.preventDefault();
     if (!input.trim()) return;
+    if (isConversationClosed) return;
     
     console.log('📤 Sending message:', {
       text: input,
@@ -345,6 +351,7 @@ export default function TextChatWithTools({
   };
 
   const handleSuggestionClick = (suggestion: string) => {
+    if (isConversationClosed) return;
     console.log('💡 Suggestion clicked:', suggestion);
     setInput(suggestion);
     sendMessage({ text: suggestion, metadata: { context } });
@@ -379,6 +386,8 @@ export default function TextChatWithTools({
         onSuggestionClick={handleSuggestionClick}
         excludedSuggestionRestaurants={excludedSuggestionRestaurants}
         conversationClassName="h-96 border rounded-lg"
+        isConversationClosed={isConversationClosed}
+        conversationClosedMessage={CONVERSATION_CLOSED_MESSAGE}
       />
     </div>
   );

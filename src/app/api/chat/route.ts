@@ -43,6 +43,14 @@ const getModel = (
   return provider.chatModel(modelId || defaultModel);
 };
 
+const getCounterfactualModel = () => {
+  const preferredModelId =
+    process.env.COUNTERFACTUAL_LLM ||
+    process.env.THINKING_LLM ||
+    "";
+  return getModel(preferredModelId, "openai/gpt-4o-mini");
+};
+
 // Define the data structures
 const PersonSchema = z.object({
   name: z.string(),
@@ -78,12 +86,40 @@ const DEFAULT_SEARCH_LIMITS: VerificationSearchLimits = {
   maxEditedCells: 5,
   timeLimitMs: 1500,
 };
+const MAX_USER_MESSAGES = 15;
+const FALLBACK_ANSWER = "I'm sorry, I could not answer that question.";
+const CONVERSATION_CLOSED_ANSWER =
+  "This conversation is now closed after 15 questions.";
 
 const normalizeName = (name: string) => name.trim().toLowerCase();
+const normalizePrompt = (text: string) =>
+  text
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[?.!]+$/, "");
+
+const isAllowedSuggestionForm = (normalizedPrompt: string) =>
+  /^how to make rest .+ preferred$/.test(normalizedPrompt) ||
+  /^why is rest .+ not recommended$/.test(normalizedPrompt) ||
+  normalizedPrompt === "what is the recommended restaurant order";
+const isLikelyCounterfactualQuery = (query: string) => {
+  const normalized = normalizePrompt(query);
+  return /(^| )what if( |$)/.test(normalized) ||
+    /(^| )how to make( |$)/.test(normalized) ||
+    /(^| )would need to change( |$)/.test(normalized) ||
+    /(^| )needs? to change( |$)/.test(normalized) ||
+    /(^| )update( |$)/.test(normalized) ||
+    /(^| )change( |$)/.test(normalized) ||
+    /(^| )set( |$)/.test(normalized) ||
+    /(^| )increase( |$)/.test(normalized) ||
+    /(^| )decrease( |$)/.test(normalized);
+};
 
 const buildSuggestionInstructionBlock = (input: {
   context: RecommendationContext | null;
   recentUserQueries: string[];
+  askedSuggestionPrompts: string[];
 }) => {
   const restaurantExamples = (input.context?.restaurants ?? [])
     .filter((r) => !r.visited)
@@ -92,6 +128,10 @@ const buildSuggestionInstructionBlock = (input: {
     .join(", ");
   const recentQueries = input.recentUserQueries
     .slice(-3)
+    .map((q) => `- ${q}`)
+    .join("\n");
+  const askedSuggestionPrompts = input.askedSuggestionPrompts
+    .slice(-20)
     .map((q) => `- ${q}`)
     .join("\n");
 
@@ -104,6 +144,9 @@ const buildSuggestionInstructionBlock = (input: {
 - Keep suggestions varied across turns.
 - Do not repeat any of these recent user queries verbatim:
 ${recentQueries || "- (none)"}
+- Do not output a suggestion if its normalized form was already asked by the user.
+- Already asked suggestion prompts (normalized):
+${askedSuggestionPrompts || "- (none)"}
 - Use concrete restaurants from current context when using X.
 - If possible, avoid proposing the same restaurant in both suggestions.
 - Example restaurant names available now: ${restaurantExamples || "Rest 1, Rest 2"}.
@@ -1073,17 +1116,60 @@ const verifyMinimalChangeInternal = (input: {
 export async function POST(req: Request) {
   const requestStart = Date.now();
   console.log("⏱ route_start_iso:", new Date(requestStart).toISOString());
-  const { messages } = await req.json();
-  const context = messages[messages.length - 1]?.metadata?.context;
+  const requestDebugId = `${requestStart}-${Math.random().toString(36).slice(2, 8)}`;
+  const body = await req.json();
+  const incomingMessages = Array.isArray(body?.messages)
+    ? body.messages
+    : [];
+  const lastIncomingMessage = incomingMessages[incomingMessages.length - 1] as
+    | { role?: unknown; metadata?: unknown }
+    | undefined;
+  const userMessageCount = incomingMessages.filter(
+    (message: { role?: unknown }) => message?.role === "user"
+  ).length;
+  console.log("🧪 chat_debug:request_received", {
+    requestDebugId,
+    totalMessages: incomingMessages.length,
+    userMessageCount,
+    lastMessageRole: lastIncomingMessage?.role ?? null,
+    lastMessageHasMetadata: Boolean(
+      lastIncomingMessage &&
+        typeof lastIncomingMessage === "object" &&
+        "metadata" in lastIncomingMessage
+    ),
+  });
+  if (userMessageCount > MAX_USER_MESSAGES) {
+    console.warn("🧪 chat_debug:conversation_closed", {
+      requestDebugId,
+      userMessageCount,
+      maxAllowed: MAX_USER_MESSAGES,
+    });
+    return Response.json({ error: CONVERSATION_CLOSED_ANSWER }, { status: 429 });
+  }
+  const messages = incomingMessages;
+  const context = (messages[messages.length - 1] as { metadata?: { context?: unknown } } | undefined)
+    ?.metadata?.context;
 
   // Parse and validate context for this request
   let currentContext: z.infer<typeof RestaurantRecommendationDataSchema> | null = null;
   if (context) {
     try {
       currentContext = RestaurantRecommendationDataSchema.parse(context);
+      console.log("🧪 chat_debug:context_parsed", {
+        requestDebugId,
+        peopleCount: currentContext.people.length,
+        restaurantCount: currentContext.restaurants.length,
+        strategy: currentContext.strategy,
+        recommendedCount: currentContext.recommendedRestaurantIndices.length,
+      });
     } catch (error) {
-      console.error("Invalid context provided:", error);
+      console.error("🧪 chat_debug:invalid_context", {
+        requestDebugId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
+  } else {
+    console.warn("🧪 chat_debug:missing_context", { requestDebugId });
   }
 
   const LMS =
@@ -1096,9 +1182,8 @@ export async function POST(req: Request) {
     APP,
   }[currentContext?.strategy || "LMS"];
 
-  const recentUserQueries = messages
+  const allUserQueries: string[] = messages
     .filter((m: Record<string, unknown>) => m?.role === "user")
-    .slice(-3)
     .map((m: Record<string, unknown>) => {
       if (typeof m.content === "string") {
         return m.content;
@@ -1117,10 +1202,29 @@ export async function POST(req: Request) {
       return "";
     })
     .filter((query: string) => query.length > 0);
+  const recentUserQueries = allUserQueries.slice(-3);
+  const latestUserQuery = allUserQueries[allUserQueries.length - 1] ?? "";
+  const isCounterfactualTurn = isLikelyCounterfactualQuery(latestUserQuery);
+  console.log("🧪 chat_debug:user_query_analysis", {
+    requestDebugId,
+    allUserQueriesCount: allUserQueries.length,
+    latestUserQuery,
+    isCounterfactualTurn,
+  });
+  const askedSuggestionPrompts: string[] = Array.from(
+    new Set<string>(
+      allUserQueries
+        .map((query: string) => normalizePrompt(query))
+        .filter(
+          (query: string) => query.length > 0 && isAllowedSuggestionForm(query)
+        )
+    )
+  );
 
   const suggestionInstruction = buildSuggestionInstructionBlock({
     context: currentContext,
     recentUserQueries,
+    askedSuggestionPrompts,
   });
 
   const systemPrompt = `You are a concise assistant for restaurant recommendation explanations.
@@ -1170,6 +1274,7 @@ Response ending:
   * "How to make rest X preferred?"
   * "Why is rest X not recommended?"
   * "What is the recommended restaurant order?"
+- Suggestions must be new in this conversation: do not output a suggestion that has already been asked by the user.
 - Do not repeat the user's latest query verbatim.
 
 The system currently uses this aggregation strategy: ${strategy}
@@ -1236,21 +1341,77 @@ ${currentContext.ratings
     }
   };
 
-  const tools = buildRestaurantTools(currentContext);
-  const result = streamText({
-    model: getModel(process.env.THINKING_LLM || ""),
-    messages: convertToModelMessages(messages),
-    system: systemPrompt,
-    ...(tools ? { tools, stopWhen: stepCountIs(3) } : {}),
-    onFinish: ({ totalUsage, toolCalls }) => {
-      console.log("⏱ response_stream_end_iso:", new Date().toISOString());
-      logTokenUsage("single_path", totalUsage);
-      if (toolCalls && toolCalls.length > 0) {
-        console.log("🧰 Tool calls in response:", toolCalls.map((tc) => tc.toolName));
-      }
-    },
-  });
-  console.log("⏱ request_total_ms:", Date.now() - requestStart);
+  try {
+    const tools = buildRestaurantTools(currentContext);
+    const selectedModel = isCounterfactualTurn
+      ? getCounterfactualModel()
+      : getModel(process.env.THINKING_LLM || "");
+    console.log("🧪 chat_debug:stream_start", {
+      requestDebugId,
+      hasTools: Boolean(tools),
+      toolNames: tools ? Object.keys(tools) : [],
+      isCounterfactualTurn,
+      modelPath: isCounterfactualTurn ? "counterfactual_model" : "default_model",
+    });
+    if (isCounterfactualTurn && !tools) {
+      console.warn(
+        "🧪 chat_debug:counterfactual_without_tools",
+        { requestDebugId, reason: "tools unavailable (likely missing/invalid context)" }
+      );
+    }
+    const result = streamText({
+      model: selectedModel,
+      messages: convertToModelMessages(
+        messages as Parameters<typeof convertToModelMessages>[0]
+      ),
+      system: systemPrompt,
+      ...(tools ? { tools, stopWhen: stepCountIs(6) } : {}),
+      onFinish: (finish) => {
+        const { totalUsage, toolCalls } = finish;
+        const outputTokens = totalUsage?.outputTokens ?? 0;
+        console.log("⏱ response_stream_end_iso:", new Date().toISOString());
+        logTokenUsage("single_path", totalUsage);
+        console.log("🧪 chat_debug:stream_finish", {
+          requestDebugId,
+          outputTokens,
+          toolCallCount: toolCalls?.length ?? 0,
+          finishKeys: Object.keys(finish as Record<string, unknown>),
+          elapsedMs: Date.now() - requestStart,
+          isCounterfactualTurn,
+        });
+        if (outputTokens === 0) {
+          console.warn("🧪 chat_debug:empty_completion", {
+            requestDebugId,
+            latestUserQuery,
+            toolCallCount: toolCalls?.length ?? 0,
+            hasTools: Boolean(tools),
+          });
+        }
+        if (toolCalls && toolCalls.length > 0) {
+          console.log("🧰 Tool calls in response:", toolCalls.map((tc) => tc.toolName));
+        }
+      },
+    });
+    console.log("⏱ request_total_ms:", Date.now() - requestStart);
 
-  return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      onError: (error) => {
+        console.error("❌ stream_error:", {
+          requestDebugId,
+          latestUserQuery,
+          isCounterfactualTurn,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return FALLBACK_ANSWER;
+      },
+    });
+  } catch (error) {
+    console.error("❌ route_error:", {
+      requestDebugId,
+      latestUserQuery,
+      isCounterfactualTurn,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return Response.json({ error: FALLBACK_ANSWER }, { status: 500 });
+  }
 }
