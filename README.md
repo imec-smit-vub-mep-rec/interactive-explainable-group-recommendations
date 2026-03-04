@@ -83,6 +83,8 @@ LMS,interactive_graph,LMGR
 
    **LLM provider (chat explanations):**
    - `LLM_PROVIDER`: `'cerebras'` (default), `'scaleway'`, or `'requesty'`. Use `scaleway` for EU-hosted models (privacy).
+   - `THINKING_LLM`: Model IDs for intent classification and chat (e.g. `llama3.1-8b` for Cerebras, `llama-3.1-8b-instruct` for Scaleway, `openai/gpt-4o-mini` for Requesty).
+   - Note on intent: we could use an `INTENT_LLM`, but use a simple pattern matching approach for now.
    - For Scaleway: `SCALEWAY_API_KEY` (required when `LLM_PROVIDER=scaleway`).
    - For Requesty: `REQUESTY_API_KEY`, `REQUESTY_BASE_URL` (optional, defaults to `https://router.requesty.ai/v1`), `REQUESTY_MODEL` (optional default model).
 
