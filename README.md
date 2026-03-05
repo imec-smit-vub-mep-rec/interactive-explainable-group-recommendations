@@ -83,8 +83,7 @@ LMS,interactive_graph,LMGR
 
    **LLM provider (chat explanations):**
    - `LLM_PROVIDER`: `'cerebras'` (default), `'scaleway'`, or `'requesty'`. Use `scaleway` for EU-hosted models (privacy).
-   - `LLM_MODEL`: Model IDs for intent classification and chat (e.g. `llama3.1-8b` for Cerebras, `llama-3.1-8b-instruct` for Scaleway, `openai/gpt-4o-mini` for Requesty).
-   - Note on intent: we could use an `INTENT_LLM`, but use a simple pattern matching approach for now.
+   - `LLM_MODEL`: Model ID for the conversational chat (e.g. `llama3.1-8b` for Cerebras, `llama-3.1-8b-instruct` for Scaleway, `openai/gpt-4o-mini` for Requesty). A single model handles all question types.
    - For Scaleway: `SCALEWAY_API_KEY` (required when `LLM_PROVIDER=scaleway`).
    - For Requesty: `REQUESTY_API_KEY`, `REQUESTY_BASE_URL` (optional, defaults to `https://router.requesty.ai/v1`), `REQUESTY_MODEL` (optional default model).
 
@@ -97,6 +96,23 @@ LMS,interactive_graph,LMGR
 
 5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
+
+### Conversational chat (Chat API)
+
+The chat explanation uses a **single LLM** with no tool calling. The model answers directly from the context data (ratings, scores, strategy) injected into the system prompt.
+
+- **Architecture**: `POST /api/chat` calls `streamText` with the system prompt and conversation history. No tools, no intent detection, no separate counterfactual model.
+- **Model selection**: `LLM_MODEL` env var (or provider default) is used for all question types.
+- **Context**: Full ratings matrix, group scores, and strategy are included in every request via the last user message’s metadata.
+- **Message sanitization**: Consecutive user messages (e.g. after empty responses) are avoided by inserting placeholder assistant messages, preventing cascading empty completions.
+
+**Prompt behavior**:
+
+- **Score definition**: “Score” is the strategy score (LMS = min rating, ADD = sum, APP = approvals ≥ 4).
+- **Ranking format**: For “What is the recommended restaurant order?” and similar queries, the model must return a full ranking with:
+  - One line per score group (ties on the same line, comma-separated).
+  - Score and status tags (e.g. “recommended”, “already visited”) for each group.
+- **Counterfactuals**: For “how to make X preferred”, the model proposes concrete rating changes from the context data; no external verification.
 
 ## Running the experiment
 
@@ -283,7 +299,7 @@ src/
 - **InteractiveGroupRecommender**: Main application component
 - **SettingsSidebar**: Configuration panel
 - **Explanation Components**: Various visualization strategies
-- **AI Chat Integration**: Real-time conversational explanations
+- **AI Chat Integration** (`api/chat`): Single-LLM conversational explanations; no tool calling; context (ratings, scores) passed in the system prompt
 
 ## 🤝 Contributing
 
