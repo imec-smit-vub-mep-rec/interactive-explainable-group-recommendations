@@ -411,7 +411,7 @@ export default function InteractiveGroupRecommender({
             }}
           />
         );
-      case "interactive_graph":
+      case "interactive_bar_chart":
       case "graph_expl":
         return (
           <GraphExplanation
@@ -509,7 +509,7 @@ export default function InteractiveGroupRecommender({
             </thead>
             <tbody>
               {people.map((person, personIndex) => {
-                const usePersonTint = explanationStrategy === "interactive_graph";
+                const usePersonTint = explanationStrategy === "interactive_bar_chart";
                 const rowClassName = usePersonTint
                   ? ""
                   : personIndex % 2 === 0

@@ -48,7 +48,7 @@ export function NavigationButtons({
       </div>
 
       {/* Reset Button - Only show for interactive explanation methods */}
-      {(currentStep === "explore_explanation" || currentStep === "final_decision") && (explanationStrategy === "interactive_graph" ||
+      {(currentStep === "explore_explanation" || currentStep === "final_decision") && (explanationStrategy === "interactive_bar_chart" ||
 
         explanationStrategy === "pie_expl" ||
         explanationStrategy === "heatmap_expl" ||

@@ -157,7 +157,7 @@ export function TrainingScreen({
     setTaskStartTime(new Date().toISOString());
     setTaskInteractions([]);
     setTableRatingEdits(taskData?.interaction_table_rating_edits ?? 0);
-    setGraphRatingEdits(taskData?.interactive_graph_rating_edits ?? 0);
+    setGraphRatingEdits(taskData?.interactive_bar_chart_rating_edits ?? 0);
     setSuggestionsClicked(
       taskData?.interaction_query_submissions?.click_suggestion?.suggestions_clicked ?? []
     );
@@ -231,7 +231,7 @@ export function TrainingScreen({
       attentionCheckAnswer,
       interactions: taskInteractions,
       interaction_table_rating_edits: tableRatingEdits,
-      interactive_graph_rating_edits: graphRatingEdits,
+      interactive_bar_chart_rating_edits: graphRatingEdits,
       interaction_query_submissions: {
         click_suggestion: {
           count: suggestionsClicked.length,
@@ -403,7 +403,7 @@ export function TrainingScreen({
               strategy={aggregationStrategy}
               explanationStrategy="no_expl"
               sortBestToWorst={true}
-              fadeNonContributing={displayStrategy === "interactive_graph"}
+              fadeNonContributing={displayStrategy === "interactive_bar_chart"}
               scenario={currentScenario}
               hideExplanation={true}
             />
@@ -455,7 +455,7 @@ export function TrainingScreen({
               strategy={aggregationStrategy}
               explanationStrategy={displayStrategy}
               sortBestToWorst={true}
-              fadeNonContributing={displayStrategy === "interactive_graph"}
+              fadeNonContributing={displayStrategy === "interactive_bar_chart"}
               scenario={currentScenario}
               onResetRatingsRef={resetRatingsRef}
               onTableRatingChange={(event) => {
@@ -527,7 +527,7 @@ export function TrainingScreen({
               explanationStrategy={displayStrategy}
               hideExplanation={true}
               sortBestToWorst={true}
-              fadeNonContributing={displayStrategy === "interactive_graph"}
+              fadeNonContributing={displayStrategy === "interactive_bar_chart"}
               scenario={currentScenario}
               onResetRatingsRef={resetRatingsRef}
               onTableRatingChange={(event) => {

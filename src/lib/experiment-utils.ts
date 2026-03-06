@@ -8,17 +8,20 @@ export const GROUP_CODES: Record<string, { aggregationStrategy: AggregationStrat
   ADST: { aggregationStrategy: 'add', explanationModality: 'static_list' },
   ADIN: { aggregationStrategy: 'add', explanationModality: 'interactive_list' },
   ADCO: { aggregationStrategy: 'add', explanationModality: 'conversational' },
-  ADGR: { aggregationStrategy: 'add', explanationModality: 'interactive_graph' },
+  ADBC: { aggregationStrategy: 'add', explanationModality: 'interactive_bar_chart' },
+  ADGR: { aggregationStrategy: 'add', explanationModality: 'interactive_bar_chart' }, // deprecated
   APNO: { aggregationStrategy: 'app', explanationModality: 'no_expl' },
   APST: { aggregationStrategy: 'app', explanationModality: 'static_list' },
   APIN: { aggregationStrategy: 'app', explanationModality: 'interactive_list' },
   APCO: { aggregationStrategy: 'app', explanationModality: 'conversational' },
-  APGR: { aggregationStrategy: 'app', explanationModality: 'interactive_graph' },
+  APBC: { aggregationStrategy: 'app', explanationModality: 'interactive_bar_chart' },
+  APGR: { aggregationStrategy: 'app', explanationModality: 'interactive_bar_chart' }, // deprecated
   LMNO: { aggregationStrategy: 'lms', explanationModality: 'no_expl' },
   LMST: { aggregationStrategy: 'lms', explanationModality: 'static_list' },
   LMIN: { aggregationStrategy: 'lms', explanationModality: 'interactive_list' },
   LMCO: { aggregationStrategy: 'lms', explanationModality: 'conversational' },
-  LMGR: { aggregationStrategy: 'lms', explanationModality: 'interactive_graph' },
+  LMBC: { aggregationStrategy: 'lms', explanationModality: 'interactive_bar_chart' },
+  LMGR: { aggregationStrategy: 'lms', explanationModality: 'interactive_bar_chart' }, // deprecated
 };
 
 /**
@@ -37,7 +40,7 @@ export function generateSessionId(): string {
 
 // Get balanced assignment for explanation modality
 export async function getBalancedExplanationModality(): Promise<ExplanationModality> {
-  const modalities: ExplanationModality[] = ['no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_graph'];
+  const modalities: ExplanationModality[] = ['no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_bar_chart'];
   
   try {
     // Count sessions per modality

@@ -12,7 +12,7 @@ import type { ExplanationModality } from '@/lib/db';
 import screenshotNoExpl from '@/lib/images/screenshots_with_regions/0_no_explanation.png';
 import screenshotStaticList from '@/lib/images/screenshots_with_regions/1_static_list.png';
 import screenshotInteractiveList from '@/lib/images/screenshots_with_regions/2_interactive_list.png';
-import screenshotInteractiveGraph from '@/lib/images/screenshots_with_regions/3_interactive_graph.png';
+import screenshotInteractiveGraph from '@/lib/images/screenshots_with_regions/3_interactive_bar_chart.png';
 import screenshotConversational from '@/lib/images/screenshots_with_regions/4_conversational.png';
 
 const SCREENSHOT_BY_MODALITY: Record<ExplanationModality, typeof screenshotNoExpl> = {
@@ -20,7 +20,7 @@ const SCREENSHOT_BY_MODALITY: Record<ExplanationModality, typeof screenshotNoExp
   static_list: screenshotStaticList,
   interactive_list: screenshotInteractiveList,
   conversational: screenshotConversational,
-  interactive_graph: screenshotInteractiveGraph,
+  interactive_bar_chart: screenshotInteractiveGraph,
 };
 
 interface FeedbackScreenProps {

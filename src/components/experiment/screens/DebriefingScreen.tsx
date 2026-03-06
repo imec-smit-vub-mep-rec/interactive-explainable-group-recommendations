@@ -110,8 +110,8 @@ export function DebriefingScreen({
     // Add strategy-specific interaction metrics
     if (displayStrategy === 'interactive_list') {
       debriefingTaskData.interaction_table_rating_edits = tableRatingEdits;
-    } else if (displayStrategy === 'interactive_graph') {
-      debriefingTaskData.interactive_graph_rating_edits = graphRatingEdits;
+    } else if (displayStrategy === 'interactive_bar_chart') {
+      debriefingTaskData.interactive_bar_chart_rating_edits = graphRatingEdits;
     } else if (displayStrategy === 'conversational') {
       debriefingTaskData.interaction_query_submissions = {
         click_suggestion: {
@@ -169,7 +169,7 @@ export function DebriefingScreen({
           strategy={aggregationStrategy}
           explanationStrategy={displayStrategy}
           sortBestToWorst={true}
-          fadeNonContributing={displayStrategy === "interactive_graph"}
+          fadeNonContributing={displayStrategy === "interactive_bar_chart"}
           scenario={scenario}
           onTableRatingChange={(event) => {
             setTableRatingEdits(prev => prev + 1);

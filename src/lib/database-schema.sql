@@ -3,18 +3,18 @@
 
 -- Create enum types
 DO $$ BEGIN
-  CREATE TYPE explanation_modality_enum AS ENUM ('no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_graph');
+  CREATE TYPE explanation_modality_enum AS ENUM ('no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_graph', 'interactive_bar_chart'); -- interactive_graph is deprecated
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
--- Add 'interactive_graph' to existing enum if it doesn't exist (for existing databases)
+-- Add 'interactive_bar_chart' to existing enum if it doesn't exist (for existing databases)
 DO $$ 
 BEGIN
-  ALTER TYPE explanation_modality_enum ADD VALUE 'interactive_graph';
+  ALTER TYPE explanation_modality_enum ADD VALUE 'interactive_bar_chart';
 EXCEPTION
   WHEN duplicate_object THEN 
-    RAISE NOTICE 'Value interactive_graph already exists in explanation_modality_enum';
+    RAISE NOTICE 'Value interactive_bar_chart already exists in explanation_modality_enum';
 END $$;
 
 DO $$ BEGIN

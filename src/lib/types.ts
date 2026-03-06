@@ -3,7 +3,7 @@ export type ExplanationStrategy =
   | "static_list"
   | "interactive_list"
   | "conversational"
-  | "interactive_graph"
+  | "interactive_bar_chart"
   | "text_expl"
   | "chat_expl"
   | "chat_expl_basic"

@@ -12,17 +12,17 @@ ADD,no_explanation,ADNO
 ADD,static_list,ADST
 ADD,interactive_list,ADIN
 ADD,conversational,ADCO
-ADD,interactive_graph,ADGR
+ADD,interactive_bar_chart,ADBC (preferred) or ADGR (deprecated)
 APP,no_explanation,ADNO
 APP,static_list,APST
 APP,interactive_list,APIN
 APP,conversational,APCO
-APP,interactive_graph,APGR
+APP,interactive_bar_chart,APBC (preferred) or APGR (deprecated)
 LMS,no_explanation,LMNO
 LMS,static_list,LMST
 LMS,interactive_list,LMIN
 LMS,conversational,LMCO
-LMS,interactive_graph,LMGR
+LMS,interactive_bar_chart,LMBC (preferred) or LMGR (deprecated)
 
 ## 🚀 Features
 
@@ -183,7 +183,7 @@ flowchart TB
 
     SWITCH --> NOEXPL[NoExplanation]
     SWITCH --> OLIST[OrderedListExplanation<br/>static_list or interactive_list]
-    SWITCH --> GEXPL[GraphExplanation<br/>interactive_graph]
+    SWITCH --> GEXPL[GraphExplanation<br/>interactive_bar_chart]
     SWITCH --> CHAT[TextChat<br/>conversational]
     SWITCH --> OTHERS[Other modalities:<br/>TextExplanation PieExplanation Heatmap<br/>TextChatWithTools TextChatWithToolsGraph]
 

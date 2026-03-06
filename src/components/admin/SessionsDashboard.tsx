@@ -249,7 +249,7 @@ export default function SessionsDashboard() {
                   <SelectItem value="static_list">static_list</SelectItem>
                   <SelectItem value="interactive_list">interactive_list</SelectItem>
                   <SelectItem value="conversational">conversational</SelectItem>
-                  <SelectItem value="interactive_graph">interactive_graph</SelectItem>
+                  <SelectItem value="interactive_bar_chart">interactive_bar_chart</SelectItem>
                 </SelectContent>
               </Select>
             </div>

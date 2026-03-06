@@ -231,7 +231,7 @@ export const onboardingTours: Tour[] = [
     ],
   },
   {
-    tour: "interactive_graph",
+    tour: "interactive_bar_chart",
     steps: [
       {
         icon: null,
@@ -304,7 +304,7 @@ export function getTourForStrategy(
     "static_list",
     "interactive_list",
     "conversational",
-    "interactive_graph",
+    "interactive_bar_chart",
   ];
   return validTours.includes(strategy) ? strategy : null;
 }

@@ -53,7 +53,7 @@ if (typeof window === 'undefined') {
 export { sql };
 
 // Type definitions for database operations
-export type ExplanationModality = 'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_graph';
+export type ExplanationModality = 'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_bar_chart';
 export type AggregationStrategy = 'lms' | 'add' | 'app';
 export type Gender = 'male' | 'female' | 'other';
 
@@ -111,7 +111,7 @@ export interface TrainingTaskData {
   attentionCheckAnswer?: string | null;
   interactions: InteractionEvent[];
   interaction_table_rating_edits: number;
-  interactive_graph_rating_edits: number;
+  interactive_bar_chart_rating_edits: number;
   interaction_query_submissions: {
     click_suggestion: {
       count: number;
@@ -177,21 +177,21 @@ export async function runMigrations() {
   // Create enum types if they don't exist
   await sql`
     DO $$ BEGIN
-      CREATE TYPE explanation_modality_enum AS ENUM ('no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_graph');
+      CREATE TYPE explanation_modality_enum AS ENUM ('no_expl', 'static_list', 'interactive_list', 'conversational', 'interactive_bar_chart');
     EXCEPTION
       WHEN duplicate_object THEN null;
     END $$;
   `;
   
-  // Add 'interactive_graph' to existing enum if it doesn't exist (for existing databases)
+  // Add 'interactive_bar_chart' to existing enum if it doesn't exist (for existing databases)
   // This is a separate call because we can't have multiple commands in a prepared statement
   await sql`
     DO $$ 
     BEGIN
-      ALTER TYPE explanation_modality_enum ADD VALUE 'interactive_graph';
+      ALTER TYPE explanation_modality_enum ADD VALUE 'interactive_bar_chart';
     EXCEPTION
       WHEN duplicate_object THEN 
-        RAISE NOTICE 'Value interactive_graph already exists in explanation_modality_enum';
+        RAISE NOTICE 'Value interactive_bar_chart already exists in explanation_modality_enum';
     END $$;
   `;
 

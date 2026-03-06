@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 
 // Mock session data for preview
-function createMockSession(explanationModality: 'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_graph' = 'interactive_graph'): SessionData {
+function createMockSession(explanationModality: 'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_bar_chart' = 'interactive_bar_chart'): SessionData {
   return {
     id: 'preview-session-' + Date.now(),
     explanationModality,
@@ -33,7 +33,7 @@ function createMockSession(explanationModality: 'no_expl' | 'static_list' | 'int
         step3Answer: '4',
         interactions: [],
         interaction_table_rating_edits: 0,
-        interactive_graph_rating_edits: 0,
+        interactive_bar_chart_rating_edits: 0,
         interaction_query_submissions: {
           click_suggestion: {
             count: 0,
@@ -85,8 +85,8 @@ function createMockSession(explanationModality: 'no_expl' | 'static_list' | 'int
 
 export default function PreviewContent() {
   const [selectedScreen, setSelectedScreen] = useState<number>(SCREENS.WELCOME);
-  const [explanationModality, setExplanationModality] = useState<'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_graph'>('interactive_graph');
-  const [mockSession, setMockSession] = useState<SessionData>(() => createMockSession('interactive_graph'));
+  const [explanationModality, setExplanationModality] = useState<'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_bar_chart'>('interactive_bar_chart');
+  const [mockSession, setMockSession] = useState<SessionData>(() => createMockSession('interactive_bar_chart'));
 
   const handleScreenChange = (screenValue: string) => {
     const screenIndex = parseInt(screenValue);
@@ -99,7 +99,7 @@ export default function PreviewContent() {
   };
 
   const handleModalityChange = (modality: string) => {
-    const typedModality = modality as 'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_graph';
+    const typedModality = modality as 'no_expl' | 'static_list' | 'interactive_list' | 'conversational' | 'interactive_bar_chart';
     setExplanationModality(typedModality);
     setMockSession(createMockSession(typedModality));
   };
@@ -153,7 +153,7 @@ export default function PreviewContent() {
                   <SelectItem value="static_list">Static List</SelectItem>
                   <SelectItem value="interactive_list">Interactive List</SelectItem>
                   <SelectItem value="conversational">Conversational</SelectItem>
-                  <SelectItem value="interactive_graph">Interactive Graph</SelectItem>
+                  <SelectItem value="interactive_bar_chart">Interactive Graph</SelectItem>
                 </SelectContent>
               </Select>
             </div>
