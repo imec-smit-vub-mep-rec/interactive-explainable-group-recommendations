@@ -119,10 +119,12 @@ export function TrainingScreen({
     return createScenarioFromData(currentScenarioData);
   }, [currentScenarioData]);
 
-  // Get all restaurants for radio options, sorted by ID (1-10)
+  // Get restaurants for radio options (exclude visited), sorted by ID (1-10)
   const availableRestaurants = useMemo(() => {
     if (!currentScenario) return [];
-    return [...currentScenario.restaurants].sort((a, b) => a.id - b.id);
+    return [...currentScenario.restaurants]
+      .filter((r) => !r.visited)
+      .sort((a, b) => a.id - b.id);
   }, [currentScenario]);
 
   // Get visited restaurant names from previous_visits (zero-indexed → "Rest N")

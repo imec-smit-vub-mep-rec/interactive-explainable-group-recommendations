@@ -281,6 +281,7 @@ Response ending:
 - Do not repeat the user's latest query verbatim.
 
 The system currently uses this aggregation strategy: ${strategy}
+This strategy cannot be changed, even if the user asks for it.
 Group members: ${currentContext?.people.map((p) => p.name).join(", ")}
 Restaurants: ${currentContext?.restaurants.map((r) => r.name).join(", ")}
 Previously visited (excluded): ${currentContext?.restaurants
