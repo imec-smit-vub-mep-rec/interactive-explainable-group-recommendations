@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import type { InteractionEvent, ObjectiveTaskData } from '@/lib/db';
 import type { SessionData } from '../ExperimentFlow';
 import type { ExplanationStrategy, ScenarioQuestion, MultipleChoiceQuestion } from '@/lib/types';
+import { SCREENS } from '@/lib/experiment-utils';
 
 interface ObjectiveTestScreenProps {
   session: SessionData;
@@ -36,6 +37,7 @@ export function ObjectiveTestScreen({
   const [taskStartTime, setTaskStartTime] = useState<string>(new Date().toISOString());
   const [taskInteractions, setTaskInteractions] = useState<InteractionEvent[]>([]);
   const [showBreather, setShowBreather] = useState(false);
+  const [breatherStartTime, setBreatherStartTime] = useState<string | null>(null);
   
   // Attention check state (shown on 4th question, index 3)
   const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
@@ -146,6 +148,7 @@ export function ObjectiveTestScreen({
     await saveTaskData();
     
     if (currentTaskIndex === 2 && !showBreather) {
+      setBreatherStartTime(new Date().toISOString());
       setShowBreather(true);
       return;
     }
@@ -157,7 +160,22 @@ export function ObjectiveTestScreen({
     }
   };
 
-  const handleBreatherContinue = () => {
+  const handleBreatherContinue = async () => {
+    const endTime = new Date().toISOString();
+    const breatherTiming = {
+      screenIndex: SCREENS.OBJECTIVE_TEST,
+      screenName: 'breather',
+      startTime: breatherStartTime ?? endTime,
+      endTime,
+      interactions: [],
+    };
+    const updatedTimings = [...(session.screenTimings || []), breatherTiming];
+    try {
+      await saveAnswer('screen_timings', updatedTimings);
+      updateSessionData({ screenTimings: updatedTimings });
+    } catch (err) {
+      console.error('Failed to save breather timing:', err);
+    }
     setShowBreather(false);
     setCurrentTaskIndex(prev => prev + 1);
   };
