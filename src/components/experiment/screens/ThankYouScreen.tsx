@@ -114,6 +114,10 @@ export function ThankYouScreen({
           {/* Research Info */}
           <div className="text-sm text-gray-500 pt-4 border-t">
             <p>
+              You can view and download a full debriefing of your responses <a href="/debriefing_form.pdf" className="text-blue-600 hover:underline">here</a>.
+            </p>
+
+            <p>
               If you have any questions about this study, please contact the research team.
             </p>
           </div>

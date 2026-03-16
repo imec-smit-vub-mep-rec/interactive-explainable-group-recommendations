@@ -166,23 +166,25 @@ export function WelcomeScreen({
         <h2 className="text-xl font-semibold text-gray-900">
           Informed Consent
         </h2>
+        
         <p className="text-gray-700 leading-relaxed">
-          The purpose of this study is to analyse different ways to present group recommendations to users. The study is conducted by Ulysse Maes (Doctoral Researcher at IMEC-SMIT, Vrije Universiteit Brussel), Cedric Waterschoot (Postdoctoral Researcher at Maastricht University, DACS) and Francesco Barile (Assistant Professor at Maastricht University, DACS).
+          <strong>About the Study:</strong> The purpose of this study is to analyse different ways to present group recommendations to users.
         </p>
+
         <p className="text-gray-700 leading-relaxed">
-          Your participation in this research study is voluntary. You may choose not to participate. If you decide to participate in this research survey, you may withdraw at any time. If you do not complete the survey, we will treat it as a withdrawal and your answers thus far will not be used.
+          <strong>Procedure:</strong> During this 20-30 minute experiment, you will interact with a group recommendation system and evaluate several depicted scenarios. You might also interact with a chatbot. You will be asked to answer approximately 10 questions about the system itself, and 5 questions about your personal experience using it.
         </p>
+
         <p className="text-gray-700 leading-relaxed">
-          The procedure involves evaluating several depicted scenarios and answering to a survey. You will be asked to optionally provide demographic info (age group and gender). These are only collected for representativeness check, and not used for further analyses. No further personal data will be stored.
-          You will be asked to interact with a group recommendation system and answer questions about it.
-          You will be asked to answer approximately 10 questions about the system, and 5 questions about your experience with the system.
-          The whole experiment should have a duration of about 20-30 minutes.
+          <strong>Data & Privacy:</strong> You will be asked to optionally provide demographic info (age group and gender), which is collected solely for representativeness checks. Chatbot conversations will be logged strictly for research purposes related to this study and will not be used to train AI models. All data collected will remain anonymous, securely stored, and no further personal data will be retained.
         </p>
+
         <p className="text-gray-700 leading-relaxed">
-          If you have any question about the research study, please contact Ulysse Maes (<a href="mailto:ulysse.jan.l.maes@vub.be" className="text-blue-600 hover:underline">ulysse.jan.l.maes@vub.be</a>), Cedric Waterschoot (<a href="mailto:cedric.waterschoot@maastrichtuniversity.nl" className="text-blue-600 hover:underline">cedric.waterschoot@maastrichtuniversity.nl</a>) or Francesco Barile (<a href="mailto:f.barile@maastrichtuniversity.nl" className="text-blue-600 hover:underline">f.barile@maastrichtuniversity.nl</a>).
+          <strong>Voluntary Participation:</strong> Your participation in this research study is completely voluntary. You may choose not to participate or withdraw at any time. If you do not complete the survey, we will treat it as a withdrawal and your answers thus far will not be used.
         </p>
+
         <p className="text-gray-700 leading-relaxed">
-          This research has been reviewed by Ethics Review Committee Inner City faculties (ERCIC) of Maastricht University.
+          <strong>Contact & Ethics:</strong> This research has been reviewed by the Ethics Review Committee Inner City faculties (ERCIC) of Maastricht University. If you have any questions about the research study, please contact Ulysse Maes (<a href="mailto:ulysse.jan.l.maes@vub.be" className="text-blue-600 hover:underline">ulysse.jan.l.maes@vub.be</a>), Cedric Waterschoot (<a href="mailto:cedric.waterschoot@maastrichtuniversity.nl" className="text-blue-600 hover:underline">cedric.waterschoot@maastrichtuniversity.nl</a>), or Francesco Barile (<a href="mailto:f.barile@maastrichtuniversity.nl" className="text-blue-600 hover:underline">f.barile@maastrichtuniversity.nl</a>).
         </p>
       </div>
 
