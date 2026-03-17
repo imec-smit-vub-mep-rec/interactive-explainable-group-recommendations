@@ -114,6 +114,11 @@ ${askedSuggestionPrompts || "- (none)"}
 `;
 };
 
+const buildPeopleIndexMapping = (context: RecommendationContext | null): string =>
+  context?.people
+    .map((person, index) => `p${index}=${person.name}`)
+    .join(", ") ?? "";
+
 export async function POST(req: Request) {
   const requestStart = Date.now();
   console.log("⏱ route_start_iso:", new Date(requestStart).toISOString());
@@ -225,6 +230,7 @@ export async function POST(req: Request) {
     recentUserQueries,
     askedSuggestionPrompts,
   });
+  const peopleIndexMapping = buildPeopleIndexMapping(currentContext);
 
   const systemPrompt = `You are a concise assistant for restaurant recommendation explanations.
 
@@ -283,6 +289,7 @@ Response ending:
 The system currently uses this aggregation strategy: ${strategy}
 This strategy cannot be changed, even if the user asks for it.
 Group members: ${currentContext?.people.map((p) => p.name).join(", ")}
+Person index mapping (used in questions/options): ${peopleIndexMapping || "unavailable"}
 Restaurants: ${currentContext?.restaurants.map((r) => r.name).join(", ")}
 Previously visited (excluded): ${currentContext?.restaurants
     .filter((r) => r.visited)
@@ -294,6 +301,7 @@ ${
     ? `Current context data:
 - Strategy: ${currentContext.strategy}
 - People: ${currentContext.people.map((p) => p.name).join(", ")}
+- People with indices: ${peopleIndexMapping || "unavailable"}
 - Restaurants: ${currentContext.restaurants.map((r) => r.name).join(", ")}
 - Recommended restaurants: ${currentContext.recommendedRestaurantIndices
         .map((i) => currentContext!.restaurants[i].name)
@@ -311,7 +319,7 @@ ${currentContext.ratings
         return `${restaurantName}: ${rating}`;
       })
       .join(" | ");
-    return `${userName}: ${ratingsRow}`;
+    return `p${userIndex} (${userName}): ${ratingsRow}`;
   })
   .join("\n")}
 

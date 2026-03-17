@@ -10,7 +10,7 @@ import OrderedListExplanation from "./OrderedListExplanation";
 import TextChat, { type ChatLogEntry } from "./TextChat";
 import TextChatWithTools from "./TextChatWithTools";
 import TextChatWithToolsGraph from "./TextChatWithToolsGraph";
-import { Scenario, people, getVisitedOrder } from "@/lib/scenario_helpers";
+import { Scenario } from "@/lib/scenario_helpers";
 import { ExplanationStrategy } from "@/lib/types";
 import { RotateCcw } from "lucide-react";
 
@@ -58,6 +58,7 @@ export default function InteractiveGroupRecommender({
   onChatLogEntry,
 }: InteractiveGroupRecommenderProps) {
   const [ratings, setRatings] = useState<number[][]>(scenario.ratings);
+  const people = scenario.people;
 
   // Update ratings when scenario changes
   useEffect(() => {

@@ -5,7 +5,7 @@ import { NavigationButtons } from '../NavigationButtons';
 import InteractiveGroupRecommender from '@/components/InteractiveGroupRecommender';
 import { scenarios as allScenarios } from '@/lib/data/scenarios';
 import { questions } from '@/lib/data/questions';
-import { createScenarioFromData } from '@/lib/scenario_helpers';
+import { createScenarioFromData, resolvePeoplePlaceholders } from '@/lib/scenario_helpers';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -67,6 +67,7 @@ export function ObjectiveTestScreen({
 
   // Get current question
   const currentQuestion: ScenarioQuestion | undefined = currentScenarioData?.questions[0];
+  const currentPeopleNames = currentScenarioData?.people_names ?? [];
   
   // Show attention check on 4th question (index 3)
   const showAttentionCheck = currentTaskIndex === 3;
@@ -242,7 +243,7 @@ export function ObjectiveTestScreen({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
        
         <h3 className="font-medium text-blue-900 mb-3 text-sm">
-          {currentQuestion.text}
+          {resolvePeoplePlaceholders(currentQuestion.text, currentPeopleNames)}
         </h3>
         <p className="text-sm text-gray-600 mb-2 italic">
           Remember, they do not want to visit <strong>{visitedRestaurantNames}</strong> again.
@@ -260,7 +261,7 @@ export function ObjectiveTestScreen({
               <div key={choice.id} className="flex items-center space-x-3">
                 <RadioGroupItem value={choice.value} id={choice.id} />
                 <Label htmlFor={choice.id} className="cursor-pointer text-gray-700">
-                  {choice.text}
+                  {resolvePeoplePlaceholders(choice.text, currentPeopleNames)}
                 </Label>
               </div>
             ))}

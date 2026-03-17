@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { ChatInterface } from "@/components/chat/ChatInterface";
+import { resolvePeoplePlaceholders } from "@/lib/scenario_helpers";
 
 interface Person {
   name: string;
@@ -72,19 +73,19 @@ function sanitizeMetadata(
 }
 
 // Starter suggestions for users
-const suggestions = [
+const suggestionTemplates = [
   "Why was this restaurant recommended?",
   "How to make Rest 1 the top choice?",
   "What would need to change for Rest 3 to be preferred?",
   "Explain the current recommendation strategy",
   "Show me the individual ratings for the recommended restaurant",
   "Which person's rating has the most impact on the recommendation?",
-  "What if Alex's rating for Rest 4 increased to 5?",
-  "What if Darcy changed their rating for Rest 2 to 5?",
-  "Update Alex's rating for Rest 1 to 5",
-  "Change Darcy's rating for Rest 3 to 4",
-  "Change all Jackie's ratings to 3",
-  "Set all of Alex's ratings to be at least 4",
+  "What if {p1}'s rating for Rest 4 increased to 5?",
+  "What if {p0} changed their rating for Rest 2 to 5?",
+  "Update {p1}'s rating for Rest 1 to 5",
+  "Change {p0}'s rating for Rest 3 to 4",
+  "Change all {p3}'s ratings to 3",
+  "Set all of {p1}'s ratings to be at least 4",
   "What happens if I increase all ratings for Rest 2 by 1?",
 ];
 
@@ -102,6 +103,12 @@ export default function TextChatWithTools({
   onChatLogEntry,
 }: TextChatProps) {
   const [input, setInput] = useState("");
+  const suggestions = useMemo(() => {
+    const peopleNames = people.map((person) => person.name);
+    return suggestionTemplates.map((template) =>
+      resolvePeoplePlaceholders(template, peopleNames)
+    );
+  }, [people]);
   interface ToolResult {
     success: boolean;
     message?: string;

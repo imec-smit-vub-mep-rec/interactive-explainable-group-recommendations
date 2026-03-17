@@ -87,6 +87,7 @@ export type ScenarioType = "add" | "lms" | "app";
 export interface Scenario {
   id: string;
   type: ScenarioType;
+  people_names: string[]; // names of the people in the scenario
   ratings: number[][]; // 5x10 matrix: 5 users, 10 restaurants
   previous_visits: number[]; // index of each restaurant visited in the past, in order, calulcated depending on the strategy (top 3 descending)
   questions: ScenarioQuestion[]; // if no questions are provided, then this is a training scenario

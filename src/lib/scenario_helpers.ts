@@ -16,17 +16,46 @@ export interface Scenario {
   type: "add" | "lms" | "app";
   name: string;
   description: string;
+  people: Person[];
   ratings: number[][];
   restaurants: Restaurant[];
 }
 
-export const people: Person[] = [
-  { name: "Darcy", pattern: "solid", color: "#9333EA" },
-  { name: "Alex", pattern: "dotted", color: "#3B82F6" },
-  { name: "Jess", pattern: "horizontal", color: "#10B981" },
-  { name: "Jackie", pattern: "vertical", color: "#F59E0B" },
-  { name: "Freddy", pattern: "diagonal", color: "#EF4444" },
+const personStyles: Array<Pick<Person, "pattern" | "color">> = [
+  { pattern: "solid", color: "#9333EA" },
+  { pattern: "dotted", color: "#3B82F6" },
+  { pattern: "horizontal", color: "#10B981" },
+  { pattern: "vertical", color: "#F59E0B" },
+  { pattern: "diagonal", color: "#EF4444" },
 ];
+
+function getDefaultPeopleNames(count: number): string[] {
+  return Array.from({ length: count }, (_, index) => `Person ${index + 1}`);
+}
+
+export function createPeople(names: string[]): Person[] {
+  return names.map((name, index) => {
+    const style = personStyles[index % personStyles.length];
+    return {
+      name,
+      pattern: style.pattern,
+      color: style.color,
+    };
+  });
+}
+
+export function resolvePeoplePlaceholders(
+  text: string,
+  peopleNames: string[]
+): string {
+  return text.replace(/\{p(\d+)\}/g, (match, indexText) => {
+    const index = Number.parseInt(indexText, 10);
+    if (Number.isNaN(index)) {
+      return match;
+    }
+    return peopleNames[index] ?? match;
+  });
+}
 
 // Import the strategy-based scenarios
 import strategyScenarios from './strategy_scenarios';
@@ -34,17 +63,23 @@ import strategyScenarios from './strategy_scenarios';
 interface StrategyScenario {
   id: string;
   type: string;
+  people_names?: string[];
   ratings: number[][];
   restaurants: Restaurant[];
 }
 
 export const scenarios: Scenario[] = strategyScenarios.map((scenario: StrategyScenario) => {
   const scenarioType = scenario.type as "add" | "lms" | "app";
+  const peopleNames =
+    scenario.people_names && scenario.people_names.length > 0
+      ? scenario.people_names
+      : getDefaultPeopleNames(scenario.ratings.length);
   return {
     id: scenario.id,
     type: scenarioType,
     name: getScenarioName(scenario.id, scenario.type),
     description: getScenarioDescription(scenario.id, scenario.type),
+    people: createPeople(peopleNames),
     ratings: scenario.ratings,
     restaurants: scenario.restaurants
   };
@@ -117,6 +152,7 @@ export function createScenarioFromData(dataScenario: DataScenario): Scenario {
     type: dataScenario.type,
     name: getScenarioName(dataScenario.id, dataScenario.type),
     description: getScenarioDescription(dataScenario.id, dataScenario.type),
+    people: createPeople(dataScenario.people_names),
     ratings: dataScenario.ratings,
     restaurants,
   };
