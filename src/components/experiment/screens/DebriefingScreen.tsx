@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { NavigationButtons } from '../NavigationButtons';
 import InteractiveGroupRecommender from '@/components/InteractiveGroupRecommender';
-import { scenarios as allScenarios } from '@/lib/data/scenarios';
+import { scenarios as allScenarios } from '@/lib/data/test_scenarios';
 import { createScenarioFromData } from '@/lib/scenario_helpers';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';

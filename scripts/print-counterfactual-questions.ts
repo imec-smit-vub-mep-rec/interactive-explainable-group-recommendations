@@ -1,4 +1,4 @@
-import { scenarios } from "../src/lib/data/scenarios";
+import { scenarios } from "../src/lib/data/test_scenarios";
 import { resolvePeoplePlaceholders } from "../src/lib/scenario_helpers";
 
 function printCounterfactualQuestions(): void {

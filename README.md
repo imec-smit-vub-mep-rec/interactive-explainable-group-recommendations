@@ -7,6 +7,7 @@ A research application for studying interactive group recommendation systems wit
 This application simulates a group restaurant recommendation scenario where 5 people (Darcy, Alex, Jess, Jackie, and Freddy) rate restaurants on a 1-5 scale. The system then uses different ADDregation strategies to recommend the best restaurant for the group, with various explanation methods to help users understand the decision-making process.
 
 # Force bucket:
+
 Strategy,Modality,ID
 ADD,no_explanation,ADNO
 ADD,static_list,ADST
@@ -27,11 +28,13 @@ LMS,interactive_bar_chart,LMBC (preferred) or LMGR (deprecated)
 ## 🚀 Features
 
 ### ADDregation Strategies
+
 - **LMS (Least Misery Strategy)**: Minimizes the lowest rating among group members
 - **ADD (Additive Strategy)**: Maximizes the total rating sum across all group members
 - **APP (Approval Voting Strategy)**: Maximizes the number of ratings above 3
 
 ### Explanation Strategies
+
 - **No Explanation**: Simple recommendation without explanation
 - **Text Explanation**: Detailed textual explanation of the recommendation
 - **Chat Explanation**: Interactive AI-powered chat to answer questions about recommendations
@@ -41,6 +44,7 @@ LMS,interactive_bar_chart,LMBC (preferred) or LMGR (deprecated)
 - **Ordered List Explanation**: Ranked list with detailed breakdowns
 
 ### Interactive Features
+
 - **Real-time Rating Updates**: Modify ratings and see immediate impact on recommendations
 - **Scenario Management**: Switch between different pre-defined scenarios
 - **Sorting Options**: Sort restaurants from best to worst
@@ -61,18 +65,21 @@ LMS,interactive_bar_chart,LMBC (preferred) or LMGR (deprecated)
 ## 📦 Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd interactive-group-explanations
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Set up environment variables**
    Create a `.env.local` file in the root directory. Required variables include:
+
    ```env
    DATABASE_URL='postgresql://...'
    NEXT_PUBLIC_RECAPTCHA_SITE_KEY=...
@@ -84,12 +91,13 @@ LMS,interactive_bar_chart,LMBC (preferred) or LMGR (deprecated)
    **LLM provider (chat explanations):**
    - `LLM_PROVIDER`: `'cerebras'` (default), `'scaleway'`, or `'requesty'`. Use `scaleway` for EU-hosted models (privacy).
    - `LLM_MODEL`: Model ID for the conversational chat (e.g. `llama3.1-8b` for Cerebras, `llama-3.1-8b-instruct` for Scaleway, `openai/gpt-4o-mini` for Requesty). A single model handles all question types.
-   - For Scaleway: `SCALEWAY_API_KEY` (required when `LLM_PROVIDER=scaleway`).
-   - For Requesty: `REQUESTY_API_KEY`, `REQUESTY_BASE_URL` (optional, defaults to `https://router.requesty.ai/v1`), `REQUESTY_MODEL` (optional default model).
+   - For Scaleway: `LLM_API_KEY` (required when `LLM_PROVIDER=scaleway`).
+   - For Requesty: `REQUESTY_API_KEY`, `REQUESTY_BASE_URL` (optional, defaults to `https://router.requesty.ai/v1`), `LLM_MODEL` (optional default model).
 
    See the project for additional keys (API keys, admin password, etc.).
 
 4. **Run the development server**
+
    ```bash
    pnpm dev
    ```
@@ -222,6 +230,7 @@ For self-recruited or non-Prolific participants:
 ## 🎮 Usage
 
 ### Basic Workflow
+
 1. **Select Strategy**: Choose an ADDregation strategy (LMS, ADD, or APP) from the settings panel
 2. **Choose Explanation**: Select your preferred explanation method
 3. **Interact with Ratings**: Modify individual ratings in the table to see real-time updates
@@ -229,7 +238,9 @@ For self-recruited or non-Prolific participants:
 5. **Ask Questions**: In chat mode, ask the AI about the recommendations or simulate changes
 
 ### Settings Panel
+
 Access the settings panel by clicking the gear icon in the top-left corner:
+
 - **ADDregation Strategy**: Switch between LMS, ADD, and APP
 - **Explanation Strategy**: Choose from 7 different explanation methods
 - **Sort Best to Worst**: Enable/disable restaurant sorting
@@ -237,7 +248,9 @@ Access the settings panel by clicking the gear icon in the top-left corner:
 - **Scenario Selection**: Pick from pre-defined scenarios or get random ones
 
 ### URL Parameters
+
 You can link directly to specific scenarios using URL parameters:
+
 ```
 http://localhost:3000?scenario=add1
 ```
@@ -245,18 +258,22 @@ http://localhost:3000?scenario=add1
 ## 📊 Data Structure
 
 ### Scenarios
+
 The application includes numerous pre-defined scenarios optimized for different strategies:
+
 - **Additive scenarios**: Designed to showcase ADD strategy benefits
 - **LMS scenarios**: Optimized for Least Misery Strategy
 - **Approval Voting scenarios**: Tailored for APP strategy
 
 Each scenario includes:
+
 - 5 group members with distinct preferences
 - 10 restaurants (some previously visited)
 - Pre-defined rating matrices
 - Visit history and ordering
 
 ### Rating System
+
 - **Scale**: 1-5 (1 = strongly dislike, 5 = strongly like)
 - **Matrix**: 5 people × 10 restaurants
 - **Constraints**: Previously visited restaurants cannot be re-rated
@@ -264,6 +281,7 @@ Each scenario includes:
 ## 🔬 Research Applications
 
 This application is designed for research in:
+
 - **Group Decision Making**: Understanding how different ADDregation strategies affect outcomes
 - **Explanation Interfaces**: Comparing effectiveness of various explanation methods
 - **User Experience**: Studying how different visualizations impact user understanding
@@ -290,12 +308,14 @@ src/
 ## 🧪 Development
 
 ### Available Scripts
+
 - `pnpm dev`: Start development server with Turbopack
 - `pnpm build`: Build for production with Turbopack
 - `pnpm start`: Start production server
 - `pnpm lint`: Run ESLint
 
 ### Key Components
+
 - **InteractiveGroupRecommender**: Main application component
 - **SettingsSidebar**: Configuration panel
 - **Explanation Components**: Various visualization strategies
@@ -304,6 +324,7 @@ src/
 ## 🤝 Contributing
 
 This is a research project. For contributions:
+
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
@@ -317,6 +338,7 @@ This project is part of academic research. Please cite appropriately if used in 
 ## 🔗 Related Work
 
 This application supports research in:
+
 - Interactive Group Recommender Systems
 - Explanation Interfaces for AI Systems
 - User Experience in Decision Support Tools
@@ -324,4 +346,4 @@ This application supports research in:
 
 ---
 
-*Built for research in interactive group recommendation systems and explanation interfaces.*
+_Built for research in interactive group recommendation systems and explanation interfaces._

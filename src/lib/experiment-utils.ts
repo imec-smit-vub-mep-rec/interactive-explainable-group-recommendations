@@ -1,5 +1,5 @@
 import { sql, ExplanationModality, AggregationStrategy } from './db';
-import { scenarios } from './data/scenarios';
+import { scenarios } from './data/test_scenarios';
 import { Scenario } from './types';
 
 // Group code mapping: coded identifiers → (aggregationStrategy, explanationModality)

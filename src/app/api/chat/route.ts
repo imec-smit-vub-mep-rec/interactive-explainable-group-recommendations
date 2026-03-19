@@ -12,15 +12,15 @@ const isCerebras = LLM_PROVIDER === "cerebras";
 const isRequesty = LLM_PROVIDER === "requesty";
 
 const scalewayProvider = createOpenAICompatible({
-  baseURL: "https://api.scaleway.ai/v1",
+  baseURL: process.env.LLM_BASE_URL ?? "https://api.scaleway.ai/v1",
   name: "scaleway",
-  apiKey: process.env.SCALEWAY_API_KEY,
+  apiKey: process.env.LLM_API_KEY,
 });
 
 const requestyProvider = createOpenAICompatible({
-  baseURL: process.env.REQUESTY_BASE_URL ?? "https://router.requesty.ai/v1",
+  baseURL: process.env.LLM_BASE_URL ?? "https://router.requesty.ai/v1",
   name: "requesty",
-  apiKey: process.env.REQUESTY_API_KEY,
+  apiKey: process.env.LLM_API_KEY,
 });
 
 const getModel = (

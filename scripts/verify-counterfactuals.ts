@@ -1,4 +1,4 @@
-import { scenarios } from "../src/lib/data/scenarios";
+import { scenarios } from "../src/lib/data/test_scenarios";
 import { computeRestaurantScore } from "../src/lib/recommendation";
 
 type Strategy = "ADD" | "LMS" | "APP";
