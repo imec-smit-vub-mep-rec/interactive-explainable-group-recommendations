@@ -35,7 +35,6 @@ interface TextChatProps {
   originalRestaurants?: Restaurant[];
 }
 
-// Starter suggestions for users
 const suggestionTemplates = [
   "Why was this restaurant recommended?",
   "How to make Rest 1 the top choice?",
@@ -93,7 +92,6 @@ export default function TextChatWithTools({
   }
   const [lastToolResult, setLastToolResult] = useState<ToolResult | null>(null);
 
-  // Create context object
   const context = {
     people,
     restaurants,
@@ -112,7 +110,6 @@ export default function TextChatWithTools({
   const userMessageCount = messages.filter((message) => message.role === "user").length;
   const isConversationClosed = userMessageCount >= MAX_USER_MESSAGES;
 
-  // Handle tool results and update parent component
   useEffect(() => {
     console.log('🔍 TextChat useEffect triggered - messages length:', messages.length);
     

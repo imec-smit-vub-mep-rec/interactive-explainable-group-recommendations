@@ -38,26 +38,20 @@ export function ObjectiveTestScreen({
   const [taskInteractions, setTaskInteractions] = useState<InteractionEvent[]>([]);
   const [showBreather, setShowBreather] = useState(false);
   const [breatherStartTime, setBreatherStartTime] = useState<string | null>(null);
-  
-  // Attention check state (shown on 4th question, index 3)
   const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
-  
-  // Get test scenario IDs from session
+
   const testScenarioIds = session.testScenarioIds;
-  
-  // Get current scenario data
+
   const currentScenarioData = useMemo(() => {
     const scenarioId = testScenarioIds[currentTaskIndex];
     return allScenarios.find(s => s.id === scenarioId);
   }, [testScenarioIds, currentTaskIndex]);
-  
-  // Create scenario object for InteractiveGroupRecommender
+
   const currentScenario = useMemo(() => {
     if (!currentScenarioData) return null;
     return createScenarioFromData(currentScenarioData);
   }, [currentScenarioData]);
-  
-  // Get visited restaurant names from previous_visits (zero-indexed → "Rest N")
+
   const visitedRestaurantNames = useMemo(() => {
     if (!currentScenarioData) return "";
     return currentScenarioData.previous_visits
@@ -68,21 +62,15 @@ export function ObjectiveTestScreen({
   // Get current question
   const currentQuestion: ScenarioQuestion | undefined = currentScenarioData?.questions[0];
   const currentPeopleNames = currentScenarioData?.people_names ?? [];
-  
-  // Show attention check on 4th question (index 3)
   const showAttentionCheck = currentTaskIndex === 3;
-  
-  // Get attention check question from questions.ts
   const attentionCheckQuestion = questions.objective_attention_checks?.questions[0] as MultipleChoiceQuestion | undefined;
-  
-  // Strategy mapping
+
   const strategyMap: Record<string, 'LMS' | 'ADD' | 'APP'> = {
     lms: 'LMS',
     add: 'ADD',
     app: 'APP',
   };
-  
-  // Reset state when task changes
+
   useEffect(() => {
     const taskData = session.objectiveTasksData[currentTaskIndex];
     setSelectedAnswer(taskData?.userAnswer ?? null);
@@ -90,8 +78,7 @@ export function ObjectiveTestScreen({
     setTaskInteractions([]);
     setAttentionCheckAnswer(taskData?.attentionCheckAnswer ?? null);
   }, [currentTaskIndex, session.objectiveTasksData]);
-  
-  // Record task interaction
+
   const recordTaskInteraction = (type: InteractionEvent['type'], data: Record<string, unknown>) => {
     const interaction: InteractionEvent = {
       type,
@@ -101,15 +88,13 @@ export function ObjectiveTestScreen({
     setTaskInteractions(prev => [...prev, interaction]);
     recordInteraction(type, data);
   };
-  
-  // Check if answer is correct
+
   const checkAnswer = (answer: string): boolean => {
     if (!currentQuestion?.choices) return false;
     const selectedChoice = currentQuestion.choices.find(c => c.value === answer);
     return selectedChoice?.isCorrectAnswer === true;
   };
-  
-  // Save current task data
+
   const saveTaskData = async () => {
     if (!currentQuestion) return;
     
@@ -131,10 +116,9 @@ export function ObjectiveTestScreen({
     
     await saveAnswer('objective_understanding_tasks_data', updatedTasks);
     updateSessionData({ objectiveTasksData: updatedTasks });
-    
-    // Save attention check answer if shown on this question
+
     if (showAttentionCheck && attentionCheckAnswer !== null) {
-      const isCorrect = attentionCheckAnswer === '3'; // Restaurant 3 is the correct answer
+      const isCorrect = attentionCheckAnswer === '3';
       await saveAnswer('attn_check_2', {
         answer: attentionCheckAnswer,
         isCorrect,
@@ -142,8 +126,7 @@ export function ObjectiveTestScreen({
       });
     }
   };
-  
-  // Handle next task
+
   const handleNext = async () => {
     recordTaskInteraction('click', { action: 'submit_answer', answer: selectedAnswer });
     await saveTaskData();
@@ -180,16 +163,13 @@ export function ObjectiveTestScreen({
     setShowBreather(false);
     setCurrentTaskIndex(prev => prev + 1);
   };
-  
-  // Handle back navigation within test (no cross-screen back)
+
   const handleBack = () => {
     if (currentTaskIndex > 0) {
       setCurrentTaskIndex(prev => prev - 1);
     }
-    // At first question: no within-screen back, do nothing
   };
-  
-  // Check if can proceed (answer selected, and attention check if needed)
+
   const canProceed = selectedAnswer !== null && (!showAttentionCheck || attentionCheckAnswer !== null);
   
   if (showBreather) {
@@ -211,7 +191,6 @@ export function ObjectiveTestScreen({
     return <div>Loading scenario...</div>;
   }
 
-  // In the objective test phase, DON'T show explanations - use no_expl
   const displayStrategy: ExplanationStrategy = 'no_expl';
   const aggregationStrategy = strategyMap[session.aggregationStrategy];
 

@@ -31,8 +31,7 @@ export function DebriefingScreen({
   onBack,
 }: DebriefingScreenProps) {
   const [explanation, setExplanation] = useState(session.textualDebriefing || '');
-  
-  // Interaction tracking state
+
   const [debriefingStartTime] = useState<string>(new Date().toISOString());
   const [debriefingInteractions, setDebriefingInteractions] = useState<InteractionEvent[]>([]);
   const [tableRatingEdits, setTableRatingEdits] = useState(0);
@@ -40,8 +39,7 @@ export function DebriefingScreen({
   const [suggestionsClicked, setSuggestionsClicked] = useState<string[]>([]);
   const [typedQueries, setTypedQueries] = useState<string[]>([]);
   const isSavingRef = useRef(false);
-  
-  // Get the first training scenario for debriefing display
+
   const firstTrainingScenarioId = session.trainingScenarioIds[0];
   
   const scenarioData = useMemo(() => {
@@ -52,15 +50,13 @@ export function DebriefingScreen({
     if (!scenarioData) return null;
     return createScenarioFromData(scenarioData);
   }, [scenarioData]);
-  
-  // Strategy mapping
+
   const strategyMap: Record<string, 'LMS' | 'ADD' | 'APP'> = {
     lms: 'LMS',
     add: 'ADD',
     app: 'APP',
   };
 
-  // Record interaction locally and to parent
   const recordDebriefingInteraction = (
     type: InteractionEvent['type'],
     data: Record<string, unknown>
@@ -74,7 +70,6 @@ export function DebriefingScreen({
     recordInteraction(type, data);
   };
 
-  // Debounce save for textual explanation
   useEffect(() => {
     const timer = setTimeout(() => {
       if (explanation.trim()) {
@@ -91,14 +86,12 @@ export function DebriefingScreen({
     recordDebriefingInteraction('click', { action: 'type_explanation', length: value.length });
   };
 
-  // Save debriefing interaction data
   const saveDebriefingData = async () => {
     if (isSavingRef.current) return;
     isSavingRef.current = true;
 
     const displayStrategy = session.explanationModality as ExplanationStrategy;
-    
-    // Build interaction data based on explanation strategy
+
     const debriefingTaskData: Record<string, unknown> = {
       scenarioId: firstTrainingScenarioId,
       textualExplanation: explanation,
@@ -107,7 +100,6 @@ export function DebriefingScreen({
       endTime: new Date().toISOString(),
     };
 
-    // Add strategy-specific interaction metrics
     if (displayStrategy === 'interactive_list') {
       debriefingTaskData.interaction_table_rating_edits = tableRatingEdits;
     } else if (displayStrategy === 'interactive_bar_chart') {
@@ -134,7 +126,6 @@ export function DebriefingScreen({
     }
   };
 
-  // Handle next with saving
   const handleNext = async () => {
     await saveDebriefingData();
     onNext();

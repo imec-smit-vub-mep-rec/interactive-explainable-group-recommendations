@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { NavigationButtons } from '../NavigationButtons';
-import { QuestionRenderer } from '@/components/survey/QuestionRenderer';
+import { QuestionRenderer } from '@/components/answer-options/QuestionRenderer';
 import { questions } from '@/lib/data/survey_questions';
 import type { InteractionEvent } from '@/lib/db';
 import type { SessionData } from '../ExperimentFlow';

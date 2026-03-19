@@ -15,19 +15,16 @@ function ExperimentContent() {
   useEffect(() => {
     const checkExistingSession = async () => {
       try {
-        // Check if session already exists in localStorage
         const existingSessionId = localStorage.getItem(STORAGE_KEYS.SESSION_ID);
         const isCompleted = localStorage.getItem(STORAGE_KEYS.IS_COMPLETED) === 'true';
         
         if (existingSessionId) {
-          // Try to restore existing session
           const response = await fetch(`/api/experiment/session?sessionId=${existingSessionId}`);
           
           if (response.ok) {
             const data = await response.json();
             
             if (data.success) {
-              // Session exists, restore it
               const restoredSession: SessionData = {
                 id: data.session.id,
                 explanationModality: data.session.explanationModality,
@@ -52,8 +49,7 @@ function ExperimentContent() {
                 isAttentionFail: data.session.isAttentionFail || false,
                 isBot: data.session.isBot || false,
               };
-              
-              // If completed, show thank you screen
+
               if (restoredSession.isCompleted || isCompleted) {
                 restoredSession.currentScreen = SCREENS.THANK_YOU;
                 restoredSession.isCompleted = true;
@@ -68,9 +64,7 @@ function ExperimentContent() {
             }
           }
         }
-        
-        // No existing session - don't create one yet, wait for consent
-        // Session will be created when user clicks "Start Experiment"
+
         setIsLoading(false);
       } catch (err) {
         console.error('Error checking session:', err);
@@ -111,8 +105,6 @@ function ExperimentContent() {
     );
   }
 
-  // If no session exists, show welcome screen to get consent first
-  // Pass searchParams so session can be created with Prolific info when consent is given
   if (!session) {
     return <ExperimentFlow searchParams={searchParams} />;
   }

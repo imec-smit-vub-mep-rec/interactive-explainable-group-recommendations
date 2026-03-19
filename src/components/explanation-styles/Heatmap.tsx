@@ -36,17 +36,14 @@ export default function Heatmap({
   recommendedRestaurantIndices,
   groupScores,
   updateRating,
-  resetRatings
 }: HeatmapProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  // Color scale for ratings (1-5)
   const colorScale = d3.scaleSequential()
     .domain([1, 5])
-    .interpolator(d3.interpolateRdYlGn); // Red for low ratings, Green for high ratings
+    .interpolator(d3.interpolateRdYlGn);
 
-  // Create heatmap
   const createHeatmap = () => {
     if (!chartRef.current || !svgRef.current) return;
 
@@ -68,7 +65,6 @@ export default function Heatmap({
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Scales
     const xScale = d3.scaleBand()
       .domain(restaurants.map(r => r.name))
       .range([0, width])
@@ -81,7 +77,6 @@ export default function Heatmap({
       .paddingInner(0.05)
       .paddingOuter(0.1);
 
-    // Create cells
     const cells = g.selectAll(".cell")
       .data(ratings.flatMap((personRatings, personIndex) => 
         personRatings.map((rating, restaurantIndex) => ({
@@ -97,7 +92,6 @@ export default function Heatmap({
       .attr("class", "cell")
       .attr("transform", d => `translate(${xScale(d.restaurant.name)},${yScale(d.person.name)})`);
 
-    // Add rectangles for each cell
     cells.append("rect")
       .attr("width", xScale.bandwidth())
       .attr("height", yScale.bandwidth())

@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SCREENS, SCREEN_NAMES, STORAGE_KEYS, TOTAL_SCREENS } from '@/lib/experiment-utils';
-import { ProgressTracker } from '@/components/survey/ProgressTracker';
+import { ProgressTracker } from '@/components/answer-options/ProgressTracker';
 
-// Screen components
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { DemographicsScreen } from './screens/DemographicsScreen';
 import { InstructionsScreen } from './screens/InstructionsScreen';
@@ -33,8 +32,7 @@ export interface SessionData {
   isCompleted?: boolean;
   isAttentionFail?: boolean;
   isBot?: boolean;
-  
-  // Collected data
+
   demographics?: {
     ageRange: string | null;
     gender: string | null;
@@ -70,23 +68,18 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
   const [isLoading, setIsLoading] = useState(false);
   const isNavigatingRef = useRef(false);
 
-  // Save session to localStorage whenever it changes
   useEffect(() => {
     if (session) {
       localStorage.setItem(STORAGE_KEYS.SESSION_DATA, JSON.stringify(session));
     }
   }, [session]);
 
-  // Create session function - called from WelcomeScreen after consent
   const createSession = useCallback(async (recaptchaToken?: string): Promise<SessionData | null> => {
-    if (session) {
-      return session; // Session already exists
-    }
+    if (session) return session;
 
     setIsLoading(true);
-    
+
     try {
-      // Extract Prolific parameters from URL
       const prolificPid = searchParams?.get('PROLIFIC_PID') || null;
       const prolificStudyId = searchParams?.get('STUDY_ID') || null;
       const prolificSessionId = searchParams?.get('SESSION_ID') || null;
@@ -122,7 +115,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
         aggregationStrategy: data.session.aggregationStrategy,
         trainingScenarioIds: data.session.trainingScenarioIds,
         testScenarioIds: data.session.testScenarioIds,
-        currentScreen: SCREENS.WELCOME, // Stay on welcome, onNext will move to demographics
+        currentScreen: SCREENS.WELCOME,
         prolificPid: prolificPid || undefined,
         prolificStudyId: prolificStudyId || undefined,
         isCompleted: false,
@@ -133,13 +126,11 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
         nasaTlxData: {},
         screenTimings: [],
       };
-      
-      // Store session ID in localStorage
+
       localStorage.setItem(STORAGE_KEYS.SESSION_ID, newSession.id);
       localStorage.setItem(STORAGE_KEYS.SESSION_DATA, JSON.stringify(newSession));
       
       setSession(newSession);
-      // Don't change screen here - let onNext handle navigation
       return newSession;
     } catch (error) {
       console.error('Error creating session:', error);
@@ -149,17 +140,15 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     }
   }, [session, searchParams]);
 
-  // Track screen start time
   useEffect(() => {
     setScreenStartTime(new Date().toISOString());
     setCurrentInteractions([]);
   }, [currentScreen]);
 
-  // Save answer to database
   const saveAnswer = useCallback(async (field: string, value: unknown, sessionIdOverride?: string) => {
     const targetSessionId = sessionIdOverride || session?.id;
-    if (!targetSessionId) return; // Can't save without session
-    
+    if (!targetSessionId) return;
+
     try {
       const response = await fetch('/api/experiment/answer', {
         method: 'POST',
@@ -187,7 +176,6 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     }
   }, [session, currentScreen]);
 
-  // Record interaction
   const recordInteraction = useCallback((type: InteractionEvent['type'], data: Record<string, unknown>) => {
     const interaction: InteractionEvent = {
       type,
@@ -197,7 +185,6 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     setCurrentInteractions(prev => [...prev, interaction]);
   }, []);
 
-  // Navigate to next screen
   const goToNextScreen = useCallback(async () => {
     if (currentScreen >= TOTAL_SCREENS - 1) return;
     if (isNavigatingRef.current) return;
@@ -205,7 +192,6 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     setIsLoading(true);
 
     try {
-    // Save screen timing if session exists
     if (session) {
       const screenTiming: ScreenTiming = {
         screenIndex: currentScreen,
@@ -214,9 +200,8 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
         endTime: new Date().toISOString(),
         interactions: currentInteractions,
       };
-      
+
       try {
-        // Save screen timing and current screen
         await fetch('/api/experiment/answer', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -226,8 +211,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
             screenTiming,
           }),
         });
-        
-        // Update local state
+
         setSession(prev => prev ? {
           ...prev,
           currentScreen: currentScreen + 1,
@@ -240,7 +224,6 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
         setIsLoading(false);
       }
     } else {
-      // No session yet, just move to next screen
       setCurrentScreen(prev => prev + 1);
       setIsLoading(false);
     }
@@ -249,7 +232,6 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     }
   }, [currentScreen, screenStartTime, currentInteractions, session]);
 
-  // Update session data locally
   const updateSessionData = useCallback((updates: Partial<SessionData>) => {
     setSession(prev => prev ? { ...prev, ...updates } : null);
   }, []);
@@ -260,13 +242,11 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     }
   }, [session?.isAttentionFail]);
 
-  // Complete the experiment
   const completeExperiment = useCallback(async () => {
     if (!session) return;
     
     setIsLoading(true);
-    
-    // Save final screen timing
+
     const screenTiming: ScreenTiming = {
       screenIndex: currentScreen,
       screenName: SCREEN_NAMES[currentScreen],
@@ -284,8 +264,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           finalScreenTiming: screenTiming,
         }),
       });
-      
-      // Update localStorage
+
       localStorage.setItem(STORAGE_KEYS.IS_COMPLETED, 'true');
       
       setSession(prev => prev ? { ...prev, isCompleted: true } : null);
@@ -296,7 +275,6 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     }
   }, [currentScreen, screenStartTime, currentInteractions, session]);
 
-  // Render current screen
   const renderScreen = () => {
     const baseProps = {
       saveAnswer,
@@ -392,18 +370,13 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     }
   };
 
-  // Don't show progress on welcome or thank you screens
   const showProgress = currentScreen > SCREENS.WELCOME && currentScreen < SCREENS.THANK_YOU;
 
-  // Debug mode: restart experiment with new session
   const handleDebugRestart = useCallback(() => {
-    // Reset local state
     setSession(null);
     setCurrentScreen(SCREENS.WELCOME);
     setScreenStartTime(new Date().toISOString());
     setCurrentInteractions([]);
-    
-    // Reload the page to start fresh
     window.location.reload();
   }, []);
 
@@ -414,7 +387,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           <div className="mb-4">
             <ProgressTracker
               current={currentScreen}
-              total={TOTAL_SCREENS - 1} // Don't count thank you
+              total={TOTAL_SCREENS - 1}
             />
           </div>
         )}
@@ -423,8 +396,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           {renderScreen()}
         </div>
       </div>
-      
-      {/* Debug Panel - only visible when NEXT_PUBLIC_DEBUG_MODE=true */}
+
       <DebugPanel
         session={session}
         currentScreen={currentScreen}

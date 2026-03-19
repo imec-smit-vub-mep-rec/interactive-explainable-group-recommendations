@@ -1,33 +1,14 @@
 # Interactive Group Recommender with Explanations
 
-A research application for studying interactive group recommendation systems with various explanation strategies. This project allows users to explore different ADDregation strategies for group decision-making and compare multiple explanation approaches to understand how recommendations are generated.
+A research application for studying interactive group recommendation systems with various explanation strategies. This project allows users to explore different aggregation strategies for group decision-making and compare multiple explanation approaches to understand how recommendations are generated.
 
 ## 🎯 Overview
 
-This application simulates a group restaurant recommendation scenario where 5 people (Darcy, Alex, Jess, Jackie, and Freddy) rate restaurants on a 1-5 scale. The system then uses different ADDregation strategies to recommend the best restaurant for the group, with various explanation methods to help users understand the decision-making process.
-
-# Force bucket:
-
-Strategy,Modality,ID
-ADD,no_explanation,ADNO
-ADD,static_list,ADST
-ADD,interactive_list,ADIN
-ADD,conversational,ADCO
-ADD,interactive_bar_chart,ADBC (preferred) or ADGR (deprecated)
-APP,no_explanation,ADNO
-APP,static_list,APST
-APP,interactive_list,APIN
-APP,conversational,APCO
-APP,interactive_bar_chart,APBC (preferred) or APGR (deprecated)
-LMS,no_explanation,LMNO
-LMS,static_list,LMST
-LMS,interactive_list,LMIN
-LMS,conversational,LMCO
-LMS,interactive_bar_chart,LMBC (preferred) or LMGR (deprecated)
+This application simulates a group restaurant recommendation scenario where 5 people (Darcy, Alex, Jess, Jackie, and Freddy) rate restaurants on a 1-5 scale. The system then uses different aggregation strategies to recommend the best restaurant for the group, with various explanation methods to help users understand the decision-making process.
 
 ## 🚀 Features
 
-### ADDregation Strategies
+### Aggregation Strategies
 
 - **LMS (Least Misery Strategy)**: Minimizes the lowest rating among group members
 - **ADD (Additive Strategy)**: Maximizes the total rating sum across all group members
@@ -35,13 +16,15 @@ LMS,interactive_bar_chart,LMBC (preferred) or LMGR (deprecated)
 
 ### Explanation Strategies
 
+The experiment uses five explanation modalities (one per condition):
+
 - **No Explanation**: Simple recommendation without explanation
-- **Text Explanation**: Detailed textual explanation of the recommendation
-- **Chat Explanation**: Interactive AI-powered chat to answer questions about recommendations
-- **Graph Explanation**: Interactive sliders and visual graphs showing rating impacts
-- **Pie Chart Explanation**: Pie charts visualizing contribution patterns
-- **Heatmap Explanation**: Color-coded heatmap of ratings and scores
-- **Ordered List Explanation**: Ranked list with detailed breakdowns
+- **Static List**: Ranked list with scores (read-only)
+- **Interactive List**: Ranked list with editable ratings
+- **Conversational**: AI-powered chat to answer questions about recommendations
+- **Interactive Bar Chart**: Bar chart with sliders to adjust ratings and see impact
+
+Additional explanation styles available in the admin preview: Text, Pie Chart, Heatmap, Ordered List, and Chat with Tools.
 
 ### Interactive Features
 
@@ -191,7 +174,7 @@ flowchart TB
 
     SWITCH --> NOEXPL[NoExplanation]
     SWITCH --> OLIST[OrderedListExplanation<br/>static_list or interactive_list]
-    SWITCH --> GEXPL[GraphExplanation<br/>interactive_bar_chart]
+    SWITCH --> BAR[StaticBarChart<br/>interactive_bar_chart]
     SWITCH --> CHAT[TextChat<br/>conversational]
     SWITCH --> OTHERS[Other modalities:<br/>TextExplanation PieExplanation Heatmap<br/>TextChatWithTools TextChatWithToolsGraph]
 
@@ -231,7 +214,7 @@ For self-recruited or non-Prolific participants:
 
 ### Basic Workflow
 
-1. **Select Strategy**: Choose an ADDregation strategy (LMS, ADD, or APP) from the settings panel
+1. **Select Strategy**: Choose an aggregation strategy (LMS, ADD, or APP) from the settings panel
 2. **Choose Explanation**: Select your preferred explanation method
 3. **Interact with Ratings**: Modify individual ratings in the table to see real-time updates
 4. **Explore Explanations**: Use the explanation panel to understand how recommendations are generated
@@ -239,10 +222,10 @@ For self-recruited or non-Prolific participants:
 
 ### Settings Panel
 
-Access the settings panel by clicking the gear icon in the top-left corner:
+Access the settings panel by clicking the gear icon in the top-left corner (admin preview):
 
-- **ADDregation Strategy**: Switch between LMS, ADD, and APP
-- **Explanation Strategy**: Choose from 7 different explanation methods
+- **Aggregation Strategy**: Switch between LMS, ADD, and APP
+- **Explanation Strategy**: Choose from various explanation methods
 - **Sort Best to Worst**: Enable/disable restaurant sorting
 - **Fade Non-Contributing**: Highlight only relevant elements
 - **Scenario Selection**: Pick from pre-defined scenarios or get random ones
@@ -263,7 +246,7 @@ The application includes numerous pre-defined scenarios optimized for different 
 
 - **Additive scenarios**: Designed to showcase ADD strategy benefits
 - **LMS scenarios**: Optimized for Least Misery Strategy
-- **Approval Voting scenarios**: Tailored for APP strategy
+- **Approval Voting scenarios**: Tailored for the APP strategy
 
 Each scenario includes:
 
@@ -282,7 +265,7 @@ Each scenario includes:
 
 This application is designed for research in:
 
-- **Group Decision Making**: Understanding how different ADDregation strategies affect outcomes
+- **Group Decision Making**: Understanding how different aggregation strategies affect outcomes
 - **Explanation Interfaces**: Comparing effectiveness of various explanation methods
 - **User Experience**: Studying how different visualizations impact user understanding
 - **Interactive Systems**: Exploring real-time feedback and user interaction patterns
@@ -291,18 +274,20 @@ This application is designed for research in:
 
 ```
 src/
-├── app/                    # Next.js app router
-│   ├── api/chat/          # AI chat API endpoint
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Main application page
-├── components/            # React components
-│   ├── ai-elements/       # AI chat UI components
-│   ├── ui/               # Reusable UI components
-│   └── [explanation-components].tsx  # Explanation strategies
-└── lib/                  # Utilities and data
-    ├── scenarios.ts      # Scenario management
-    ├── strategy_scenarios.ts  # Pre-defined scenarios
-    └── utils.ts          # Helper functions
+├── app/                      # Next.js app router
+│   ├── api/                  # API routes (chat, experiment, admin)
+│   ├── admin/                # Admin and preview pages
+│   ├── layout.tsx
+│   └── page.tsx              # Experiment entry point
+├── components/
+│   ├── admin/                # Admin dashboard and preview
+│   ├── answer-options/       # Survey question components
+│   ├── chat/                 # Chat UI
+│   ├── experiment/           # Experiment flow and screens
+│   ├── explanation-styles/    # Explanation modalities (NoExplanation, TextChat, Heatmap, etc.)
+│   ├── ai-elements/          # AI chat UI primitives
+│   └── ui/                   # Reusable UI components
+└── lib/                      # Utilities, scenarios, experiment logic
 ```
 
 ## 🧪 Development
@@ -316,10 +301,11 @@ src/
 
 ### Key Components
 
-- **InteractiveGroupRecommender**: Main application component
-- **SettingsSidebar**: Configuration panel
-- **Explanation Components**: Various visualization strategies
-- **AI Chat Integration** (`api/chat`): Single-LLM conversational explanations; no tool calling; context (ratings, scores) passed in the system prompt
+- **InteractiveGroupRecommender**: Main recommendation component with ratings table and explanation panel
+- **ExperimentFlow**: Orchestrates the multi-screen experiment (welcome, training, objective test, etc.)
+- **SettingsSidebar**: Configuration panel (admin preview)
+- **explanation-styles/**: NoExplanation, OrderedListExplanation, StaticBarChart, TextChat, TextChatWithTools, Heatmap, PieExplanation, TextExplanation
+- **AI Chat** (`api/chat`): Single-LLM conversational explanations; context (ratings, scores) passed in the system prompt
 
 ## 🤝 Contributing
 
@@ -342,7 +328,7 @@ This application supports research in:
 - Interactive Group Recommender Systems
 - Explanation Interfaces for AI Systems
 - User Experience in Decision Support Tools
-- Comparative Studies of ADDregation Strategies
+- Comparative Studies of Aggregation Strategies
 
 ---
 

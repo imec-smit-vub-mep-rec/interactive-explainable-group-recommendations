@@ -45,13 +45,11 @@ interface TextChatProps {
   onChatLogEntry?: (entry: ChatLogEntry) => void;
 }
 
-// Max content length to avoid DB OOM (Neon has limited memory per request)
-const MAX_CONTENT_LENGTH = 32 * 1024; // 32KB - enough for explanations, prevents huge payloads
+const MAX_CONTENT_LENGTH = 32 * 1024;
 const MAX_USER_MESSAGES = 15;
 const CONVERSATION_CLOSED_MESSAGE =
   "This conversation is now closed after 15 questions.";
 
-// Build minimal metadata for logging - never include full tool results (ratings matrices, etc.)
 function sanitizeMetadata(
   messageId: string | undefined,
   toolCalls: string[],
@@ -72,7 +70,6 @@ function sanitizeMetadata(
   return meta;
 }
 
-// Starter suggestions for users
 const suggestionTemplates = [
   "Why was this restaurant recommended?",
   "How to make Rest 1 the top choice?",

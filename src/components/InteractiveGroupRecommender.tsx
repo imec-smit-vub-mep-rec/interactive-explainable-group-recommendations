@@ -1,24 +1,19 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import NoExplanation from "./NoExplanation";
-import TextExplanation from "./TextExplanation";
-import GraphExplanation from "./GraphExplanation";
-import PieExplanation from "./PieExplanation";
-import Heatmap from "./Heatmap";
-import OrderedListExplanation from "./OrderedListExplanation";
-import TextChat, { type ChatLogEntry } from "./TextChat";
-import TextChatWithTools from "./TextChatWithTools";
-import TextChatWithToolsGraph from "./TextChatWithToolsGraph";
+import NoExplanation from "./explanation-styles/NoExplanation";
+import TextExplanation from "./explanation-styles/TextExplanation";
+import StaticBarChartExplanation from "./explanation-styles/StaticBarChart";
+import PieExplanation from "./explanation-styles/PieExplanation";
+import Heatmap from "./explanation-styles/Heatmap";
+import OrderedListExplanation from "./explanation-styles/OrderedListExplanation";
+import TextChat, { type ChatLogEntry } from "./explanation-styles/TextChat";
+import TextChatWithTools from "./explanation-styles/TextChatWithTools";
+import TextChatWithToolsGraph from "./explanation-styles/TextChatWithToolsGraph";
 import { Scenario } from "@/lib/scenario_helpers";
 import { ExplanationStrategy } from "@/lib/types";
-import { RotateCcw } from "lucide-react";
-
-// Remove duplicate interfaces since they're now imported from scenarios.ts
 
 type AggregationStrategy = "LMS" | "ADD" | "APP";
-
-// Remove hardcoded data since it's now provided by scenarios
 
 interface InteractiveGroupRecommenderProps {
   strategy: AggregationStrategy;
@@ -60,14 +55,11 @@ export default function InteractiveGroupRecommender({
   const [ratings, setRatings] = useState<number[][]>(scenario.ratings);
   const people = scenario.people;
 
-  // Update ratings when scenario changes
   useEffect(() => {
     setRatings(scenario.ratings);
   }, [scenario]);
 
-  // Calculate group scores based on selected strategy
   const groupScores = useMemo(() => {
-    console.log("🧮 Recalculating groupScores with ratings:", ratings);
     const scores = scenario.restaurants.map((_, restaurantIndex) => {
       const restaurantRatings = ratings.map(
         (personRatings) => personRatings[restaurantIndex]
@@ -84,11 +76,9 @@ export default function InteractiveGroupRecommender({
           return Math.min(...restaurantRatings);
       }
     });
-    console.log("📊 New groupScores calculated:", scores);
     return scores;
   }, [ratings, strategy, scenario.restaurants]);
 
-  // Create sorted restaurants array and corresponding data when sorting is enabled
   const {
     sortedRestaurants,
     sortedRatings,
@@ -107,34 +97,28 @@ export default function InteractiveGroupRecommender({
       };
     }
 
-    // Create array of restaurant indices with their scores for sorting
     const restaurantScores = scenario.restaurants.map((restaurant, index) => ({
       originalIndex: index,
       restaurant,
       score: groupScores[index],
     }));
 
-    // Sort by score (best to worst) - for LMS, higher is better; for ADD/APP, higher is also better
     const sortedRestaurantScores = restaurantScores.sort(
       (a, b) => b.score - a.score
     );
 
-    // Create sorted arrays
     const sortedRestaurants = sortedRestaurantScores.map(
       (item) => item.restaurant
     );
     const sortedGroupScores = sortedRestaurantScores.map((item) => item.score);
 
-    // Create mapping from original index to sorted index
     const originalToSortedIndexMap = new Array(scenario.restaurants.length);
-    // Create mapping from sorted index to original index
     const sortedToOriginalIndexMap = new Array(scenario.restaurants.length);
     sortedRestaurantScores.forEach((item, sortedIndex) => {
       originalToSortedIndexMap[item.originalIndex] = sortedIndex;
       sortedToOriginalIndexMap[sortedIndex] = item.originalIndex;
     });
 
-    // Reorder ratings array to match sorted restaurants
     const sortedRatings = ratings.map((personRatings) =>
       sortedRestaurantScores.map((item) => personRatings[item.originalIndex])
     );
@@ -148,13 +132,7 @@ export default function InteractiveGroupRecommender({
     };
   }, [scenario.restaurants, ratings, groupScores, sortBestToWorst]);
 
-  // Find all top-scoring non-visited restaurants (handle ties) - use sorted data
   const recommendedRestaurantIndices = useMemo(() => {
-    console.log("🎯 Recalculating recommendedRestaurantIndices with:", {
-      sortedRestaurantsCount: sortedRestaurants.length,
-      sortedGroupScores: sortedGroupScores,
-    });
-
     const candidates = sortedRestaurants
       .map((restaurant, index) => ({
         index,
@@ -163,25 +141,12 @@ export default function InteractiveGroupRecommender({
       }))
       .filter((r) => !r.visited);
 
-    console.log("🏆 Candidates (non-visited):", candidates);
-
-    if (candidates.length === 0) {
-      console.log("❌ No non-visited candidates, returning empty array");
-      return [] as number[];
-    }
+    if (candidates.length === 0) return [] as number[];
 
     const bestScore = Math.max(...candidates.map((c) => c.score));
-    const recommended = candidates
+    return candidates
       .filter((c) => c.score === bestScore)
       .map((c) => c.index);
-
-    console.log(
-      "🏅 Best score:",
-      bestScore,
-      "Recommended indices:",
-      recommended
-    );
-    return recommended;
   }, [sortedRestaurants, sortedGroupScores]);
 
   const updateRating = (
@@ -192,14 +157,11 @@ export default function InteractiveGroupRecommender({
     setRatings((prev) => {
       const newRatings = [...prev];
       newRatings[personIndex] = [...newRatings[personIndex]];
-
-      // Table always uses original order, so restaurantIndex is already the original index
       newRatings[personIndex][restaurantIndex] = value;
       return newRatings;
     });
   };
 
-  // Wrapper function for GraphSliders that converts sorted indices to original indices
   const updateRatingForGraph = useMemo(() => {
     if (!sortBestToWorst) {
       return updateRating;
@@ -223,7 +185,6 @@ export default function InteractiveGroupRecommender({
     setRatings(scenario.ratings);
   }, [scenario]);
 
-  // Expose resetRatings function via ref if provided
   useEffect(() => {
     if (onResetRatingsRef) {
       onResetRatingsRef.current = resetRatings;
@@ -239,7 +200,6 @@ export default function InteractiveGroupRecommender({
     (i) => sortedRestaurants[i].name
   );
 
-  // Determine if table inputs should be disabled
   const isTableDisabled =
     explanationStrategy === "no_expl" || 
     explanationStrategy === "static_list" || 
@@ -289,7 +249,6 @@ export default function InteractiveGroupRecommender({
             onSuggestionClick={onSuggestionClick}
             onQuerySubmit={onTypedQuerySubmit}
             onChatLogEntry={onChatLogEntry}
-            // Don't pass onDataUpdate for basic chat - tools won't be able to update data
           />
         );
       case "text_expl":
@@ -315,27 +274,7 @@ export default function InteractiveGroupRecommender({
             recommendedRestaurantIndices={recommendedRestaurantIndices}
             originalRestaurants={scenario.restaurants}
             onDataUpdate={(updatedData) => {
-              console.log(
-                "🔄 InteractiveGroupRecommender onDataUpdate called with:",
-                {
-                  ratingsShape: `${updatedData.ratings.length}x${updatedData.ratings[0]?.length}`,
-                  groupScoresLength: updatedData.groupScores.length,
-                  recommendedIndices: updatedData.recommendedRestaurantIndices,
-                  currentRatingsShape: `${ratings.length}x${ratings[0]?.length}`,
-                  currentGroupScoresLength: groupScores.length,
-                  currentRecommendedIndices: recommendedRestaurantIndices,
-                }
-              );
-
-              // Update the local state with the new data from the LLM
-              console.log("📝 Setting new ratings...");
               setRatings(updatedData.ratings);
-
-              console.log(
-                "✅ Ratings updated, useMemo hooks will recalculate groupScores and recommendedRestaurantIndices"
-              );
-              // Note: groupScores and recommendedRestaurantIndices will be recalculated
-              // by the useMemo hooks based on the updated ratings
             }}
           />
         );
@@ -351,24 +290,7 @@ export default function InteractiveGroupRecommender({
             originalRestaurants={scenario.restaurants}
             originalRatings={scenario.ratings}
             onDataUpdate={(updatedData) => {
-              console.log(
-                "🔄 InteractiveGroupRecommender onDataUpdate called with:",
-                {
-                  ratingsShape: `${updatedData.ratings.length}x${updatedData.ratings[0]?.length}`,
-                  groupScoresLength: updatedData.groupScores.length,
-                  recommendedIndices: updatedData.recommendedRestaurantIndices,
-                  currentRatingsShape: `${ratings.length}x${ratings[0]?.length}`,
-                  currentGroupScoresLength: groupScores.length,
-                  currentRecommendedIndices: recommendedRestaurantIndices,
-                  sortBestToWorst,
-                }
-              );
-
-              // If sorting is enabled, we need to map the sorted data back to original order
               if (sortBestToWorst) {
-                console.log("🔄 Mapping sorted data back to original order...");
-
-                // Map sorted ratings back to original order
                 const originalRatings = scenario.restaurants.map(
                   (_, originalIndex) => {
                     const sortedIndex = originalToSortedIndexMap[originalIndex];
@@ -378,7 +300,6 @@ export default function InteractiveGroupRecommender({
                   }
                 );
 
-                // Map sorted group scores back to original order
                 const originalGroupScores = scenario.restaurants.map(
                   (_, originalIndex) => {
                     const sortedIndex = originalToSortedIndexMap[originalIndex];
@@ -386,7 +307,6 @@ export default function InteractiveGroupRecommender({
                   }
                 );
 
-                // Map recommended indices back to original order
                 const originalRecommendedIndices =
                   updatedData.recommendedRestaurantIndices
                     .map((sortedIndex) => {
@@ -394,20 +314,9 @@ export default function InteractiveGroupRecommender({
                     })
                     .filter((index) => index !== -1);
 
-                console.log("📝 Setting original ratings from sorted data...");
                 setRatings(originalRatings);
-
-                console.log(
-                  "✅ Original ratings updated, useMemo hooks will recalculate"
-                );
               } else {
-                // No sorting, data is already in original order
-                console.log("📝 Setting new ratings (no sorting)...");
                 setRatings(updatedData.ratings);
-
-                console.log(
-                  "✅ Ratings updated, useMemo hooks will recalculate"
-                );
               }
             }}
           />
@@ -415,7 +324,7 @@ export default function InteractiveGroupRecommender({
       case "interactive_bar_chart":
       case "graph_expl":
         return (
-          <GraphExplanation
+          <StaticBarChartExplanation
             people={people}
             restaurants={scenario.restaurants}
             ratings={ratings}

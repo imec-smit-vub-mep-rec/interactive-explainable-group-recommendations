@@ -36,7 +36,6 @@ interface SettingsSidebarProps {
   onScenarioChange: (scenario: Scenario) => void;
 }
 
-// Helper functions to get strategy labels
 const getAggregationStrategyLabel = (strategy: AggregationStrategy) => {
   const labels = {
     LMS: "Least Misery (LMS)",
@@ -82,7 +81,6 @@ export default function SettingsSidebar({
 }: SettingsSidebarProps) {
   if (!isOpen) return null;
 
-  // Get scenarios filtered by current strategy
   const strategyType = strategy.toLowerCase() as "add" | "lms" | "app";
   const availableScenarios = getScenariosByType(strategyType);
 

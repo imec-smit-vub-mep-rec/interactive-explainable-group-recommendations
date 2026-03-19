@@ -35,7 +35,6 @@ export default function AdminContent() {
     router.refresh();
   };
 
-  // Handle query parameters and random scenario selection on page load
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const scenarioParam = urlParams.get("scenario");
@@ -45,12 +44,10 @@ export default function AdminContent() {
       if (scenario) {
         setCurrentScenario(scenario);
       } else {
-        // Fallback to random scenario if specified scenario not found
         const strategyType = strategy.toLowerCase() as "add" | "lms" | "app";
         setCurrentScenario(getRandomScenarioByType(strategyType));
       }
     } else {
-      // Pick a random scenario for the current strategy if no scenario is specified
       const strategyType = strategy.toLowerCase() as "add" | "lms" | "app";
       setCurrentScenario(getRandomScenarioByType(strategyType));
     }
@@ -58,33 +55,25 @@ export default function AdminContent() {
     setIsInitialized(true);
   }, [strategy]);
 
-  // Auto-switch scenario when strategy changes
   useEffect(() => {
     if (!isInitialized || !currentScenario) return;
 
     const strategyType = strategy.toLowerCase() as "add" | "lms" | "app";
-    // Only switch if current scenario doesn't match the new strategy
     if (currentScenario.type !== strategyType) {
       setCurrentScenario(getRandomScenarioByType(strategyType));
     }
   }, [strategy, currentScenario, isInitialized]);
 
-  // Start onboarding tour when explanation strategy changes
   useEffect(() => {
     if (!isInitialized || !currentScenario) return;
 
     const tourName = getTourForStrategy(explanationStrategy);
-    
-    // Only start tour if:
-    // 1. There's a valid tour for this strategy
-    // 2. The strategy has changed (not initial load)
-    // 3. We haven't already started a tour for this strategy
+
     if (
       tourName &&
       prevExplanationStrategy.current !== null &&
       prevExplanationStrategy.current !== explanationStrategy
     ) {
-      // Small delay to ensure DOM is ready
       setTimeout(() => {
         startNextStep(tourName);
       }, 300);

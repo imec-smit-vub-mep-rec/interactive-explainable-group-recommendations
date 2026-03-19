@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import GraphSliders from './GraphSliders';
+import InteractiveBarChart from './InteractiveBarChart';
 
 interface Person {
   name: string;
@@ -32,7 +32,7 @@ interface GraphExplanationProps {
   }) => void;
 }
 
-export default function GraphExplanation({
+export default function StaticBarChartExplanation({
   people,
   restaurants,
   ratings,
@@ -46,7 +46,7 @@ export default function GraphExplanation({
 }: GraphExplanationProps) {
   return (
     <div className="mb-8" data-onboarding="graph-explanation">
-      <GraphSliders
+      <InteractiveBarChart
         people={people}
         restaurants={restaurants}
         ratings={ratings}

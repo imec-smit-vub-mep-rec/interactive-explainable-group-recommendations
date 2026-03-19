@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
-import type { ChatLogEntry } from "@/components/TextChat";
+import type { ChatLogEntry } from "@/components/explanation-styles/TextChat";
 import type { InteractionEvent, TrainingTaskData } from "@/lib/db";
 import type { SessionData } from "../ExperimentFlow";
 import type { ExplanationStrategy, MultipleChoiceQuestion } from "@/lib/types";
@@ -57,37 +57,25 @@ export function TrainingScreen({
   const [typedQueries, setTypedQueries] = useState<string[]>([]);
   const [showProceedConfirm, setShowProceedConfirm] = useState(false);
 
-  // Attention check state (shown ONLY in second task's step 2 - explore_explanation)
   const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
   const [attentionCheckCompleted, setAttentionCheckCompleted] = useState(false);
 
-  // Get attention check question from questions.ts
   const attentionCheckQuestion = questions.training?.questions[1] as MultipleChoiceQuestion | undefined;
-
-  // Only show attention check in second training task's step 2
   const showAttentionCheck = currentTaskIndex === 1 && currentStep === "explore_explanation";
 
-  // Ref to access resetRatings function from InteractiveGroupRecommender
   const resetRatingsRef = useRef<(() => void) | null>(null);
   const recentErrorLogRef = useRef<Record<string, number>>({});
 
-  // NextStep hook for onboarding tour
   const { startNextStep } = useNextStep();
-
-  // Get training scenario IDs from session
   const trainingScenarioIds = session.trainingScenarioIds;
-
-  // Get explanation strategy for display
   const displayStrategy = session.explanationModality as ExplanationStrategy;
 
-  // Start onboarding tour on first task, step 2 (explore_explanation)
   useEffect(() => {
     if (
       currentTaskIndex === 0 &&
       currentStep === "explore_explanation" &&
       !hasShownOnboarding
     ) {
-      // Small delay to ensure DOM is ready
       const timer = setTimeout(() => {
         const tourName = getTourForStrategy(displayStrategy);
         if (tourName) {
@@ -107,19 +95,16 @@ export function TrainingScreen({
     displayStrategy,
   ]);
 
-  // Get current scenario data
   const currentScenarioData = useMemo(() => {
     const scenarioId = trainingScenarioIds[currentTaskIndex];
     return allScenarios.find((s) => s.id === scenarioId);
   }, [trainingScenarioIds, currentTaskIndex]);
 
-  // Create scenario object for InteractiveGroupRecommender
   const currentScenario = useMemo(() => {
     if (!currentScenarioData) return null;
     return createScenarioFromData(currentScenarioData);
   }, [currentScenarioData]);
 
-  // Get restaurants for radio options (exclude visited), sorted by ID (1-10)
   const availableRestaurants = useMemo(() => {
     if (!currentScenario) return [];
     return [...currentScenario.restaurants]
@@ -127,7 +112,6 @@ export function TrainingScreen({
       .sort((a, b) => a.id - b.id);
   }, [currentScenario]);
 
-  // Get visited restaurant names from previous_visits (zero-indexed → "Rest N")
   const visitedRestaurantNames = useMemo(() => {
     if (!currentScenarioData) return "";
     return currentScenarioData.previous_visits
@@ -135,14 +119,12 @@ export function TrainingScreen({
       .join(", ");
   }, [currentScenarioData]);
 
-  // Strategy mapping
   const strategyMap: Record<string, "LMS" | "ADD" | "APP"> = {
     lms: "LMS",
     add: "ADD",
     app: "APP",
   };
 
-  // Reset state when task changes
   useEffect(() => {
     const taskData = session.trainingTasksData[currentTaskIndex];
 
@@ -170,7 +152,6 @@ export function TrainingScreen({
     setAttentionCheckCompleted(Boolean(taskData?.attentionCheckAnswer));
   }, [currentTaskIndex, session.trainingTasksData]);
 
-  // Record task interaction
   const recordTaskInteraction = useCallback(
     (type: InteractionEvent["type"], data: Record<string, unknown>) => {
       const interaction: InteractionEvent = {
@@ -184,7 +165,6 @@ export function TrainingScreen({
     [recordInteraction]
   );
 
-  // Handle chat log entries: record locally and async-save to DB
   const handleChatLogEntry = useCallback((entry: ChatLogEntry) => {
     if (entry.role === "error") {
       const errorName =
@@ -200,13 +180,11 @@ export function TrainingScreen({
       recentErrorLogRef.current[signature] = now;
     }
 
-    // Record as a standard interaction event (minimal data - full content in chat_logs)
     recordTaskInteraction("chat_message", {
       chatLogRole: entry.role,
       ...(entry.metadata?.source ? { source: entry.metadata.source } : {}),
     });
 
-    // Async fire-and-forget save to dedicated chat_logs column
     if (session.id) {
       const logEntry = {
         ...entry,
@@ -224,7 +202,6 @@ export function TrainingScreen({
     }
   }, [recordTaskInteraction, session.id, trainingScenarioIds, currentTaskIndex, currentStep]);
 
-  // Save current task data
   const saveTaskData = async () => {
     const taskData: TrainingTaskData = {
       scenarioId: trainingScenarioIds[currentTaskIndex],
@@ -254,9 +231,8 @@ export function TrainingScreen({
     await saveAnswer("training_tasks_data", updatedTasks);
     updateSessionData({ trainingTasksData: updatedTasks });
 
-    // Save attention check answer if provided
     if (attentionCheckAnswer !== null) {
-      const isCorrect = attentionCheckAnswer === '4'; // Restaurant 4 is the correct answer
+      const isCorrect = attentionCheckAnswer === '4';
       await saveAnswer('attn_check_1', {
         answer: attentionCheckAnswer,
         isCorrect,
@@ -268,7 +244,6 @@ export function TrainingScreen({
   // Handle step transitions
   const handleProceedFromExplore = () => {
     recordTaskInteraction("click", { action: "complete_exploration" });
-    // Mark attention check as completed after second task's step 2
     if (currentTaskIndex === 1 && attentionCheckAnswer !== null) {
       setAttentionCheckCompleted(true);
     }
@@ -305,13 +280,11 @@ export function TrainingScreen({
       if (currentTaskIndex < trainingScenarioIds.length - 1) {
         setCurrentTaskIndex((prev) => prev + 1);
       } else {
-        // All training tasks complete
         onNext();
       }
     }
   };
 
-  // Handle back navigation within training (no cross-screen back)
   const handleBack = () => {
     if (currentStep === "explore_explanation") {
       setCurrentStep("initial_guess");
@@ -321,14 +294,11 @@ export function TrainingScreen({
       setCurrentTaskIndex((prev) => prev - 1);
       setCurrentStep("final_decision");
     }
-    // At first task and first step: no within-screen back, do nothing
   };
 
-  // Determine if can proceed
   const canProceed = () => {
     if (currentStep === "initial_guess") return initialGuess !== null;
     if (currentStep === "explore_explanation") {
-      // Only require attention check answer on second task
       if (currentTaskIndex === 1 && !attentionCheckCompleted) {
         return attentionCheckAnswer !== null;
       }
@@ -389,7 +359,7 @@ export function TrainingScreen({
 
         </div>
 
-        {/* Step 1: Initial Guess - Show only table */}
+        {/* Step 1: Initial Guess */}
         {currentStep === "initial_guess" && (
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 space-y-2">
@@ -400,7 +370,6 @@ export function TrainingScreen({
                 <strong>{visitedRestaurantNames}</strong> have been visited in the previous months, in this specific order. These restaurants are not an option anymore, as the group has already eaten there previously.
               </p>
             </div>
-            {/* Show only the table without explanation */}
             <InteractiveGroupRecommender
               strategy={aggregationStrategy}
               explanationStrategy="no_expl"
@@ -491,7 +460,7 @@ export function TrainingScreen({
               onChatLogEntry={handleChatLogEntry}
             />
 
-            {/* Attention Check - only shown in first training task */}
+            {/* Attention Check - shown in second training task */}
             {showAttentionCheck && attentionCheckQuestion && (
               <div className="bg-white border rounded-lg p-3">
                 <h4 className="font-medium mb-3 text-sm">

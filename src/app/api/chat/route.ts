@@ -1,4 +1,3 @@
-// import { google } from "@ai-sdk/google";
 import { cerebras } from "@ai-sdk/cerebras";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { streamText, convertToModelMessages } from "ai";
@@ -36,7 +35,6 @@ const getModel = (
   return provider.chatModel(modelId || defaultModel);
 };
 
-// Define the data structures
 const PersonSchema = z.object({
   name: z.string(),
   pattern: z.string(),
@@ -156,7 +154,6 @@ export async function POST(req: Request) {
   const context = (messages[messages.length - 1] as { metadata?: { context?: unknown } } | undefined)
     ?.metadata?.context;
 
-  // Parse and validate context for this request
   let currentContext: z.infer<typeof RestaurantRecommendationDataSchema> | null = null;
   if (context) {
     try {
