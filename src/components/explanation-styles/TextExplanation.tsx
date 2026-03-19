@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import TextChat from './TextChat';
+import TextChat from './Conversational';
 
 interface Person {
   name: string;

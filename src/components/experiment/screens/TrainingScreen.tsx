@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
-import type { ChatLogEntry } from "@/components/explanation-styles/TextChat";
+import type { ChatLogEntry } from "@/components/explanation-styles/Conversational";
 import type { InteractionEvent, TrainingTaskData } from "@/lib/db";
 import type { SessionData } from "../ExperimentFlow";
 import type { ExplanationStrategy, MultipleChoiceQuestion } from "@/lib/types";

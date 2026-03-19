@@ -217,7 +217,7 @@ export default function Heatmap({
 
         g.append("text")
           .attr("x", x)
-          .attr("y", -44)
+          .attr("y", -40)
           .attr("text-anchor", "middle")
           .attr("dominant-baseline", "middle")
           .attr("font-size", "8px")
@@ -234,8 +234,7 @@ export default function Heatmap({
       .attr("text-anchor", "middle")
       .attr("font-size", "16px")
       .attr("font-weight", "bold")
-      .attr("fill", "#374151")
-      .text("Rating Heatmap");
+      .attr("fill", "#374151");
 
     // Add group scores at the top of each column
     restaurants.forEach((restaurant, index) => {
@@ -249,7 +248,7 @@ export default function Heatmap({
         .attr("font-size", "12px")
         .attr("font-weight", "bold")
         .attr("fill", "#6B7280")
-        .text(`Score: ${groupScore}`);
+        .text(`${groupScore}`);
     });
   };
 

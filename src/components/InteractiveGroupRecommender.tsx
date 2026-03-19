@@ -7,9 +7,7 @@ import StaticBarChartExplanation from "./explanation-styles/StaticBarChart";
 import PieExplanation from "./explanation-styles/PieExplanation";
 import Heatmap from "./explanation-styles/Heatmap";
 import OrderedListExplanation from "./explanation-styles/OrderedListExplanation";
-import TextChat, { type ChatLogEntry } from "./explanation-styles/TextChat";
-import TextChatWithTools from "./explanation-styles/TextChatWithTools";
-import TextChatWithToolsGraph from "./explanation-styles/TextChatWithToolsGraph";
+import TextChat, { type ChatLogEntry } from "./explanation-styles/Conversational";
 import { Scenario } from "@/lib/scenario_helpers";
 import { ExplanationStrategy } from "@/lib/types";
 
@@ -201,8 +199,8 @@ export default function InteractiveGroupRecommender({
   );
 
   const isTableDisabled =
-    explanationStrategy === "no_expl" || 
-    explanationStrategy === "static_list" || 
+    explanationStrategy === "no_expl" ||
+    explanationStrategy === "static_list" ||
     explanationStrategy === "conversational";
 
   const renderExplanation = () => {
@@ -261,64 +259,6 @@ export default function InteractiveGroupRecommender({
             ratings={sortedRatings}
             groupScores={sortedGroupScores}
             recommendedRestaurantIndices={recommendedRestaurantIndices}
-          />
-        );
-      case "chat_expl_with_tools":
-        return (
-          <TextChatWithTools
-            people={people}
-            restaurants={sortedRestaurants}
-            ratings={sortedRatings}
-            strategy={strategy}
-            groupScores={sortedGroupScores}
-            recommendedRestaurantIndices={recommendedRestaurantIndices}
-            originalRestaurants={scenario.restaurants}
-            onDataUpdate={(updatedData) => {
-              setRatings(updatedData.ratings);
-            }}
-          />
-        );
-      case "chat_expl_with_tools_graph":
-        return (
-          <TextChatWithToolsGraph
-            people={people}
-            restaurants={scenario.restaurants}
-            ratings={ratings}
-            strategy={strategy}
-            groupScores={groupScores}
-            recommendedRestaurantIndices={graphRecommendedRestaurantIndices}
-            originalRestaurants={scenario.restaurants}
-            originalRatings={scenario.ratings}
-            onDataUpdate={(updatedData) => {
-              if (sortBestToWorst) {
-                const originalRatings = scenario.restaurants.map(
-                  (_, originalIndex) => {
-                    const sortedIndex = originalToSortedIndexMap[originalIndex];
-                    return updatedData.ratings.map(
-                      (personRatings) => personRatings[sortedIndex]
-                    );
-                  }
-                );
-
-                const originalGroupScores = scenario.restaurants.map(
-                  (_, originalIndex) => {
-                    const sortedIndex = originalToSortedIndexMap[originalIndex];
-                    return updatedData.groupScores[sortedIndex];
-                  }
-                );
-
-                const originalRecommendedIndices =
-                  updatedData.recommendedRestaurantIndices
-                    .map((sortedIndex) => {
-                      return originalToSortedIndexMap.indexOf(sortedIndex);
-                    })
-                    .filter((index) => index !== -1);
-
-                setRatings(originalRatings);
-              } else {
-                setRatings(updatedData.ratings);
-              }
-            }}
           />
         );
       case "interactive_bar_chart":
@@ -403,14 +343,13 @@ export default function InteractiveGroupRecommender({
                 {scenario.restaurants.map((restaurant, index) => (
                   <th
                     key={restaurant.id}
-                    className={`border border-gray-300 px-1.5 py-1.5 text-center text-sm ${
-                      restaurant.visited ? "bg-gray-300 text-gray-500" : ""
-                    }`}
+                    className={`border border-gray-300 px-1.5 py-1.5 text-center text-sm ${restaurant.visited ? "bg-gray-300 text-gray-500" : ""
+                      }`}
                     {...(restaurant.visited &&
                       scenario.restaurants.findIndex((r) => r.visited) ===
-                        index && {
-                        "data-onboarding": "grey-rows",
-                      })}
+                      index && {
+                      "data-onboarding": "grey-rows",
+                    })}
                   >
                     {restaurant.name}
                   </th>
@@ -433,68 +372,65 @@ export default function InteractiveGroupRecommender({
                       usePersonTint ? { backgroundColor: `${person.color}20` } : undefined
                     }
                   >
-                  <td className="border border-gray-300 px-2 py-1.5 font-medium text-base">
-                    {person.name}
-                  </td>
-                  {scenario.restaurants.map((restaurant, restaurantIndex) => {
-                    const isFirstVisited =
-                      restaurant.visited &&
-                      scenario.restaurants.findIndex((r) => r.visited) ===
+                    <td className="border border-gray-300 px-2 py-1.5 font-medium text-base">
+                      {person.name}
+                    </td>
+                    {scenario.restaurants.map((restaurant, restaurantIndex) => {
+                      const isFirstVisited =
+                        restaurant.visited &&
+                        scenario.restaurants.findIndex((r) => r.visited) ===
                         restaurantIndex;
-                    return (
-                      <td
-                        key={restaurant.id}
-                        className={`border border-gray-300 px-1.5 py-1.5 text-center ${
-                          restaurant.visited ? "bg-gray-200" : ""
-                        }`}
-                        {...(isFirstVisited && {
-                          "data-onboarding": "grey-rows",
-                        })}
-                      >
-                        {isTableDisabled ? (
-                          <span
-                            className={`text-center ${
-                              restaurant.visited
-                                ? "text-gray-500"
-                                : "text-gray-900 font-medium"
+                      return (
+                        <td
+                          key={restaurant.id}
+                          className={`border border-gray-300 px-1.5 py-1.5 text-center ${restaurant.visited ? "bg-gray-200" : ""
                             }`}
-                          >
-                            {ratings[personIndex][restaurantIndex]}
-                          </span>
-                        ) : (
-                          <input
-                            type="number"
-                            min="1"
-                            max="5"
-                            value={ratings[personIndex][restaurantIndex]}
-                            onChange={(e) => {
-                              if (!restaurant.visited) {
-                                const value = parseInt(e.target.value);
-                                if (value >= 1 && value <= 5) {
-                                  updateRating(
-                                    personIndex,
-                                    restaurantIndex,
-                                    value
-                                  );
-                                onTableRatingChange?.({
-                                  personIndex,
-                                  restaurantIndex,
-                                  value,
-                                });
+                          {...(isFirstVisited && {
+                            "data-onboarding": "grey-rows",
+                          })}
+                        >
+                          {isTableDisabled ? (
+                            <span
+                              className={`text-center ${restaurant.visited
+                                  ? "text-gray-500"
+                                  : "text-gray-900 font-medium"
+                                }`}
+                            >
+                              {ratings[personIndex][restaurantIndex]}
+                            </span>
+                          ) : (
+                            <input
+                              type="number"
+                              min="1"
+                              max="5"
+                              value={ratings[personIndex][restaurantIndex]}
+                              onChange={(e) => {
+                                if (!restaurant.visited) {
+                                  const value = parseInt(e.target.value);
+                                  if (value >= 1 && value <= 5) {
+                                    updateRating(
+                                      personIndex,
+                                      restaurantIndex,
+                                      value
+                                    );
+                                    onTableRatingChange?.({
+                                      personIndex,
+                                      restaurantIndex,
+                                      value,
+                                    });
+                                  }
                                 }
-                              }
-                            }}
-                            disabled={restaurant.visited}
-                            className={`w-10 h-7 text-base text-center border border-gray-300 rounded ${
-                              restaurant.visited
-                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            }`}
-                          />
-                        )}
-                      </td>
-                    );
-                  })}
+                              }}
+                              disabled={restaurant.visited}
+                              className={`w-10 h-7 text-base text-center border border-gray-300 rounded ${restaurant.visited
+                                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                  : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                }`}
+                            />
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
@@ -510,7 +446,7 @@ export default function InteractiveGroupRecommender({
         </div>
       )}
 
-    
+
     </div>
   );
 }
