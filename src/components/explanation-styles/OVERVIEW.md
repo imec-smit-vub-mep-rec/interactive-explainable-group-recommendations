@@ -16,7 +16,7 @@ This document provides an overview of the different explanation styles available
 
 **Interactivity:** The ratings table is read-only.
 
----
+--- togg
 
 ## 1. Static List
 

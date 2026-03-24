@@ -69,6 +69,10 @@ function createMockSession(explanationModality: 'no_expl' | 'static_list' | 'int
       understand: 5,
       predict: 5,
     },
+    satisfaction: {
+      recommendations: 5,
+      explanations: 5,
+    },
     textualDebriefing: 'This is a preview of the debriefing screen.',
     nasaTlxData: {
       mental_demand: 5,

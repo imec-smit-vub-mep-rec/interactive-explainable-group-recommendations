@@ -1,4 +1,4 @@
-# Interactive Group Recommender with Explanations
+# FIRE: Framework for Interactive Recommender Explanations
 
 A research application for studying interactive group recommendation systems with various explanation strategies. This project allows users to explore different aggregation strategies for group decision-making and compare multiple explanation approaches to understand how recommendations are generated.
 
@@ -75,7 +75,7 @@ Additional explanation styles available in the admin preview: Text, Pie Chart, H
    - `LLM_PROVIDER`: `'cerebras'` (default), `'scaleway'`, or `'requesty'`. Use `scaleway` for EU-hosted models (privacy).
    - `LLM_MODEL`: Model ID for the conversational chat (e.g. `llama3.1-8b` for Cerebras, `llama-3.1-8b-instruct` for Scaleway, `openai/gpt-4o-mini` for Requesty). A single model handles all question types.
    - For Scaleway: `LLM_API_KEY` (required when `LLM_PROVIDER=scaleway`).
-   - For Requesty: `REQUESTY_API_KEY`, `REQUESTY_BASE_URL` (optional, defaults to `https://router.requesty.ai/v1`), `LLM_MODEL` (optional default model).
+   - For Requesty: `LLM_API_KEY`, `LLM_BASE_URL` (optional, defaults to `https://router.requesty.ai/v1`), `LLM_MODEL` (optional default model).
 
    See the project for additional keys (API keys, admin password, etc.).
 

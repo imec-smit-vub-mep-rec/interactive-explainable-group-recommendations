@@ -33,7 +33,6 @@ bcrypt.hash(password, 10, (err, hash) => {
     process.exit(1);
   }
   
-  // Verify the hash works by comparing
   bcrypt.compare(password, hash, (compareErr, isValid) => {
     if (compareErr) {
       console.error('Error verifying hash:', compareErr);

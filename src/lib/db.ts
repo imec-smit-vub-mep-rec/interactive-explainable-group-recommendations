@@ -84,6 +84,9 @@ export interface ExperimentSession {
   
   repeat_subjective_understanding_1_understand: number | null;
   repeat_subjective_understanding_2_predict: number | null;
+
+  subjective_satisfaction_1_recommendations: number | null;
+  subjective_satisfaction_2_explanations: number | null;
   
   textual_debriefing: string | null;
   
@@ -240,6 +243,9 @@ export async function runMigrations() {
       
       repeat_subjective_understanding_1_understand INTEGER,
       repeat_subjective_understanding_2_predict INTEGER,
+
+      subjective_satisfaction_1_recommendations INTEGER,
+      subjective_satisfaction_2_explanations INTEGER,
       
       textual_debriefing TEXT,
       
@@ -281,6 +287,12 @@ export async function runMigrations() {
       END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'is_bot') THEN
         ALTER TABLE experiment_sessions ADD COLUMN is_bot BOOLEAN DEFAULT FALSE;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'subjective_satisfaction_1_recommendations') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN subjective_satisfaction_1_recommendations INTEGER;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'subjective_satisfaction_2_explanations') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN subjective_satisfaction_2_explanations INTEGER;
       END IF;
     END $$;
   `;

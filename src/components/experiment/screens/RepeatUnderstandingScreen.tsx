@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { NavigationButtons } from '../NavigationButtons';
-import { UnderstandingQuestion } from '../UnderstandingQuestion';
+import { LikertGrid } from '@/components/answer-options/LikertGrid';
 import type { InteractionEvent } from '@/lib/db';
+import { questions } from '@/lib/data/survey_questions';
+import type { AnswerValue, LikertGridQuestion } from '@/lib/types';
 import type { SessionData } from '../ExperimentFlow';
 
 interface RepeatUnderstandingScreenProps {
@@ -25,39 +27,55 @@ export function RepeatUnderstandingScreen({
   onNext,
   onBack,
 }: RepeatUnderstandingScreenProps) {
-  const [understand, setUnderstand] = useState<number | null>(
-    session.repeatUnderstanding?.understand || null
-  );
-  const [predict, setPredict] = useState<number | null>(
-    session.repeatUnderstanding?.predict || null
-  );
+  const question = questions.repeat_subjective_understanding.questions[0] as LikertGridQuestion;
+  const understandKey = "repeat_subjective_understanding_1_understand";
+  const predictKey = "repeat_subjective_understanding_2_predict";
 
-  // Save answers when they change
-  useEffect(() => {
-    if (understand !== null) {
-      saveAnswer('repeat_subjective_understanding_1_understand', understand);
-      updateSessionData({
-        repeatUnderstanding: {
-          understand,
-          predict: session.repeatUnderstanding?.predict || null,
-        },
-      });
+  const [responses, setResponses] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    if (session.repeatUnderstanding?.understand !== null && session.repeatUnderstanding?.understand !== undefined) {
+      initial[understandKey] = session.repeatUnderstanding.understand.toString();
     }
-  }, [understand]);
-
-  useEffect(() => {
-    if (predict !== null) {
-      saveAnswer('repeat_subjective_understanding_2_predict', predict);
-      updateSessionData({
-        repeatUnderstanding: {
-          understand: session.repeatUnderstanding?.understand || null,
-          predict,
-        },
-      });
+    if (session.repeatUnderstanding?.predict !== null && session.repeatUnderstanding?.predict !== undefined) {
+      initial[predictKey] = session.repeatUnderstanding.predict.toString();
     }
-  }, [predict]);
+    return initial;
+  });
 
-  const canProceed = understand !== null && predict !== null;
+  const previousResponsesRef = useRef<Record<string, string>>(responses);
+
+  const canProceed = Boolean(responses[understandKey] && responses[predictKey]);
+
+  const handleChange = (value: AnswerValue) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+
+    const nextResponses = value as Record<string, string>;
+    setResponses(nextResponses);
+
+    const understandValue = nextResponses[understandKey];
+    const predictValue = nextResponses[predictKey];
+    const parsedUnderstand = understandValue ? Number.parseInt(understandValue, 10) : null;
+    const parsedPredict = predictValue ? Number.parseInt(predictValue, 10) : null;
+
+    if (understandValue && previousResponsesRef.current[understandKey] !== understandValue) {
+      saveAnswer(understandKey, parsedUnderstand);
+      recordInteraction('click', { action: 'rate_understand', value: parsedUnderstand });
+    }
+
+    if (predictValue && previousResponsesRef.current[predictKey] !== predictValue) {
+      saveAnswer(predictKey, parsedPredict);
+      recordInteraction('click', { action: 'rate_predict', value: parsedPredict });
+    }
+
+    updateSessionData({
+      repeatUnderstanding: {
+        understand: parsedUnderstand,
+        predict: parsedPredict,
+      },
+    });
+
+    previousResponsesRef.current = nextResponses;
+  };
 
   return (
     <div className="space-y-8">
@@ -71,26 +89,14 @@ export function RepeatUnderstandingScreen({
         </p>
       </div>
 
-      {/* Question 1: Understanding */}
-      <UnderstandingQuestion
-        idPrefix="repeat-understand"
-        label="I understand how the model works to predict the best recommendation for the group."
-        value={understand}
-        onChange={(value) => {
-          setUnderstand(value);
-          recordInteraction('click', { action: 'rate_understand', value });
-        }}
-      />
-
-      {/* Question 2: Prediction */}
-      <UnderstandingQuestion
-        idPrefix="repeat-predict"
-        label="I can predict how the model will behave."
-        value={predict}
-        onChange={(value) => {
-          setPredict(value);
-          recordInteraction('click', { action: 'rate_predict', value });
-        }}
+      <LikertGrid
+        question={question.text}
+        statements={question.statements}
+        scale={question.scale}
+        scaleLabels={question.scaleLabels}
+        questionIds={question.questionIds}
+        value={responses}
+        onChange={handleChange}
       />
 
       {/* Navigation */}

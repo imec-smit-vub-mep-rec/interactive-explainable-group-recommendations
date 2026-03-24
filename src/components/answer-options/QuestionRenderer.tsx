@@ -17,7 +17,6 @@ interface QuestionRendererProps {
 }
 
 export function QuestionRenderer({ question, value, onChange, onAutoNext }: QuestionRendererProps) {
-  console.log('question', question);  
   switch (question.type) {
     case 'multipleChoice':
       return (
@@ -93,6 +92,8 @@ export function QuestionRenderer({ question, value, onChange, onAutoNext }: Ques
           question={question.text}
           statements={question.statements || []}
           scale={question.scale || []}
+          scaleLabels={question.scaleLabels}
+          questionIds={question.questionIds}
           value={value}
           onChange={onChange}
           required={question.required}

@@ -8,7 +8,7 @@ import { questions } from '@/lib/data/survey_questions';
 import type { AnswerValue, LikertGridQuestion } from '@/lib/types';
 import type { SessionData } from '../ExperimentFlow';
 
-interface PreliminaryUnderstandingScreenProps {
+interface SatisfactionScreenProps {
   session: SessionData;
   saveAnswer: (field: string, value: unknown, sessionIdOverride?: string) => Promise<void>;
   updateSessionData: (updates: Partial<SessionData>) => void;
@@ -18,7 +18,7 @@ interface PreliminaryUnderstandingScreenProps {
   onBack?: () => void;
 }
 
-export function PreliminaryUnderstandingScreen({
+export function SatisfactionScreen({
   session,
   saveAnswer,
   updateSessionData,
@@ -26,25 +26,24 @@ export function PreliminaryUnderstandingScreen({
   isLoading,
   onNext,
   onBack,
-}: PreliminaryUnderstandingScreenProps) {
-  const question = questions.preliminary_subjective_understanding.questions[0] as LikertGridQuestion;
-  const understandKey = "preliminary_subjective_understanding_1_understand";
-  const predictKey = "preliminary_subjective_understanding_2_predict";
+}: SatisfactionScreenProps) {
+  const question = questions.subjective_satisfaction.questions[0] as LikertGridQuestion;
+  const recommendationsKey = 'subjective_satisfaction_1_recommendations';
+  const explanationsKey = 'subjective_satisfaction_2_explanations';
 
   const [responses, setResponses] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
-    if (session.preliminaryUnderstanding?.understand !== null && session.preliminaryUnderstanding?.understand !== undefined) {
-      initial[understandKey] = session.preliminaryUnderstanding.understand.toString();
+    if (session.satisfaction?.recommendations !== null && session.satisfaction?.recommendations !== undefined) {
+      initial[recommendationsKey] = session.satisfaction.recommendations.toString();
     }
-    if (session.preliminaryUnderstanding?.predict !== null && session.preliminaryUnderstanding?.predict !== undefined) {
-      initial[predictKey] = session.preliminaryUnderstanding.predict.toString();
+    if (session.satisfaction?.explanations !== null && session.satisfaction?.explanations !== undefined) {
+      initial[explanationsKey] = session.satisfaction.explanations.toString();
     }
     return initial;
   });
 
   const previousResponsesRef = useRef<Record<string, string>>(responses);
-
-  const canProceed = Boolean(responses[understandKey] && responses[predictKey]);
+  const canProceed = Boolean(responses[recommendationsKey] && responses[explanationsKey]);
 
   const handleChange = (value: AnswerValue) => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return;
@@ -52,25 +51,25 @@ export function PreliminaryUnderstandingScreen({
     const nextResponses = value as Record<string, string>;
     setResponses(nextResponses);
 
-    const understandValue = nextResponses[understandKey];
-    const predictValue = nextResponses[predictKey];
-    const parsedUnderstand = understandValue ? Number.parseInt(understandValue, 10) : null;
-    const parsedPredict = predictValue ? Number.parseInt(predictValue, 10) : null;
+    const recommendationsValue = nextResponses[recommendationsKey];
+    const explanationsValue = nextResponses[explanationsKey];
+    const parsedRecommendations = recommendationsValue ? Number.parseInt(recommendationsValue, 10) : null;
+    const parsedExplanations = explanationsValue ? Number.parseInt(explanationsValue, 10) : null;
 
-    if (understandValue && previousResponsesRef.current[understandKey] !== understandValue) {
-      saveAnswer(understandKey, parsedUnderstand);
-      recordInteraction('click', { action: 'rate_understand', value: parsedUnderstand });
+    if (recommendationsValue && previousResponsesRef.current[recommendationsKey] !== recommendationsValue) {
+      saveAnswer(recommendationsKey, parsedRecommendations);
+      recordInteraction('click', { action: 'rate_satisfaction_recommendations', value: parsedRecommendations });
     }
 
-    if (predictValue && previousResponsesRef.current[predictKey] !== predictValue) {
-      saveAnswer(predictKey, parsedPredict);
-      recordInteraction('click', { action: 'rate_predict', value: parsedPredict });
+    if (explanationsValue && previousResponsesRef.current[explanationsKey] !== explanationsValue) {
+      saveAnswer(explanationsKey, parsedExplanations);
+      recordInteraction('click', { action: 'rate_satisfaction_explanations', value: parsedExplanations });
     }
 
     updateSessionData({
-      preliminaryUnderstanding: {
-        understand: parsedUnderstand,
-        predict: parsedPredict,
+      satisfaction: {
+        recommendations: parsedRecommendations,
+        explanations: parsedExplanations,
       },
     });
 
@@ -79,13 +78,12 @@ export function PreliminaryUnderstandingScreen({
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Your Understanding So Far
+          Satisfaction
         </h1>
         <p className="text-gray-600">
-          Please rate your agreement with the following statements based on your experience with the training tasks.
+          Please rate your agreement with the following statements.
         </p>
       </div>
 
@@ -99,7 +97,6 @@ export function PreliminaryUnderstandingScreen({
         onChange={handleChange}
       />
 
-      {/* Navigation */}
       <NavigationButtons
         onBack={onBack}
         onNext={onNext}

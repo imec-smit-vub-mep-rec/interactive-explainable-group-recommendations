@@ -1,7 +1,6 @@
 import {
   Question,
   MultipleChoiceQuestion,
-  NumberQuestion,
   LikertGridQuestion,
   TextInputQuestion,
 } from '@/lib/types';
@@ -106,22 +105,25 @@ export const questions: Record<string, QuestionSection> = {
     intro: "Please answer the following questions to assess your understanding of the system.",
     questions: [
       {
-        id: "preliminary_subjective_understanding_1_understand",
+        id: "preliminary_subjective_understanding",
         type: "likertGrid",
-        text: "I understand how the model works to predict the best recommendation for the group.",
+        text: "Please rate your agreement with the following statements.",
         required: false,
         isAttentionCheck: false,
-        statements: ["I understand how the model works to predict the best recommendation for the group."],
-        scale: ["1", "2", "3", "4", "5"],
-      } as LikertGridQuestion,
-      {
-        id: "preliminary_subjective_understanding_2_predict",
-        type: "likertGrid",
-        text: "I can predict how the model will behave.",
-        required: false,
-        isAttentionCheck: false,
-        statements: ["I can predict how the model will behave."],
-        scale: ["1", "2", "3", "4", "5"],
+        statements: [
+          "I understand how the model works to predict the best recommendation for the group.",
+          "I can predict how the model will behave.",
+        ],
+        scale: ["1", "2", "3", "4", "5", "6", "7"],
+        questionIds: [
+          "preliminary_subjective_understanding_1_understand",
+          "preliminary_subjective_understanding_2_predict",
+        ],
+        scaleLabels: {
+          "1": "Strongly Disagree",
+          "4": "Neutral",
+          "7": "Strongly Agree",
+        },
       } as LikertGridQuestion,
     ],
   },
@@ -131,22 +133,53 @@ export const questions: Record<string, QuestionSection> = {
     intro: "Please answer the following questions to assess your understanding of the system.",
     questions: [
       {
-        id: "repeat_subjective_understanding_1_understand",
+        id: "repeat_subjective_understanding",
         type: "likertGrid",
-        text: "I understand how the model works to predict the best recommendation for the group.",
+        text: "Please rate your agreement with the following statements.",
         required: false,
         isAttentionCheck: false,
-        statements: ["I understand how the model works to predict the best recommendation for the group."],
-        scale: ["1", "2", "3", "4", "5"],
+        statements: [
+          "I understand how the model works to predict the best recommendation for the group.",
+          "I can predict how the model will behave.",
+        ],
+        scale: ["1", "2", "3", "4", "5", "6", "7"],
+        questionIds: [
+          "repeat_subjective_understanding_1_understand",
+          "repeat_subjective_understanding_2_predict",
+        ],
+        scaleLabels: {
+          "1": "Strongly Disagree",
+          "4": "Neutral",
+          "7": "Strongly Agree",
+        },
       } as LikertGridQuestion,
+    ],
+  },
+  subjective_satisfaction: {
+    id: "subjective_satisfaction",
+    title: "Satisfaction",
+    intro: "Please answer the following questions about your satisfaction with the system.",
+    questions: [
       {
-        id: "repeat_subjective_understanding_2_predict",
+        id: "subjective_satisfaction",
         type: "likertGrid",
-        text: "I can predict how the model will behave.",
+        text: "Please rate your agreement with the following statements.",
         required: false,
         isAttentionCheck: false,
-        statements: ["I can predict how the model will behave."],
+        statements: [
+          "I was satisfied with the recommendations made by the system.",
+          "I was satisfied with the explanations given by the system.",
+        ],
         scale: ["1", "2", "3", "4", "5"],
+        questionIds: [
+          "subjective_satisfaction_1_recommendations",
+          "subjective_satisfaction_2_explanations",
+        ],
+        scaleLabels: {
+          "1": "Strongly Disagree",
+          "3": "Neutral",
+          "5": "Strongly Agree",
+        },
       } as LikertGridQuestion,
     ],
   },
@@ -165,6 +198,7 @@ export const questions: Record<string, QuestionSection> = {
       } as TextInputQuestion,
     ],
   },
+
   nasa_tlx: {
     id: "nasa_tlx",
     title: "NASA-TLX",

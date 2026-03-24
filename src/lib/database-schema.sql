@@ -64,6 +64,10 @@ CREATE TABLE IF NOT EXISTS experiment_sessions (
   -- Repeat subjective understanding
   repeat_subjective_understanding_1_understand INTEGER,
   repeat_subjective_understanding_2_predict INTEGER,
+
+  -- Subjective satisfaction
+  subjective_satisfaction_1_recommendations INTEGER,
+  subjective_satisfaction_2_explanations INTEGER,
   
   -- Debriefing
   textual_debriefing TEXT,
@@ -123,6 +127,12 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'is_bot') THEN
     ALTER TABLE experiment_sessions ADD COLUMN is_bot BOOLEAN DEFAULT FALSE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'subjective_satisfaction_1_recommendations') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN subjective_satisfaction_1_recommendations INTEGER;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'subjective_satisfaction_2_explanations') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN subjective_satisfaction_2_explanations INTEGER;
   END IF;
 END $$;
 

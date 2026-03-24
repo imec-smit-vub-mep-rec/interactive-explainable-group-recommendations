@@ -52,6 +52,8 @@ export interface Question {
   max?: number;
   statements?: string[];
   scale?: string[];
+  questionIds?: string[]; // optional stable IDs for multi-statement likert rows
+  scaleLabels?: Record<string, string>; // optional labels keyed by scale value (eg {"1":"Strongly Disagree"})
 }
 
 type TaskType = "model_simulation" | "counterfactual" | "error_detection";

@@ -167,6 +167,8 @@ export async function GET(request: NextRequest) {
         objective_understanding_tasks_data,
         repeat_subjective_understanding_1_understand,
         repeat_subjective_understanding_2_predict,
+        subjective_satisfaction_1_recommendations,
+        subjective_satisfaction_2_explanations,
         textual_debriefing,
         nasa_tlx_data,
         additional_feedback,
@@ -198,6 +200,8 @@ export async function GET(request: NextRequest) {
       objective_understanding_tasks_data: unknown;
       repeat_subjective_understanding_1_understand: number | null;
       repeat_subjective_understanding_2_predict: number | null;
+      subjective_satisfaction_1_recommendations: number | null;
+      subjective_satisfaction_2_explanations: number | null;
       textual_debriefing: string | null;
       nasa_tlx_data: unknown;
       additional_feedback: string | null;
@@ -251,6 +255,10 @@ export async function GET(request: NextRequest) {
         repeatUnderstanding: {
           understand: session.repeat_subjective_understanding_1_understand,
           predict: session.repeat_subjective_understanding_2_predict,
+        },
+        satisfaction: {
+          recommendations: session.subjective_satisfaction_1_recommendations,
+          explanations: session.subjective_satisfaction_2_explanations,
         },
         textualDebriefing: session.textual_debriefing,
         nasaTlxData: session.nasa_tlx_data,

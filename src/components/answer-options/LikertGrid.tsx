@@ -7,6 +7,7 @@ interface LikertGridProps {
   question: string;
   statements: string[];
   scale: string[];
+  scaleLabels?: Record<string, string>;
   value?: AnswerValue;
   onChange: (value: AnswerValue) => void;
   required?: boolean;
@@ -18,9 +19,9 @@ export function LikertGrid({
   question, 
   statements, 
   scale, 
+  scaleLabels,
   value, 
   onChange, 
-  required = false,
   onAutoNext,
   questionIds
 }: LikertGridProps) {
@@ -70,11 +71,6 @@ export function LikertGrid({
     }   
   };
 
-  const isAllAnswered = statements.every((_, index) => {
-    const key = getStatementKey(index);
-    return responses[key];
-  });
-
   return (
     <div className="space-y-6">
       {/* <h3 className="text-lg font-medium text-dark-purple">
@@ -97,6 +93,11 @@ export function LikertGrid({
                   <div className="break-words leading-tight">
                     {scaleItem}
                   </div>
+                  {scaleLabels?.[scaleItem] && (
+                    <div className="break-words leading-tight text-[9px] sm:text-[10px] font-normal text-dark-purple/70 mt-1">
+                      {scaleLabels[scaleItem]}
+                    </div>
+                  )}
                 </th>
               ))}
             </tr>
@@ -124,7 +125,7 @@ export function LikertGrid({
                         }
                       `}
                     >
-                      {scaleIndex + 1}
+                      {scaleItem}
                     </button>
                   </td>
                 ))}

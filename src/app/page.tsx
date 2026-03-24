@@ -40,6 +40,7 @@ function ExperimentContent() {
                 preliminaryUnderstanding: data.session.preliminaryUnderstanding,
                 objectiveTasksData: data.session.objectiveTasksData || [],
                 repeatUnderstanding: data.session.repeatUnderstanding,
+                satisfaction: data.session.satisfaction,
                 textualDebriefing: data.session.textualDebriefing,
                 nasaTlxData: data.session.nasaTlxData || {},
                 additionalFeedback: data.session.additionalFeedback,

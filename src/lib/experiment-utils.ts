@@ -165,11 +165,12 @@ export const SCREENS = {
   PRELIMINARY_UNDERSTANDING: 4,
   OBJECTIVE_TEST: 5,
   REPEAT_UNDERSTANDING: 6,
-  DEBRIEFING: 7,
-  NASA_TLX: 8,
-  FEEDBACK: 9,
-  THANK_YOU: 10,
-  ATTENTION_FAIL: 11,
+  SATISFACTION: 7,
+  DEBRIEFING: 8,
+  NASA_TLX: 9,
+  FEEDBACK: 10,
+  THANK_YOU: 11,
+  ATTENTION_FAIL: 12,
 } as const;
 
 export const SCREEN_NAMES: Record<number, string> = {
@@ -180,14 +181,15 @@ export const SCREEN_NAMES: Record<number, string> = {
   4: 'preliminary_understanding',
   5: 'objective_test',
   6: 'repeat_understanding',
-  7: 'debriefing',
-  8: 'nasa_tlx',
-  9: 'feedback',
-  10: 'thank_you',
-  11: 'attention_fail',
+  7: 'satisfaction',
+  8: 'debriefing',
+  9: 'nasa_tlx',
+  10: 'feedback',
+  11: 'thank_you',
+  12: 'attention_fail',
 };
 
-export const TOTAL_SCREENS = 12;
+export const TOTAL_SCREENS = 13;
 
 export const STORAGE_KEYS = {
   SESSION_ID: 'experiment_session_id',

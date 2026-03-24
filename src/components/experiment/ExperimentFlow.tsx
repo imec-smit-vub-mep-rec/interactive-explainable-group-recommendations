@@ -11,6 +11,7 @@ import { TrainingScreen } from './screens/TrainingScreen';
 import { PreliminaryUnderstandingScreen } from './screens/PreliminaryUnderstandingScreen';
 import { ObjectiveTestScreen } from './screens/ObjectiveTestScreen';
 import { RepeatUnderstandingScreen } from './screens/RepeatUnderstandingScreen';
+import { SatisfactionScreen } from './screens/SatisfactionScreen';
 import { DebriefingScreen } from './screens/DebriefingScreen';
 import { NasaTlxScreen } from './screens/NasaTlxScreen';
 import { FeedbackScreen } from './screens/FeedbackScreen';
@@ -46,6 +47,10 @@ export interface SessionData {
   repeatUnderstanding?: {
     understand: number | null;
     predict: number | null;
+  };
+  satisfaction?: {
+    recommendations: number | null;
+    explanations: number | null;
   };
   textualDebriefing?: string;
   nasaTlxData: NasaTlxData;
@@ -334,6 +339,12 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           return <div>Session not initialized. Please start from the beginning.</div>;
         }
         return <RepeatUnderstandingScreen session={session} {...baseProps} />;
+
+      case SCREENS.SATISFACTION:
+        if (!session) {
+          return <div>Session not initialized. Please start from the beginning.</div>;
+        }
+        return <SatisfactionScreen session={session} {...baseProps} />;
       
       case SCREENS.DEBRIEFING:
         if (!session) {
