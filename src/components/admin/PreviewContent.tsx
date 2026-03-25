@@ -72,6 +72,7 @@ function createMockSession(explanationModality: 'no_expl' | 'static_list' | 'int
     satisfaction: {
       recommendations: 5,
       explanations: 5,
+      interactivity: 5,
     },
     textualDebriefing: 'This is a preview of the debriefing screen.',
     nasaTlxData: {
