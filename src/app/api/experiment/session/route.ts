@@ -169,6 +169,7 @@ export async function GET(request: NextRequest) {
         repeat_subjective_understanding_2_predict,
         subjective_satisfaction_1_recommendations,
         subjective_satisfaction_2_explanations,
+        subjective_satisfaction_3_interactivity,
         textual_debriefing,
         nasa_tlx_data,
         additional_feedback,
@@ -202,6 +203,7 @@ export async function GET(request: NextRequest) {
       repeat_subjective_understanding_2_predict: number | null;
       subjective_satisfaction_1_recommendations: number | null;
       subjective_satisfaction_2_explanations: number | null;
+      subjective_satisfaction_3_interactivity: number | null;
       textual_debriefing: string | null;
       nasa_tlx_data: unknown;
       additional_feedback: string | null;
@@ -259,6 +261,7 @@ export async function GET(request: NextRequest) {
         satisfaction: {
           recommendations: session.subjective_satisfaction_1_recommendations,
           explanations: session.subjective_satisfaction_2_explanations,
+          interactivity: session.subjective_satisfaction_3_interactivity,
         },
         textualDebriefing: session.textual_debriefing,
         nasaTlxData: session.nasa_tlx_data,

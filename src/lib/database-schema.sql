@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS experiment_sessions (
   -- Subjective satisfaction
   subjective_satisfaction_1_recommendations INTEGER,
   subjective_satisfaction_2_explanations INTEGER,
+  subjective_satisfaction_3_interactivity INTEGER,
   
   -- Debriefing
   textual_debriefing TEXT,
@@ -133,6 +134,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'subjective_satisfaction_2_explanations') THEN
     ALTER TABLE experiment_sessions ADD COLUMN subjective_satisfaction_2_explanations INTEGER;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'subjective_satisfaction_3_interactivity') THEN
+    ALTER TABLE experiment_sessions ADD COLUMN subjective_satisfaction_3_interactivity INTEGER;
   END IF;
 END $$;
 

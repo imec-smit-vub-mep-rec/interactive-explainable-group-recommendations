@@ -87,6 +87,7 @@ export interface ExperimentSession {
 
   subjective_satisfaction_1_recommendations: number | null;
   subjective_satisfaction_2_explanations: number | null;
+  subjective_satisfaction_3_interactivity: number | null;
   
   textual_debriefing: string | null;
   
@@ -246,6 +247,7 @@ export async function runMigrations() {
 
       subjective_satisfaction_1_recommendations INTEGER,
       subjective_satisfaction_2_explanations INTEGER,
+      subjective_satisfaction_3_interactivity INTEGER,
       
       textual_debriefing TEXT,
       
@@ -293,6 +295,9 @@ export async function runMigrations() {
       END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'subjective_satisfaction_2_explanations') THEN
         ALTER TABLE experiment_sessions ADD COLUMN subjective_satisfaction_2_explanations INTEGER;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'experiment_sessions' AND column_name = 'subjective_satisfaction_3_interactivity') THEN
+        ALTER TABLE experiment_sessions ADD COLUMN subjective_satisfaction_3_interactivity INTEGER;
       END IF;
     END $$;
   `;

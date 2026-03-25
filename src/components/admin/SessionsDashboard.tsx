@@ -76,6 +76,7 @@ type SessionDetail = Record<string, unknown> & {
   repeat_subjective_understanding_2_predict?: number | null;
   subjective_satisfaction_1_recommendations?: number | null;
   subjective_satisfaction_2_explanations?: number | null;
+  subjective_satisfaction_3_interactivity?: number | null;
   attn_check_1?: unknown;
   attn_check_2?: unknown;
 };
@@ -653,6 +654,10 @@ export default function SessionsDashboard() {
                     <div>
                       <div className="text-xs text-muted-foreground">Satisfaction (Explanations)</div>
                       <div>{selectedSession.subjective_satisfaction_2_explanations ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Satisfaction (Interactivity)</div>
+                      <div>{selectedSession.subjective_satisfaction_3_interactivity ?? "—"}</div>
                     </div>
                   </div>
                 </CollapsibleContent>

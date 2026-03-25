@@ -51,6 +51,7 @@ export interface SessionData {
   satisfaction?: {
     recommendations: number | null;
     explanations: number | null;
+    interactivity: number | null;
   };
   textualDebriefing?: string;
   nasaTlxData: NasaTlxData;
@@ -90,7 +91,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
       const prolificSessionId = searchParams?.get('SESSION_ID') || null;
       const reference = searchParams?.get('ref') || null;
       const groupCode = searchParams?.get('group') || null;
-      
+
       const response = await fetch('/api/experiment/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,17 +104,17 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           groupCode,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create session');
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to create session');
       }
-      
+
       const newSession: SessionData = {
         id: data.session.id,
         explanationModality: data.session.explanationModality,
@@ -134,7 +135,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
 
       localStorage.setItem(STORAGE_KEYS.SESSION_ID, newSession.id);
       localStorage.setItem(STORAGE_KEYS.SESSION_DATA, JSON.stringify(newSession));
-      
+
       setSession(newSession);
       return newSession;
     } catch (error) {
@@ -165,7 +166,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
           screenIndex: currentScreen,
         }),
       });
-      
+
       if (!response.ok) {
         console.error('Failed to save answer');
         return;
@@ -197,41 +198,41 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
     setIsLoading(true);
 
     try {
-    if (session) {
-      const screenTiming: ScreenTiming = {
-        screenIndex: currentScreen,
-        screenName: SCREEN_NAMES[currentScreen],
-        startTime: screenStartTime,
-        endTime: new Date().toISOString(),
-        interactions: currentInteractions,
-      };
+      if (session) {
+        const screenTiming: ScreenTiming = {
+          screenIndex: currentScreen,
+          screenName: SCREEN_NAMES[currentScreen],
+          startTime: screenStartTime,
+          endTime: new Date().toISOString(),
+          interactions: currentInteractions,
+        };
 
-      try {
-        await fetch('/api/experiment/answer', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: session.id,
-            updates: { current_screen: currentScreen + 1 },
-            screenTiming,
-          }),
-        });
+        try {
+          await fetch('/api/experiment/answer', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: session.id,
+              updates: { current_screen: currentScreen + 1 },
+              screenTiming,
+            }),
+          });
 
-        setSession(prev => prev ? {
-          ...prev,
-          currentScreen: currentScreen + 1,
-          screenTimings: [...prev.screenTimings, screenTiming],
-        } : null);
+          setSession(prev => prev ? {
+            ...prev,
+            currentScreen: currentScreen + 1,
+            screenTimings: [...prev.screenTimings, screenTiming],
+          } : null);
+          setCurrentScreen(prev => prev + 1);
+        } catch (error) {
+          console.error('Error navigating:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
         setCurrentScreen(prev => prev + 1);
-      } catch (error) {
-        console.error('Error navigating:', error);
-      } finally {
         setIsLoading(false);
       }
-    } else {
-      setCurrentScreen(prev => prev + 1);
-      setIsLoading(false);
-    }
     } finally {
       isNavigatingRef.current = false;
     }
@@ -249,7 +250,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
 
   const completeExperiment = useCallback(async () => {
     if (!session) return;
-    
+
     setIsLoading(true);
 
     const screenTiming: ScreenTiming = {
@@ -259,7 +260,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
       endTime: new Date().toISOString(),
       interactions: currentInteractions,
     };
-    
+
     try {
       await fetch('/api/experiment/complete', {
         method: 'POST',
@@ -271,7 +272,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
       });
 
       localStorage.setItem(STORAGE_KEYS.IS_COMPLETED, 'true');
-      
+
       setSession(prev => prev ? { ...prev, isCompleted: true } : null);
     } catch (error) {
       console.error('Error completing experiment:', error);
@@ -303,67 +304,67 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
             hasSession={!!session}
           />
         );
-      
+
       case SCREENS.DEMOGRAPHICS:
         if (!session) {
           return <div>Please complete the consent form first.</div>;
         }
         return <DemographicsScreen session={session} {...baseProps} />;
-      
+
       case SCREENS.INSTRUCTIONS:
         if (!session) {
           return <div>Please complete the consent form first.</div>;
         }
         return <InstructionsScreen session={session} {...baseProps} />;
-      
+
       case SCREENS.TRAINING:
         if (!session) {
           return <div>Session not initialized. Please start from the beginning.</div>;
         }
         return <TrainingScreen session={session} {...baseProps} />;
-      
+
       case SCREENS.PRELIMINARY_UNDERSTANDING:
         if (!session) {
           return <div>Session not initialized. Please start from the beginning.</div>;
         }
         return <PreliminaryUnderstandingScreen session={session} {...baseProps} />;
-      
+
       case SCREENS.OBJECTIVE_TEST:
         if (!session) {
           return <div>Session not initialized. Please start from the beginning.</div>;
         }
         return <ObjectiveTestScreen session={session} {...baseProps} />;
-      
+
       case SCREENS.REPEAT_UNDERSTANDING:
         if (!session) {
           return <div>Session not initialized. Please start from the beginning.</div>;
         }
         return <RepeatUnderstandingScreen session={session} {...baseProps} />;
 
-      case SCREENS.SATISFACTION:
-        if (!session) {
-          return <div>Session not initialized. Please start from the beginning.</div>;
-        }
-        return <SatisfactionScreen session={session} {...baseProps} />;
-      
       case SCREENS.DEBRIEFING:
         if (!session) {
           return <div>Session not initialized. Please start from the beginning.</div>;
         }
         return <DebriefingScreen session={session} {...baseProps} />;
-      
+
       case SCREENS.NASA_TLX:
         if (!session) {
           return <div>Session not initialized. Please start from the beginning.</div>;
         }
         return <NasaTlxScreen session={session} {...baseProps} />;
-      
+
+      case SCREENS.SATISFACTION:
+        if (!session) {
+          return <div>Session not initialized. Please start from the beginning.</div>;
+        }
+        return <SatisfactionScreen session={session} {...baseProps} />;
+
       case SCREENS.FEEDBACK:
         if (!session) {
           return <div>Session not initialized. Please start from the beginning.</div>;
         }
         return <FeedbackScreen session={session} {...baseProps} />;
-      
+
       case SCREENS.THANK_YOU:
         return (
           <ThankYouScreen
@@ -372,10 +373,10 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
             onComplete={completeExperiment}
           />
         );
-      
+
       case SCREENS.ATTENTION_FAIL:
         return <AttentionFailScreen />;
-      
+
       default:
         return <div>Unknown screen</div>;
     }
@@ -402,7 +403,7 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
             />
           </div>
         )}
-        
+
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
           {renderScreen()}
         </div>

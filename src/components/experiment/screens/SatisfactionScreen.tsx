@@ -30,6 +30,7 @@ export function SatisfactionScreen({
   const question = questions.subjective_satisfaction.questions[0] as LikertGridQuestion;
   const recommendationsKey = 'subjective_satisfaction_1_recommendations';
   const explanationsKey = 'subjective_satisfaction_2_explanations';
+  const interactivityKey = 'subjective_satisfaction_3_interactivity';
 
   const [responses, setResponses] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
@@ -39,11 +40,14 @@ export function SatisfactionScreen({
     if (session.satisfaction?.explanations !== null && session.satisfaction?.explanations !== undefined) {
       initial[explanationsKey] = session.satisfaction.explanations.toString();
     }
+    if (session.satisfaction?.interactivity !== null && session.satisfaction?.interactivity !== undefined) {
+      initial[interactivityKey] = session.satisfaction.interactivity.toString();
+    }
     return initial;
   });
 
   const previousResponsesRef = useRef<Record<string, string>>(responses);
-  const canProceed = Boolean(responses[recommendationsKey] && responses[explanationsKey]);
+  const canProceed = Boolean(responses[recommendationsKey] && responses[explanationsKey] && responses[interactivityKey]);
 
   const handleChange = (value: AnswerValue) => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return;
@@ -53,8 +57,10 @@ export function SatisfactionScreen({
 
     const recommendationsValue = nextResponses[recommendationsKey];
     const explanationsValue = nextResponses[explanationsKey];
+    const interactivityValue = nextResponses[interactivityKey];
     const parsedRecommendations = recommendationsValue ? Number.parseInt(recommendationsValue, 10) : null;
     const parsedExplanations = explanationsValue ? Number.parseInt(explanationsValue, 10) : null;
+    const parsedInteractivity = interactivityValue ? Number.parseInt(interactivityValue, 10) : null;
 
     if (recommendationsValue && previousResponsesRef.current[recommendationsKey] !== recommendationsValue) {
       saveAnswer(recommendationsKey, parsedRecommendations);
@@ -66,10 +72,16 @@ export function SatisfactionScreen({
       recordInteraction('click', { action: 'rate_satisfaction_explanations', value: parsedExplanations });
     }
 
+    if (interactivityValue && previousResponsesRef.current[interactivityKey] !== interactivityValue) {
+      saveAnswer(interactivityKey, parsedInteractivity);
+      recordInteraction('click', { action: 'rate_satisfaction_interactivity', value: parsedInteractivity });
+    }
+
     updateSessionData({
       satisfaction: {
         recommendations: parsedRecommendations,
         explanations: parsedExplanations,
+        interactivity: parsedInteractivity,
       },
     });
 

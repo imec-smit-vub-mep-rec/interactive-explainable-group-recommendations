@@ -34,6 +34,7 @@ interface InteractiveGroupRecommenderProps {
   onSuggestionClick?: (suggestion: string) => void;
   onTypedQuerySubmit?: (query: string) => void;
   onChatLogEntry?: (entry: ChatLogEntry) => void;
+  onChatBusyChange?: (busy: boolean) => void;
 }
 
 export default function InteractiveGroupRecommender({
@@ -49,6 +50,7 @@ export default function InteractiveGroupRecommender({
   onSuggestionClick,
   onTypedQuerySubmit,
   onChatLogEntry,
+  onChatBusyChange,
 }: InteractiveGroupRecommenderProps) {
   const [ratings, setRatings] = useState<number[][]>(scenario.ratings);
   const people = scenario.people;
@@ -247,6 +249,7 @@ export default function InteractiveGroupRecommender({
             onSuggestionClick={onSuggestionClick}
             onQuerySubmit={onTypedQuerySubmit}
             onChatLogEntry={onChatLogEntry}
+            onChatBusyChange={onChatBusyChange}
           />
         );
       case "text_expl":

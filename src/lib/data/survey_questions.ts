@@ -169,11 +169,13 @@ export const questions: Record<string, QuestionSection> = {
         statements: [
           "I was satisfied with the recommendations made by the system.",
           "I was satisfied with the explanations given by the system.",
+          "I was satisfied with the interactivity of the system.",
         ],
         scale: ["1", "2", "3", "4", "5"],
         questionIds: [
           "subjective_satisfaction_1_recommendations",
           "subjective_satisfaction_2_explanations",
+          "subjective_satisfaction_3_interactivity",
         ],
         scaleLabels: {
           "1": "Strongly Disagree",

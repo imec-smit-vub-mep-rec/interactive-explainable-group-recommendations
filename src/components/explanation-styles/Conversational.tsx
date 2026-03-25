@@ -43,6 +43,7 @@ interface TextChatProps {
   onSuggestionClick?: (suggestion: string) => void;
   onQuerySubmit?: (query: string) => void;
   onChatLogEntry?: (entry: ChatLogEntry) => void;
+  onChatBusyChange?: (busy: boolean) => void;
 }
 
 const MAX_CONTENT_LENGTH = 32 * 1024;
@@ -98,6 +99,7 @@ export default function TextChatWithTools({
   onSuggestionClick,
   onQuerySubmit,
   onChatLogEntry,
+  onChatBusyChange,
 }: TextChatProps) {
   const [input, setInput] = useState("");
   const suggestions = useMemo(() => {
@@ -161,6 +163,10 @@ export default function TextChatWithTools({
   });
   const userMessageCount = messages.filter((message) => message.role === "user").length;
   const isConversationClosed = userMessageCount >= MAX_USER_MESSAGES;
+
+  useEffect(() => {
+    onChatBusyChange?.(status !== "ready");
+  }, [status, onChatBusyChange]);
 
   // Log assistant responses when streaming completes (status: streaming/submitted -> ready)
   useEffect(() => {

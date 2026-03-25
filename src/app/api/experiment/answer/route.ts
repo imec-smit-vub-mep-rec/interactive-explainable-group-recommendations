@@ -19,6 +19,7 @@ const VALID_FIELDS = [
   'repeat_subjective_understanding_2_predict',
   'subjective_satisfaction_1_recommendations',
   'subjective_satisfaction_2_explanations',
+  'subjective_satisfaction_3_interactivity',
   'textual_debriefing',
   'nasa_tlx_data',
   'additional_feedback',
@@ -154,6 +155,14 @@ export async function POST(request: NextRequest) {
         await sql`
           UPDATE experiment_sessions 
           SET subjective_satisfaction_2_explanations = ${value}
+          WHERE id = ${sessionId}
+        `;
+        break;
+
+      case 'subjective_satisfaction_3_interactivity':
+        await sql`
+          UPDATE experiment_sessions 
+          SET subjective_satisfaction_3_interactivity = ${value}
           WHERE id = ${sessionId}
         `;
         break;
@@ -407,6 +416,9 @@ async function processFieldUpdate(sessionId: string, field: ValidField, value: u
       break;
     case 'subjective_satisfaction_2_explanations':
       await sql`UPDATE experiment_sessions SET subjective_satisfaction_2_explanations = ${value as number} WHERE id = ${sessionId}`;
+      break;
+    case 'subjective_satisfaction_3_interactivity':
+      await sql`UPDATE experiment_sessions SET subjective_satisfaction_3_interactivity = ${value as number} WHERE id = ${sessionId}`;
       break;
     case 'textual_debriefing':
       await sql`UPDATE experiment_sessions SET textual_debriefing = ${value as string} WHERE id = ${sessionId}`;

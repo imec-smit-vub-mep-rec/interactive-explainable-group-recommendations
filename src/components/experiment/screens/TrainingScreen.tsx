@@ -56,6 +56,7 @@ export function TrainingScreen({
   const [suggestionsClicked, setSuggestionsClicked] = useState<string[]>([]);
   const [typedQueries, setTypedQueries] = useState<string[]>([]);
   const [showProceedConfirm, setShowProceedConfirm] = useState(false);
+  const [isChatBusy, setIsChatBusy] = useState(false);
 
   const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
   const [attentionCheckCompleted, setAttentionCheckCompleted] = useState(false);
@@ -183,6 +184,7 @@ export function TrainingScreen({
     recordTaskInteraction("chat_message", {
       chatLogRole: entry.role,
       ...(entry.metadata?.source ? { source: entry.metadata.source } : {}),
+      ...(entry.role === "error" ? { errorContent: entry.content, errorName: entry.metadata?.errorName } : {}),
     });
 
     if (session.id) {
@@ -299,6 +301,7 @@ export function TrainingScreen({
   const canProceed = () => {
     if (currentStep === "initial_guess") return initialGuess !== null;
     if (currentStep === "explore_explanation") {
+      if (isChatBusy) return false;
       if (currentTaskIndex === 1 && !attentionCheckCompleted) {
         return attentionCheckAnswer !== null;
       }
@@ -458,6 +461,7 @@ export function TrainingScreen({
                 });
               }}
               onChatLogEntry={handleChatLogEntry}
+              onChatBusyChange={setIsChatBusy}
             />
 
             {/* Attention Check - shown in second training task */}
