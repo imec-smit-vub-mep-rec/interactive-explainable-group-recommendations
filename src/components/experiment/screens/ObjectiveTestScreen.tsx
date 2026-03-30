@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { NavigationButtons } from '../NavigationButtons';
 import InteractiveGroupRecommender from '@/components/InteractiveGroupRecommender';
 import { scenarios as allScenarios } from '@/lib/data/test_scenarios';
@@ -39,6 +39,8 @@ export function ObjectiveTestScreen({
   const [showBreather, setShowBreather] = useState(false);
   const [breatherStartTime, setBreatherStartTime] = useState<string | null>(null);
   const [attentionCheckAnswer, setAttentionCheckAnswer] = useState<string | null>(null);
+  const [isAdvancingTask, setIsAdvancingTask] = useState(false);
+  const isAdvancingTaskRef = useRef(false);
 
   const testScenarioIds = session.testScenarioIds;
 
@@ -128,6 +130,11 @@ export function ObjectiveTestScreen({
   };
 
   const handleNext = async () => {
+    if (isAdvancingTaskRef.current) return;
+    isAdvancingTaskRef.current = true;
+    setIsAdvancingTask(true);
+
+    try {
     recordTaskInteraction('click', { action: 'submit_answer', answer: selectedAnswer });
     await saveTaskData();
     
@@ -141,6 +148,10 @@ export function ObjectiveTestScreen({
       setCurrentTaskIndex(prev => prev + 1);
     } else {
       onNext();
+    }
+    } finally {
+      isAdvancingTaskRef.current = false;
+      setIsAdvancingTask(false);
     }
   };
 
@@ -281,7 +292,7 @@ export function ObjectiveTestScreen({
         onNext={handleNext}
         canGoBack={currentTaskIndex > 0}
         canGoNext={canProceed}
-        isLoading={isLoading}
+        isLoading={isLoading || isAdvancingTask}
         nextLabel={currentTaskIndex === testScenarioIds.length - 1 ? 'Complete Test' : 'Next Question'}
       />
     </div>
