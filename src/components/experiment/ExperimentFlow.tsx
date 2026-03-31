@@ -375,7 +375,13 @@ export function ExperimentFlow({ initialSession, searchParams }: ExperimentFlowP
         );
 
       case SCREENS.ATTENTION_FAIL:
-        return <AttentionFailScreen />;
+        return (
+          <AttentionFailScreen
+            attentionCheckAnswer={
+              session?.trainingTasksData.find((task) => task.attentionCheckAnswer != null)?.attentionCheckAnswer
+            }
+          />
+        );
 
       default:
         return <div>Unknown screen</div>;
