@@ -280,9 +280,11 @@ export async function POST(request: NextRequest) {
         is_attention_fail: boolean | null;
       }>;
 
-      const firstAttentionCheckFailed = row?.attn_check_1?.isCorrect === false;
+      const failures = [row?.attn_check_1, row?.attn_check_2].filter(
+        (check) => check?.isCorrect === false
+      ).length;
 
-      if (firstAttentionCheckFailed) {
+      if (failures >= 2) {
         await sql`
           UPDATE experiment_sessions
           SET is_attention_fail = TRUE
