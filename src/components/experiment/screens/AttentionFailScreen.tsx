@@ -6,7 +6,7 @@ import { PROLIFIC_CONFIG } from '@/lib/experiment-utils';
 
 export function AttentionFailScreen() {
    const handleProlificRedirect = () => {
-     window.location.href = PROLIFIC_CONFIG.CANCEL_URL;
+     window.location.href = PROLIFIC_CONFIG.FAILED_ATTENTION_CHECK_URL;
    };
  
    return (

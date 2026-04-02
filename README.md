@@ -69,6 +69,7 @@ Additional explanation styles available in the admin preview: Text, Pie Chart, H
    RECAPTCHA_SECRET_KEY=...
    NEXT_PUBLIC_PROLIFIC_REDIRECT_URL="https://app.prolific.com/submissions/complete?cc=YOUR_COMPLETION_CODE"
    NEXT_PUBLIC_PROLIFIC_CANCEL_URL="https://app.prolific.com/submissions/complete?cc=YOUR_RETURN_CODE"
+   NEXT_PUBLIC_PROLIFIC_FAILED_ATTENTION_CHECK_CODE="https://app.prolific.com/submissions/complete?cc=YOUR_FAILED_ATTENTION_CHECK_CODE"
    ```
 
    **LLM provider (chat explanations):**
@@ -196,9 +197,10 @@ For participants recruited via [Prolific](https://www.prolific.com):
    ```env
    NEXT_PUBLIC_PROLIFIC_REDIRECT_URL="https://app.prolific.com/submissions/complete?cc=YOUR_COMPLETION_CODE"
    NEXT_PUBLIC_PROLIFIC_CANCEL_URL="https://app.prolific.com/submissions/complete?cc=YOUR_RETURN_CODE"
+   NEXT_PUBLIC_PROLIFIC_FAILED_ATTENTION_CHECK_CODE="https://app.prolific.com/submissions/complete?cc=YOUR_FAILED_ATTENTION_CHECK_CODE"
    ```
 
-On the Thank you screen, participants who completed the study are redirected to the completion URL; those who withdrew or failed attention checks are redirected to the cancel URL.
+On the Thank you screen, participants who completed the study are redirected to the completion URL; those who withdrew are redirected to the cancel URL. Participants who fail attention checks are redirected to the failed attention check URL.
 
 **Optional:** Use a `group` query parameter (e.g. `?group=ADST`) to assign specific conditions. Valid codes are listed in `GROUP_CODES` in `src/lib/experiment-utils.ts`.
 

@@ -200,4 +200,7 @@ export const STORAGE_KEYS = {
 export const PROLIFIC_CONFIG = {
   COMPLETION_URL: process.env.NEXT_PUBLIC_PROLIFIC_REDIRECT_URL || 'https://app.prolific.com/submissions',
   CANCEL_URL: process.env.NEXT_PUBLIC_PROLIFIC_CANCEL_URL || 'https://app.prolific.com/submissions',
+  FAILED_ATTENTION_CHECK_URL:
+    process.env.NEXT_PUBLIC_PROLIFIC_FAILED_ATTENTION_CHECK_CODE ||
+    'https://app.prolific.com/submissions/complete?cc=CLNNQX0O',
 };
