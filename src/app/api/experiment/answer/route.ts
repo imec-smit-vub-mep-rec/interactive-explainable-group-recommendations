@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
         (check) => check?.isCorrect === false
       ).length;
 
-      if (failures >= 2) {
+      if (failures >= 1) {
         await sql`
           UPDATE experiment_sessions
           SET is_attention_fail = TRUE
