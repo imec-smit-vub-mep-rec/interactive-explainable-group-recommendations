@@ -172,7 +172,7 @@ export function WelcomeScreen({
         </p>
 
         <p className="text-gray-700 leading-relaxed">
-          <strong>Procedure:</strong> During this 20-30 minute experiment, you will interact with a group recommendation system and evaluate several depicted scenarios. You might also interact with a chatbot. You will be asked to answer approximately 10 questions about the system itself, and 5 questions about your personal experience using it.
+          <strong>Procedure:</strong> During this 15-25 minute experiment, you will interact with a group recommendation system and evaluate several depicted scenarios. You might also interact with a chatbot. You will be asked to answer approximately 10 questions about the system itself, and 5 questions about your personal experience using it.
         </p>
 
         <p className="text-gray-700 leading-relaxed">
