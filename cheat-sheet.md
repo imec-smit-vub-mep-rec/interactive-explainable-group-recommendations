@@ -33,7 +33,7 @@ Open **http://localhost:3000**. Production: `pnpm build` then `pnpm start`.
 | `RECAPTCHA_SECRET_KEY` | Server verifies token on `POST /api/experiment/session` |
 | `NEXT_PUBLIC_PROLIFIC_REDIRECT_URL` | “Completion” redirect after successful study |
 | `NEXT_PUBLIC_PROLIFIC_CANCEL_URL` | Withdrawal / early cancel |
-| `NEXT_PUBLIC_PROLIFIC_FAILED_ATTENTION_CHECK_CODE` | Failed attention checks |
+| `NEXT_PUBLIC_PROLIFIC_FAILED_ATTENTION_CHECK_CODE` | Failed attention checks (full URL; override `cc` via `FAILED_ATTENTION_CHECK_CC` or `cc` query param) |
 | `LLM_PROVIDER` | `cerebras` (default), `scaleway`, or `requesty` |
 | `LLM_MODEL` | Model id passed to the chat route |
 | `LLM_API_KEY`, `LLM_BASE_URL` | Required for Scaleway/Requesty; defaults exist for base URLs |

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, XCircle } from 'lucide-react';
 import { PROLIFIC_CONFIG } from '@/lib/experiment-utils';
@@ -8,12 +9,33 @@ import { PROLIFIC_CONFIG } from '@/lib/experiment-utils';
 const REDIRECT_DELAY_MS = 5000;
 
 export function AttentionFailScreen() {
+  const searchParams = useSearchParams();
   const [secondsRemaining, setSecondsRemaining] = useState(
     Math.ceil(REDIRECT_DELAY_MS / 1000)
   );
 
+  const getRedirectUrl = () => {
+    const failedAttentionCc =
+      searchParams.get('FACC') || searchParams.get('cc');
+
+    // Default to env URL, but allow overriding just the `cc` query param.
+    if (!failedAttentionCc) return PROLIFIC_CONFIG.FAILED_ATTENTION_CHECK_URL;
+
+    try {
+      const url = new URL(PROLIFIC_CONFIG.FAILED_ATTENTION_CHECK_URL);
+      url.searchParams.set('cc', failedAttentionCc);
+      return url.toString();
+    } catch {
+      // If env var isn't a valid URL for some reason, fall back to Prolific's
+      // standard completion endpoint.
+      return `https://app.prolific.com/submissions/complete?cc=${encodeURIComponent(
+        failedAttentionCc
+      )}`;
+    }
+  };
+
   const redirectToProlific = () => {
-    window.location.href = PROLIFIC_CONFIG.FAILED_ATTENTION_CHECK_URL;
+    window.location.href = getRedirectUrl();
   };
 
   useEffect(() => {
