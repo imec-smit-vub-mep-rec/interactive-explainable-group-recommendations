@@ -359,7 +359,7 @@ export default function SettingsSidebar({
             </div>
 
             {/* Display Options */}
-            <div>
+            {/* <div>
               <h4 className="text-md font-semibold mb-3">Display Options</h4>
               <div className="space-y-3">
                 <label className="flex items-center space-x-2 cursor-pointer">
@@ -398,7 +398,7 @@ export default function SettingsSidebar({
                   </div>
                 </label>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

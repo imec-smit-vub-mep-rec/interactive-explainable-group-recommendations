@@ -10,8 +10,8 @@ Prerequisites: **Node.js**, **pnpm**, **PostgreSQL** connection string (Neon-com
 
 ```bash
 cd interactive-group-explanations
-pnpm install
-pnpm dev
+pnpm install -- alternatively, delete pnpm-lock.yaml and run npm install
+pnpm dev -- alternatevily: npm run dev
 ```
 
 Open **http://localhost:3000**. Production: `pnpm build` then `pnpm start`.
